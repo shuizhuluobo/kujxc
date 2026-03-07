@@ -1,0 +1,219 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  permissions Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
+model User {
+  id                  String                  @id @default(uuid())
+  username            String                  @unique
+  password            String
+  name                String
+  avatar              String?
+  roleId              String
+  regionId            String?
+  isActive            Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  notifications       Notification[]
+  region              Region?                 @relation(fields: [regionId], references: [id])
+  role                Role                    @relation(fields: [roleId], references: [id])
+  wikiArticles        WikiArticle[]
+  wikiArticleLikes    WikiArticleLike[]
+  completedWorkOrders WorkOrder[]             @relation("CompleterWorkOrders")
+  createdWorkOrders   WorkOrder[]             @relation("CreatorWorkOrders")
+  receivedWorkOrders  WorkOrder[]             @relation("ReceiverWorkOrders")
+  collaborations      WorkOrderCollaborator[]
+
+  @@index([roleId])
+  @@index([regionId])
+}
+
+model Customer {
+  id         String      @id @default(uuid())
+  name       String
+  shortName  String?
+  namePinyin String?
+  nameInitials String?
+  contact    String?
+  phone      String?
+  address    String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  workOrders WorkOrder[]
+
+  @@index([shortName])
+}
+
+model Region {
+  id              String      @id @default(uuid())
+  name            String      @unique
+  namePinyin      String?
+  nameInitials    String?
+  sortOrder       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  dingtalkSecret  String?
+  dingtalkWebhook String?
+  users           User[]
+  workOrders      WorkOrder[]
+}
+
+model ServiceType {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  namePinyin   String?
+  nameInitials String?
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  workOrders   WorkOrder[]
+}
+
+model WorkOrder {
+  id            String                  @id @default(uuid())
+  detail        String
+  status        WorkOrderStatus         @default(PENDING)
+  scoreLevel    ScoreLevel              @default(NORMAL)
+  customerId    String
+  regionId      String
+  serviceTypeId String
+  creatorId     String
+  createdAt     DateTime                @default(now())
+  receiverId    String?
+  receivedAt    DateTime?
+  completerId   String?
+  completedAt   DateTime?
+  updatedAt     DateTime                @updatedAt
+  completer     User?                   @relation("CompleterWorkOrders", fields: [completerId], references: [id])
+  creator       User                    @relation("CreatorWorkOrders", fields: [creatorId], references: [id])
+  customer      Customer                @relation(fields: [customerId], references: [id])
+  receiver      User?                   @relation("ReceiverWorkOrders", fields: [receiverId], references: [id])
+  region        Region                  @relation(fields: [regionId], references: [id])
+  serviceType   ServiceType             @relation(fields: [serviceTypeId], references: [id])
+  collaborators WorkOrderCollaborator[]
+
+  @@index([status])
+  @@index([regionId])
+  @@index([createdAt])
+  @@index([creatorId])
+  @@index([receiverId])
+  @@index([customerId])
+}
+
+model WorkOrderCollaborator {
+  id          String    @id @default(uuid())
+  workOrderId String
+  userId      String
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([workOrderId, userId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  title       String
+  content     String
+  workOrderId String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+}
+
+model WikiCategory {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  sortOrder Int            @default(0)
+  parentId  String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  articles  WikiArticle[]
+  parent    WikiCategory?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  WikiCategory[] @relation("CategoryToCategory")
+}
+
+model WikiTag {
+  id        String        @id @default(uuid())
+  name      String        @unique
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  articles  WikiArticle[] @relation("ArticleToTag")
+}
+
+model WikiArticle {
+  id            String            @id @default(uuid())
+  title         String
+  content       String
+  viewCount     Int               @default(0)
+  isPublic      Boolean           @default(true)
+  categoryId    String
+  authorId      String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  chunks        Json?             @default("[]")
+  contentVector String?
+  likeCount     Int               @default(0)
+  titlePinyin   String?
+  titleInitials String?
+  author        User              @relation(fields: [authorId], references: [id])
+  category      WikiCategory      @relation(fields: [categoryId], references: [id])
+  likes         WikiArticleLike[]
+  tags          WikiTag[]         @relation("ArticleToTag")
+  attachments   WikiAttachment[]
+}
+
+model WikiAttachment {
+  id        String      @id @default(uuid())
+  filename  String
+  url       String
+  size      Int
+  mimeType  String
+  articleId String
+  createdAt DateTime    @default(now())
+  article   WikiArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+}
+
+model WikiArticleLike {
+  id        String      @id @default(uuid())
+  userId    String
+  articleId String
+  createdAt DateTime    @default(now())
+  article   WikiArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId])
+}
+
+enum WorkOrderStatus {
+  PENDING
+  RECEIVED
+  COMPLETED
+}
+
+enum ScoreLevel {
+  SIMPLE
+  NORMAL
+  COMPLEX
+}

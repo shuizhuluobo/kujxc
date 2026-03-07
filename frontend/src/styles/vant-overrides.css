@@ -1,0 +1,55 @@
+/**
+ * Vant 样式覆盖
+ * 用于统一 Vant 和 Element Plus 的视觉风格
+ */
+
+/* 主题色统一为 Element Plus 的蓝色 */
+:root {
+  --van-primary-color: #409eff;
+  --van-success-color: #67c23a;
+  --van-warning-color: #e6a23c;
+  --van-danger-color: #f56c6c;
+  --van-info-color: #909399;
+}
+
+/* Vant 组件圆角统一 */
+:root {
+  --van-radius-sm: 2px;
+  --van-radius-md: 4px;
+  --van-radius-lg: 8px;
+}
+
+/* Drawer 样式优化 */
+.van-popup--left,
+.van-popup--right {
+  max-width: 80vw;
+}
+
+/* Toast 样式优化 */
+.van-toast {
+  font-size: 14px;
+}
+
+/* Button 样式优化 */
+.van-button {
+  font-size: 14px;
+}
+
+/* 移动端导航栏样式 */
+.van-nav-bar {
+  background-color: #409eff;
+}
+
+.van-nav-bar__title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.van-nav-bar .van-icon {
+  color: #fff;
+}
+
+/* Tabbar 样式优化 */
+.van-tabbar-item--active {
+  color: #409eff;
+}

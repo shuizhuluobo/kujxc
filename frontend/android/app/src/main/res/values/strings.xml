@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">工单系统</string>
+    <string name="title_activity_main">工单系统</string>
+    <string name="package_name">com.kworkorder.app</string>
+    <string name="custom_url_scheme">com.kworkorder.app</string>
+    <string name="copyright">©Luobo 2026</string>
+</resources>

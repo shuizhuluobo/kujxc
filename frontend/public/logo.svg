@@ -1,0 +1,15 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for premium feel -->
+  <rect width="64" height="64" rx="14" fill="#0047AB"/>
+  
+  <!-- "ku" script-style silhouette -->
+  <!-- Made very bold for favicon clarity -->
+  <g fill="white">
+    <path d="M15 15 C18 15, 20 20, 20 25 L20 40 C20 45, 18 50, 15 50" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M20 32 L28 22 M20 32 L28 42" stroke="white" stroke-width="6" stroke-linecap="round"/>
+    <path d="M36 25 L36 40 C36 45, 40 48, 45 48 C50 48, 54 45, 54 40 L54 25" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- The signature smile arc -->
+  <path d="M18 52 Q32 60 46 52" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/>
+</svg>

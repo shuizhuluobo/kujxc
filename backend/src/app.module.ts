@@ -1,0 +1,64 @@
+import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
+import { CommonModule } from './common/common.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { WorkOrdersModule } from './work-orders/work-orders.module';
+import { CustomersModule } from './customers/customers.module';
+import { RegionsModule } from './regions/regions.module';
+import { ServiceTypesModule } from './service-types/service-types.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EventsModule } from './events/events.module';
+import { WikiModule } from './wiki/wiki.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { HealthModule } from './health/health.module';
+import { DingtalkModule } from './dingtalk/dingtalk.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000, // 1分钟
+          limit: 10, // 每分钟最多10次请求
+        },
+      ],
+    }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: join(process.cwd(), 'assets'),
+        serveRoot: '/assets',
+      },
+      {
+        rootPath: join(process.cwd(), 'uploads'),
+        serveRoot: '/uploads',
+      },
+    ),
+    CommonModule,
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    RolesModule,
+    WorkOrdersModule,
+    CustomersModule,
+    RegionsModule,
+    ServiceTypesModule,
+    NotificationsModule,
+    EventEmitterModule.forRoot(),
+    EventsModule,
+    WikiModule,
+    UploadsModule,
+    HealthModule,
+    DingtalkModule,
+  ],
+})
+export class AppModule {}
