@@ -4,9 +4,11 @@ import { ElMessage } from 'element-plus';
 import type { WorkOrder, WorkOrderStatus } from '@/types';
 import { workOrdersApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
+import { useResponsive } from '@/composables';
 
 export function useWorkOrderFilter() {
     const authStore = useAuthStore();
+    const { isMobile } = useResponsive();
 
     const loading = ref(false);
     const allWorkOrders = ref<WorkOrder[]>([]); // Store all fetched data
@@ -38,23 +40,23 @@ export function useWorkOrderFilter() {
 
         // 1. Filter by Region (double check)
         if (filter.regionId) {
-            result = result.filter(wo => wo.regionId === filter.regionId);
+            result = result.filter((wo: WorkOrder) => wo.regionId === filter.regionId);
         }
 
         // 2. Filter by Status
         if (filter.status) {
-            result = result.filter(wo => wo.status === filter.status);
+            result = result.filter((wo: WorkOrder) => wo.status === filter.status);
         }
 
         // 3. Filter by Service Type
         if (filter.serviceTypeId) {
-            result = result.filter(wo => wo.serviceTypeId === filter.serviceTypeId);
+            result = result.filter((wo: WorkOrder) => wo.serviceTypeId === filter.serviceTypeId);
         }
 
         // 4. Keyword Filter (Pinyin)
         if (filter.keyword) {
             const query = filter.keyword.toLowerCase();
-            result = result.filter(wo => {
+            result = result.filter((wo: WorkOrder) => {
                 // Match Customer Name or Short Name
                 if (wo.customer?.name && (
                     wo.customer.name.toLowerCase().includes(query) ||
@@ -81,8 +83,8 @@ export function useWorkOrderFilter() {
         pagination.total = result.length;
 
         // 5. Pagination
-        const start = (pagination.page - 1) * pagination.pageSize;
-        const end = start + pagination.pageSize;
+        const start = isMobile.value ? 0 : (pagination.page - 1) * pagination.pageSize;
+        const end = isMobile.value ? pagination.page * pagination.pageSize : start + pagination.pageSize;
         workOrders.value = result.slice(start, end);
     }
 
@@ -129,6 +131,10 @@ export function useWorkOrderFilter() {
         filter.regionId = authStore.roleCode === 'admin' ? '' : (authStore.user?.regionId || '');
         filter.keyword = '';
     }
+
+    watch(isMobile, () => {
+        applyFiltersAndPagination();
+    });
 
     // Watch filters to re-apply
     watch(() => ({ ...filter }), (newVal, oldVal) => {

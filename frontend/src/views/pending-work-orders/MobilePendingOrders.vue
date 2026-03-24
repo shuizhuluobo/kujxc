@@ -27,22 +27,29 @@
 
     <!-- 列表视图 -->
     <van-pull-refresh v-else v-model="refreshing" @refresh="onRefresh" class="pull-refresh-container">
-      <div class="card-list">
-        <transition-group name="list">
-          <WorkOrderCard
-            v-for="wo in workOrders"
-            :key="wo.id"
-            :work-order="wo"
-            :show-actions="true"
-            @receive="emit('receive', wo)"
-            @complete="emit('complete', wo)"
-            @edit="emit('edit', wo)"
-            @delete="emit('delete', wo)"
-            @cancel-receive="emit('cancelReceive', wo)"
-          />
-        </transition-group>
-        <el-empty v-if="workOrders.length === 0" description="暂无待办工单" />
-      </div>
+      <van-list
+        v-model:loading="listLoading"
+        :finished="listFinished"
+        :finished-text="workOrders.length === 0 ? '' : '没有更多了'"
+        @load="onLoad"
+      >
+        <div class="card-list">
+          <transition-group name="list">
+            <WorkOrderCard
+              v-for="wo in workOrders"
+              :key="wo.id"
+              :work-order="wo"
+              :show-actions="true"
+              @receive="emit('receive', wo)"
+              @complete="emit('complete', wo)"
+              @edit="emit('edit', wo)"
+              @delete="emit('delete', wo)"
+              @cancel-receive="emit('cancelReceive', wo)"
+            />
+          </transition-group>
+          <el-empty v-if="workOrders.length === 0 && !listLoading" description="暂无待办工单" />
+        </div>
+      </van-list>
     </van-pull-refresh>
     
     <!-- 筛选抽屉 -->
@@ -186,7 +193,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Plus } from '@element-plus/icons-vue';
-import { Button as VanButton, Popup as VanPopup, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh } from 'vant';
+import { Button as VanButton, Popup as VanPopup, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
@@ -199,6 +206,7 @@ interface Props {
   filter: any;
   stats: any;
   formState: any; 
+  pagination: any;
 }
 
 const props = defineProps<Props>();
@@ -214,6 +222,7 @@ const emit = defineEmits<{
   (e: 'cancelReceive', row: WorkOrder): void;
   (e: 'resetFilters'): void;
   (e: 'refresh', done: () => void): void;
+  (e: 'pageChange', page: number): void;
 }>();
 
 const baseDataStore = useBaseDataStore();
@@ -235,8 +244,23 @@ async function handleDrawerSubmit() {
 }
 
 const refreshing = ref(false);
+const listLoading = ref(false);
+const listFinished = computed(() => {
+  if (!props.pagination || props.pagination.total === 0) return true;
+  return props.pagination.page * props.pagination.pageSize >= props.pagination.total;
+});
+
+function onLoad() {
+  if (!listFinished.value) {
+    emit('pageChange', props.pagination.page + 1);
+  }
+  setTimeout(() => {
+    listLoading.value = false;
+  }, 100);
+}
 
 function onRefresh() {
+  emit('pageChange', 1);
   emit('refresh', () => {
     refreshing.value = false;
   });
