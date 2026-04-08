@@ -5,7 +5,7 @@
       <transition name="fade" appear>
         <div class="login-card">
           <div class="login-header">
-            <div class="logo-icon">WO</div>
+            <img src="/ku_main_logo.png" alt="Logo" class="login-logo" />
             <h1>工单管理系统</h1>
             <p>Work Order Management System</p>
           </div>
@@ -198,19 +198,12 @@ function handlePasswordChangeSuccess() {
   margin-bottom: 40px;
 }
 
-.logo-icon {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, hsl(var(--primary-h), 80%, 45%) 100%);
-  color: white;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: 800;
+.login-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
   margin: 0 auto 24px;
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+  object-fit: contain;
 }
 
 .login-header h1 {

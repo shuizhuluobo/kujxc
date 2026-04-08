@@ -67,6 +67,7 @@ const CSRF_EXCLUDED_PATHS = [
     '/auth/login',
     '/auth/refresh',
     '/security/csrf-token',
+    '/fee/',
 ];
 
 function shouldAddCsrf(config: InternalAxiosRequestConfig): boolean {

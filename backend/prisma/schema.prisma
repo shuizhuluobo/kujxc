@@ -38,6 +38,7 @@ model User {
   createdWorkOrders   WorkOrder[]             @relation("CreatorWorkOrders")
   receivedWorkOrders  WorkOrder[]             @relation("ReceiverWorkOrders")
   collaborations      WorkOrderCollaborator[]
+  feeRecords          FeeRecord[]
 
   @@index([roleId])
   @@index([regionId])
@@ -216,4 +217,36 @@ enum ScoreLevel {
   SIMPLE
   NORMAL
   COMPLEX
+}
+
+model FeeSetting {
+  id          String   @id @default(uuid())
+  category    String
+  item        String
+  unit        String
+  price       Float
+  description String?
+  threshold   Int?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, item])
+  @@index([category])
+}
+
+model FeeRecord {
+  id          String   @id @default(uuid())
+  items       Json
+  subtotal    Float
+  discount    Float    @default(0)
+  actualAmount Float
+  remark      String?
+  createdAt   DateTime @default(now())
+  creatorId   String?
+  creator     User?    @relation(fields: [creatorId], references: [id])
+
+  @@index([createdAt])
+  @@index([creatorId])
 }

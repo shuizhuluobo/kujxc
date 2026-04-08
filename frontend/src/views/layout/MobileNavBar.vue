@@ -29,6 +29,14 @@
     </div>
     <div 
       class="nav-item" 
+      :class="{ active: currentPath === '/fee-calculator' }"
+      @click="$emit('navigate', '/fee-calculator')"
+    >
+      <el-icon><Wallet /></el-icon>
+      <span>费用</span>
+    </div>
+    <div 
+      class="nav-item" 
       :class="{ active: currentPath.startsWith('/admin') }"
       @click="$emit('showAdmin')"
       v-if="canAccessAnyAdmin"
@@ -49,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet } from '@element-plus/icons-vue';
 
 defineProps<{
   currentPath: string;

@@ -89,6 +89,23 @@ export const PermissionModules = {
         ],
     },
 
+    // 费用计算器
+    FEE: {
+        key: 'fee',
+        name: '费用计算器',
+        icon: 'Wallet',
+        pages: [
+            { key: 'list', name: '费用计算器', path: '/fee-calculator' },
+        ],
+        actions: [
+            { key: 'calculate', name: '计算费用', description: '允许使用费用计算器' },
+            { key: 'save_records', name: '保存记录', description: '允许保存费用记录' },
+            { key: 'view_records', name: '查看记录', description: '允许查看历史记录' },
+            { key: 'delete_records', name: '删除记录', description: '允许删除费用记录' },
+            { key: 'settings', name: '费用设置', description: '允许修改费用设置' },
+        ],
+    },
+
     // 系统管理
     SYSTEM: {
         key: 'system',
@@ -142,6 +159,7 @@ export const RolePermissionTemplates = {
             'customer:list', 'customer:view', 'customer:create', 'customer:edit',
             'region:list', 'region:view',
             'serviceType:list', 'serviceType:view',
+            'fee:calculate', 'fee:save_records', 'fee:view_records',
             'system:user_view',
             'profile:profile', 'profile:view', 'profile:edit',
         ],
@@ -165,6 +183,7 @@ export const RolePermissionTemplates = {
             'region:list',
             'serviceType:view',
             'serviceType:list',
+            'fee:calculate', 'fee:save_records', 'fee:view_records',
             'wiki:list',
             'wiki:view',
             'wiki:create',

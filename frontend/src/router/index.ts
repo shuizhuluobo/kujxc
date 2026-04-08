@@ -71,6 +71,12 @@ const router = createRouter({
                     meta: { permission: 'wiki:list' },
                 },
                 {
+                    path: 'fee-calculator',
+                    name: 'feeCalculator',
+                    component: () => import('@/views/fee-calculator/FeeCalculator.vue'),
+                    meta: { permission: null },
+                },
+                {
                     path: 'wiki/:id',
                     name: 'wikiDetail',
                     component: () => import('@/views/wiki/WikiDetail.vue'),

@@ -147,3 +147,50 @@ export const wikiApi = {
     deleteArticle: (id: string) => api.delete(`/wiki/articles/${id}`),
     toggleLike: (id: string) => api.post<{ isLiked: boolean }>(`/wiki/articles/${id}/like`),
 };
+
+// ==================== 费用计算器 ====================
+export interface FeeItem {
+    category: string;
+    item: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
+
+export interface FeeSetting {
+    id: string;
+    category: string;
+    item: string;
+    unit: string;
+    price: number;
+    description?: string;
+    threshold?: number;
+    isActive: boolean;
+}
+
+export interface FeeRecord {
+    id: string;
+    items: FeeItem[];
+    subtotal: number;
+    discount: number;
+    actualAmount: number;
+    remark?: string;
+    createdAt: string;
+    creatorId?: string;
+    creator?: { name: string };
+}
+
+export const feeApi = {
+    getSettings: (category?: string) => api.get<FeeSetting[]>('/fee/settings', { params: { category } }),
+    updateSetting: (id: string, data: { price?: number; unit?: string; description?: string; isActive?: boolean }) =>
+        api.patch<FeeSetting>(`/fee/settings/${id}`, data),
+    createSetting: (data: { category: string; item: string; unit: string; price: number; description?: string }) =>
+        api.post<FeeSetting>('/fee/settings', data),
+    deleteSetting: (id: string) => api.delete(`/fee/settings/${id}`),
+    calculate: (items: { category: string; item: string; quantity: number; unitPrice: number }[]) =>
+        api.post<{ items: FeeItem[]; subtotal: number; discount: number; actualAmount: number }>('/fee/calculate', items),
+    saveRecord: (data: { items: FeeItem[]; subtotal: number; discount: number; actualAmount: number; remark?: string }) =>
+        api.post<FeeRecord>('/fee/records', data),
+    getRecords: (limit?: number, offset?: number) => api.get<FeeRecord[]>('/fee/records', { params: { limit, offset } }),
+    initSettings: () => api.post('/fee/settings/init'),
+};

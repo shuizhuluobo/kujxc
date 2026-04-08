@@ -17,6 +17,7 @@ import { WikiModule } from './wiki/wiki.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { HealthModule } from './health/health.module';
 import { DingtalkModule } from './dingtalk/dingtalk.module';
+import { FeeModule } from './fee/fee.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -59,6 +60,7 @@ import { join } from 'path';
     UploadsModule,
     HealthModule,
     DingtalkModule,
+    FeeModule,
   ],
 })
 export class AppModule {}

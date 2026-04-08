@@ -1,8 +1,8 @@
 <template>
   <el-aside :width="sidebarCollapsed ? '64px' : '220px'" class="sidebar">
     <div class="logo" @click="$emit('navigate', '/')">
-      <span v-if="!sidebarCollapsed">工单管理</span>
-      <span v-else>WO</span>
+      <img v-if="!sidebarCollapsed" src="/ku_main_logo.png" alt="Logo" class="logo-img" />
+      <img v-else src="/ku_main_logo.png" alt="Logo" class="logo-img-small" />
     </div>
     
     <el-menu
@@ -26,6 +26,11 @@
         <span>知识库</span>
       </el-menu-item>
       
+      <el-menu-item index="/fee-calculator">
+        <el-icon><Wallet /></el-icon>
+        <span>费用计算器</span>
+      </el-menu-item>
+      
       <el-sub-menu index="admin" v-if="canAccessAnyAdmin">
         <template #title>
           <el-icon><Setting /></el-icon>
@@ -47,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet } from '@element-plus/icons-vue';
 
 defineProps<{
   sidebarCollapsed: boolean;
@@ -83,12 +88,21 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color);
-  font-size: 18px;
-  font-weight: 800;
   cursor: pointer;
-  letter-spacing: 0.1em;
   margin-bottom: 24px;
+  padding: 0 12px;
+}
+
+.logo-img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-img-small {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
 }
 
 .sidebar-menu {
