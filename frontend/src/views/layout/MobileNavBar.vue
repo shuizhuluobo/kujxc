@@ -31,6 +31,7 @@
       class="nav-item" 
       :class="{ active: currentPath === '/fee-calculator' }"
       @click="$emit('navigate', '/fee-calculator')"
+      v-if="canAccessFeeCalculator"
     >
       <el-icon><Wallet /></el-icon>
       <span>费用</span>
@@ -64,6 +65,7 @@ defineProps<{
   canAccessWorkOrder: boolean;
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
+  canAccessFeeCalculator: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
 }>();

@@ -133,7 +133,7 @@
                   <el-checkbox
                     v-for="page in module.pages"
                     :key="page.key"
-                    :label="`${module.key}:${page.key}`"
+                    :value="`${module.key}:${page.key}`"
                     class="permission-checkbox"
                   >
                     {{ page.name }}
@@ -143,19 +143,18 @@
 
               <div v-if="module.actions.length" class="permission-section">
                 <div class="section-title">功能操作</div>
-                <div class="actions-grid">
+                <el-checkbox-group v-model="selectedPermissions[module.key].actions">
                   <el-checkbox
                     v-for="action in module.actions"
                     :key="action.key"
-                    v-model="selectedPermissions[module.key].actions"
-                    :label="`${module.key}:${action.key}`"
+                    :value="`${module.key}:${action.key}`"
                     class="permission-checkbox"
                   >
                     <el-tooltip :content="action.description" placement="top">
                       <span>{{ action.name }}</span>
                     </el-tooltip>
                   </el-checkbox>
-                </div>
+                </el-checkbox-group>
               </div>
             </div>
           </el-collapse-item>

@@ -26,7 +26,7 @@
         <span>知识库</span>
       </el-menu-item>
       
-      <el-menu-item index="/fee-calculator">
+      <el-menu-item index="/fee-calculator" v-if="canAccessFeeCalculator">
         <el-icon><Wallet /></el-icon>
         <span>费用计算器</span>
       </el-menu-item>
@@ -60,6 +60,7 @@ defineProps<{
   canAccessWorkOrder: boolean;
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
+  canAccessFeeCalculator: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
   canAccessUserManage: boolean;

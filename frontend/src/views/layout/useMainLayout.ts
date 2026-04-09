@@ -24,6 +24,7 @@ export function useMainLayout() {
     const canAccessWorkOrder = computed(() => has('workOrder:list'));
     const canAccessWorkOrderHistory = computed(() => has('workOrder:list'));
     const canAccessWiki = computed(() => has('wiki:list'));
+    const canAccessFeeCalculator = computed(() => has('fee:list'));
     const canAccessProfile = computed(() => has('profile:profile'));
 
     // 系统管理页面访问权 (UI 菜单入口)
@@ -106,6 +107,7 @@ export function useMainLayout() {
         canAccessWorkOrder,
         canAccessWorkOrderHistory,
         canAccessWiki,
+        canAccessFeeCalculator,
         canAccessProfile,
         canAccessUserManage,
         canAccessRoleManage,
