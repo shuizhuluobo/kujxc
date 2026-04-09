@@ -30,7 +30,7 @@ import type { CurrentUserData } from '../common/decorators/current-user.decorato
 @UseGuards(JwtAuthGuard)
 @Controller('wiki')
 export class WikiController {
-  constructor(private readonly wikiService: WikiService) { }
+  constructor(private readonly wikiService: WikiService) {}
 
   // --- Categories ---
   @Get('categories')

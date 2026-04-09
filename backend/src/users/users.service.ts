@@ -21,7 +21,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private filesService: FilesService,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     // 检查用户名是否已存在

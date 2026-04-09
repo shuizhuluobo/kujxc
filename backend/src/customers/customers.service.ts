@@ -11,7 +11,7 @@ import { PaginationDto } from '../common/dto';
 
 @Injectable()
 export class CustomersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createDto: CreateCustomerDto) {
     const { pinyinStr, initials } = generatePinyinMeta(createDto.name);
@@ -19,8 +19,8 @@ export class CustomersService {
       data: {
         ...createDto,
         namePinyin: pinyinStr,
-        nameInitials: initials
-      }
+        nameInitials: initials,
+      },
     });
   }
 
@@ -47,8 +47,18 @@ export class CustomersService {
               OR: [
                 { name: { contains: keyword, mode: 'insensitive' } },
                 { shortName: { contains: keyword, mode: 'insensitive' } },
-                { namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
-                { nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
+                {
+                  namePinyin: {
+                    contains: keyword.toLowerCase(),
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  nameInitials: {
+                    contains: keyword.toLowerCase(),
+                    mode: 'insensitive',
+                  },
+                },
                 { contact: { contains: keyword, mode: 'insensitive' } },
                 { phone: { contains: keyword, mode: 'insensitive' } },
               ],
@@ -86,8 +96,15 @@ export class CustomersService {
       where.OR = [
         { shortName: { contains: keyword, mode: 'insensitive' } },
         { name: { contains: keyword, mode: 'insensitive' } },
-        { namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
-        { nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
+        {
+          namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+        },
+        {
+          nameInitials: {
+            contains: keyword.toLowerCase(),
+            mode: 'insensitive',
+          },
+        },
         { contact: { contains: keyword, mode: 'insensitive' } },
         { phone: { contains: keyword, mode: 'insensitive' } },
       ];
@@ -97,10 +114,7 @@ export class CustomersService {
       this.prisma.customer.findMany({
         where,
         orderBy: keyword
-          ? [
-            { shortName: 'asc' },
-            { name: 'asc' },
-          ]
+          ? [{ shortName: 'asc' }, { name: 'asc' }]
           : { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,

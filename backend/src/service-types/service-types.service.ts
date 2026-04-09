@@ -9,7 +9,7 @@ import { CreateServiceTypeDto, UpdateServiceTypeDto } from '../common/dto';
 
 @Injectable()
 export class ServiceTypesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createDto: CreateServiceTypeDto) {
     const existing = await this.prisma.serviceType.findUnique({
@@ -21,8 +21,8 @@ export class ServiceTypesService {
       data: {
         ...createDto,
         namePinyin: pinyinStr,
-        nameInitials: initials
-      }
+        nameInitials: initials,
+      },
     });
   }
 
@@ -48,7 +48,7 @@ export class ServiceTypesService {
         ...updateDto,
         namePinyin: pinyinStr,
         nameInitials: initials,
-      }
+      },
     });
   }
 

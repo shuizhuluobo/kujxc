@@ -15,9 +15,9 @@ export function getBaseURL(): string {
             if (isDev) console.log('[API] Using VITE_API_URL:', import.meta.env.VITE_API_URL);
             return import.meta.env.VITE_API_URL;
         }
-        // 默认使用生产地址
-        if (isDev) console.log('[API] Using default production URL');
-        return 'https://your-api-domain.com/api';
+        // 生产环境必须配置 VITE_API_URL
+        if (isDev) console.log('[API] VITE_API_URL not configured');
+        throw new Error('VITE_API_URL environment variable is required for mobile app');
     }
 
     // Web 环境：使用相对路径

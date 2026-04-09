@@ -31,7 +31,7 @@ const ALLOWED_MIME_TYPES = [
   'image/gif',
   'image/webp',
 ];
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_ATTACHMENT_SIZE = 500 * 1024 * 1024; // 500MB
 const UPLOAD_DIR = './uploads/avatars';
 const WIKI_ATTACHMENT_DIR = './uploads/wiki/attachments';

@@ -218,13 +218,6 @@ export class WorkOrdersService {
   ) {
     const workOrder = await this.findOne(id);
 
-    console.log('DEBUG update:', {
-      id,
-      userId,
-      roleCode,
-      creatorId: workOrder.creatorId,
-    });
-
     // 只有创建人可以编辑，管理员除外
     if (workOrder.creatorId !== userId && roleCode !== 'admin') {
       throw new ForbiddenException('只有创建人或管理员可以编辑工单');

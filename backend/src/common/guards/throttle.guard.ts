@@ -3,16 +3,81 @@ import {
   CanActivate,
   ExecutionContext,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { THROTTLE_KEY } from '../decorators/throttle.decorator';
 
-// 简化的速率限制存储（内存中）
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
+interface RateLimitRecord {
+  count: number;
+  resetTime: number;
+}
 
 @Injectable()
 export class ThrottleGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  private readonly logger = new Logger(ThrottleGuard.name);
+  private readonly requestCounts = new Map<string, RateLimitRecord>();
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private readonly CLEANUP_INTERVAL_MS = 60 * 1000;
+  private readonly MAX_MAP_SIZE = 10000;
+
+  constructor(private reflector: Reflector) {
+    this.startCleanup();
+  }
+
+  private startCleanup(): void {
+    if (this.cleanupInterval) {
+      return;
+    }
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup();
+    }, this.CLEANUP_INTERVAL_MS);
+
+    this.cleanupInterval.unref();
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    let removedCount = 0;
+
+    for (const [key, record] of this.requestCounts.entries()) {
+      if (record.resetTime <= now) {
+        this.requestCounts.delete(key);
+        removedCount++;
+      }
+    }
+
+    if (removedCount > 0) {
+      this.logger.debug(
+        `Cleaned up ${removedCount} expired rate limit records`,
+      );
+    }
+
+    if (this.requestCounts.size > this.MAX_MAP_SIZE) {
+      const entriesToDelete = this.requestCounts.size - this.MAX_MAP_SIZE;
+      const keys = Array.from(this.requestCounts.keys()).slice(
+        0,
+        entriesToDelete,
+      );
+      keys.forEach((key) => this.requestCounts.delete(key));
+      this.logger.warn(
+        `Rate limit map exceeded max size, removed ${entriesToDelete} oldest entries`,
+      );
+    }
+  }
+
+  private getClientIp(request: {
+    ip?: string;
+    connection?: { remoteAddress?: string };
+    headers?: Record<string, string>;
+  }): string {
+    const forwardedFor = request.headers?.['x-forwarded-for'];
+    if (forwardedFor) {
+      const ips = forwardedFor.split(',').map((ip: string) => ip.trim());
+      return ips[0];
+    }
+    return request.ip || request.connection?.remoteAddress || 'unknown';
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const options = this.reflector.getAllAndOverride<{
@@ -25,11 +90,11 @@ export class ThrottleGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const ip = request.ip || request.connection?.remoteAddress || 'unknown';
+    const ip = this.getClientIp(request);
     const key = `${ip}:${request.url}`;
 
     const now = Date.now();
-    const record = requestCounts.get(key);
+    const record = this.requestCounts.get(key);
 
     if (record && record.resetTime > now) {
       if (record.count >= options.limit) {
@@ -37,7 +102,7 @@ export class ThrottleGuard implements CanActivate {
       }
       record.count++;
     } else {
-      requestCounts.set(key, {
+      this.requestCounts.set(key, {
         count: 1,
         resetTime: now + options.ttl * 1000,
       });

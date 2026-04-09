@@ -23,7 +23,7 @@ export class WikiService {
   constructor(
     private prisma: PrismaService,
     private filesService: FilesService,
-  ) { }
+  ) {}
 
   // --- Categories ---
   async createCategory(dto: CreateWikiCategoryDto) {
@@ -63,19 +63,21 @@ export class WikiService {
         authorId: userId,
         titlePinyin: pinyinStr,
         titleInitials: initials,
-        tags: tagNames && tagNames.length > 0
-          ? {
-            connectOrCreate: tagNames.map((name) => ({
-              where: { name },
-              create: { name },
-            })),
-          }
-          : undefined,
-        attachments: attachments && attachments.length > 0
-          ? {
-            create: attachments,
-          }
-          : undefined,
+        tags:
+          tagNames && tagNames.length > 0
+            ? {
+                connectOrCreate: tagNames.map((name) => ({
+                  where: { name },
+                  create: { name },
+                })),
+              }
+            : undefined,
+        attachments:
+          attachments && attachments.length > 0
+            ? {
+                create: attachments,
+              }
+            : undefined,
       },
       include: {
         category: true,
@@ -103,8 +105,15 @@ export class WikiService {
       where.OR = [
         { title: { contains: keyword, mode: 'insensitive' } },
         { content: { contains: keyword, mode: 'insensitive' } },
-        { titlePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
-        { titleInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' } },
+        {
+          titlePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+        },
+        {
+          titleInitials: {
+            contains: keyword.toLowerCase(),
+            mode: 'insensitive',
+          },
+        },
       ];
     }
 
@@ -124,8 +133,8 @@ export class WikiService {
             select: { id: true, name: true, username: true, avatar: true },
           },
           _count: {
-            select: { attachments: true }
-          }
+            select: { attachments: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -202,21 +211,23 @@ export class WikiService {
         ...rest,
         titlePinyin: pinyinStr,
         titleInitials: initials,
-        tags: tagNames && tagNames.length > 0
-          ? {
-            set: [],
-            connectOrCreate: tagNames.map((name) => ({
-              where: { name },
-              create: { name },
-            })),
-          }
-          : { set: [] },
-        attachments: attachments !== undefined
-          ? {
-            deleteMany: {},
-            create: attachments,
-          }
-          : undefined,
+        tags:
+          tagNames && tagNames.length > 0
+            ? {
+                set: [],
+                connectOrCreate: tagNames.map((name) => ({
+                  where: { name },
+                  create: { name },
+                })),
+              }
+            : { set: [] },
+        attachments:
+          attachments !== undefined
+            ? {
+                deleteMany: {},
+                create: attachments,
+              }
+            : undefined,
       },
       include: { category: true, tags: true, attachments: true },
     });
@@ -323,52 +334,52 @@ export class WikiService {
 
     // 1. WikiArticles
     const articles = await this.prisma.wikiArticle.findMany({
-      where: { OR: [{ titlePinyin: null }, { titleInitials: null }] }
+      where: { OR: [{ titlePinyin: null }, { titleInitials: null }] },
     });
     for (const article of articles) {
       const { pinyinStr, initials } = generatePinyinMeta(article.title);
       await this.prisma.wikiArticle.update({
         where: { id: article.id },
-        data: { titlePinyin: pinyinStr, titleInitials: initials }
+        data: { titlePinyin: pinyinStr, titleInitials: initials },
       });
       count++;
     }
 
     // 2. Customers
     const customers = await this.prisma.customer.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] }
+      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
     });
     for (const customer of customers) {
       const { pinyinStr, initials } = generatePinyinMeta(customer.name);
       await this.prisma.customer.update({
         where: { id: customer.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials }
+        data: { namePinyin: pinyinStr, nameInitials: initials },
       });
       count++;
     }
 
     // 3. Regions
     const regions = await this.prisma.region.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] }
+      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
     });
     for (const region of regions) {
       const { pinyinStr, initials } = generatePinyinMeta(region.name);
       await this.prisma.region.update({
         where: { id: region.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials }
+        data: { namePinyin: pinyinStr, nameInitials: initials },
       });
       count++;
     }
 
     // 4. ServiceTypes
     const serviceTypes = await this.prisma.serviceType.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] }
+      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
     });
     for (const st of serviceTypes) {
       const { pinyinStr, initials } = generatePinyinMeta(st.name);
       await this.prisma.serviceType.update({
         where: { id: st.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials }
+        data: { namePinyin: pinyinStr, nameInitials: initials },
       });
       count++;
     }

@@ -11,4 +11,4 @@ import { CsrfController } from './controllers/csrf.controller';
   providers: [CsrfService, FilesService, CsrfGuard],
   exports: [CsrfService, FilesService, CsrfGuard],
 })
-export class CommonModule { }
+export class CommonModule {}

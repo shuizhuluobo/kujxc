@@ -9,7 +9,7 @@ import { CreateRegionDto, UpdateRegionDto } from '../common/dto';
 
 @Injectable()
 export class RegionsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createDto: CreateRegionDto) {
     const existing = await this.prisma.region.findUnique({
@@ -23,8 +23,8 @@ export class RegionsService {
       data: {
         ...createDto,
         namePinyin: pinyinStr,
-        nameInitials: initials
-      }
+        nameInitials: initials,
+      },
     });
   }
 
@@ -50,7 +50,7 @@ export class RegionsService {
         ...updateDto,
         namePinyin: pinyinStr,
         nameInitials: initials,
-      }
+      },
     });
   }
 

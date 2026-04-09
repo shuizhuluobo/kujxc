@@ -30,7 +30,7 @@ export class CreateWikiCategoryDto {
   parentId?: string;
 }
 
-export class UpdateWikiCategoryDto extends PartialType(CreateWikiCategoryDto) { }
+export class UpdateWikiCategoryDto extends PartialType(CreateWikiCategoryDto) {}
 
 export class CreateWikiTagDto {
   @ApiProperty({ description: '标签名称' })
@@ -97,7 +97,7 @@ export class CreateWikiArticleDto {
   attachments?: WikiAttachmentDto[];
 }
 
-export class UpdateWikiArticleDto extends PartialType(CreateWikiArticleDto) { }
+export class UpdateWikiArticleDto extends PartialType(CreateWikiArticleDto) {}
 
 import { PaginationDto } from '../../common/dto';
 
