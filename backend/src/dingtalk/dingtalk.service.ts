@@ -20,6 +20,31 @@ export class DingtalkService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * 构建编辑工单通知消息
+   */
+  buildEditedWorkOrderMessage(workOrder: WorkOrderData) {
+    const customerName =
+      workOrder.customer?.shortName || workOrder.customer?.name || '未知';
+    const regionName = workOrder.region?.name || '未知';
+    const serviceTypeName = workOrder.serviceType?.name || '未知';
+    const creatorName = workOrder.creator?.name || '未知';
+    const createdAt = new Date(workOrder.createdAt).toLocaleString('zh-CN');
+
+    return {
+      title: '工单已编辑',
+      text:
+        `## 工单已编辑\n\n` +
+        `- **客户**: ${customerName}\n` +
+        `- **区域**: ${regionName}\n` +
+        `- **服务类型**: ${serviceTypeName}\n` +
+        `- **工单详情**: ${workOrder.detail.substring(0, 100)}${workOrder.detail.length > 100 ? '...' : ''}\n` +
+        `- **创建人**: ${creatorName}\n` +
+        `- **创建时间**: ${createdAt}\n\n` +
+        `> [查看待办工单](${process.env.FRONTEND_URL || 'http://localhost:5173'})`,
+    };
+  }
+
+  /**
    * 发送工单通知到指定区域的钉钉群
    */
   async sendWorkOrderNotification(
@@ -78,6 +103,38 @@ export class DingtalkService {
       );
       this.logger.log(
         `钉钉消息推送成功: 工单 ${workOrder.id} -> 区域 ${region.name}`,
+      );
+    } catch (error) {
+      this.logger.error(`钉钉消息推送失败: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * 发送编辑工单通知
+   */
+  async sendEditedNotification(
+    workOrder: WorkOrderData,
+    regionId: string,
+  ): Promise<void> {
+    const region = await this.prisma.region.findUnique({
+      where: { id: regionId },
+    });
+
+    if (!region?.dingtalkWebhook) {
+      this.logger.debug(`区域 ${regionId} 未配置钉钉机器人，跳过推送`);
+      return;
+    }
+
+    const message = this.buildEditedWorkOrderMessage(workOrder);
+
+    try {
+      await this.sendMarkdownMessage(
+        region.dingtalkWebhook,
+        region.dingtalkSecret,
+        message,
+      );
+      this.logger.log(
+        `钉钉编辑通知推送成功: 工单 ${workOrder.id} -> 区域 ${region.name}`,
       );
     } catch (error) {
       this.logger.error(`钉钉消息推送失败: ${error.message}`, error.stack);

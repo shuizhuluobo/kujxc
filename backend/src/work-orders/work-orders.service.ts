@@ -230,11 +230,25 @@ export class WorkOrdersService {
       throw new ForbiddenException('只有创建人或管理员可以编辑工单');
     }
 
-    return this.prisma.workOrder.update({
+    const updated = await this.prisma.workOrder.update({
       where: { id },
       data: updateDto,
       include: this.includeRelations,
     });
+
+    // 推送钉钉编辑通知
+    await this.dingtalkService.sendEditedNotification(
+      updated,
+      updated.regionId,
+    );
+
+    // 触发 SSE 事件
+    this.eventEmitter.emit('app.event', {
+      type: 'work-order.updated',
+      payload: updated,
+    });
+
+    return updated;
   }
 
   async remove(id: string, userId: string, roleCode?: string) {
