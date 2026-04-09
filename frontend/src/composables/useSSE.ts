@@ -31,27 +31,20 @@ export function useSSE() {
             const response = await api.get('/events/token');
             const sseToken = response.data.token;
 
-            // 构建 SSE URL（使用短时效token）
-            let sseUrl: string;
-            if (import.meta.env.VITE_API_URL) {
-                // Capacitor 环境，使用完整地址
-                const apiBase = import.meta.env.VITE_API_URL.replace(/\/api$/, '');
-                sseUrl = `${apiBase}/api/events/sse?token=${encodeURIComponent(sseToken)}`;
-            } else {
-                // 开发环境，使用相对路径
-                sseUrl = `/api/events/sse?token=${encodeURIComponent(sseToken)}`;
-            }
+            // 始终使用相对路径，通过 nginx 反向代理
+            const sseUrl = `/api/events/sse?token=${encodeURIComponent(sseToken)}`;
+
+            console.log('[SSE] Connecting to:', sseUrl);
 
             const es = new EventSource(sseUrl);
 
             es.onopen = () => {
                 isConnected.value = true;
+                console.log('[SSE] Connected');
             };
 
-            es.onerror = () => {
-                if (import.meta.env.DEV) {
-                    console.error('[SSE] Connection error');
-                }
+            es.onerror = (error) => {
+                console.error('[SSE] Connection error:', error);
                 if (es.readyState === EventSource.CLOSED) {
                     isConnected.value = false;
                     eventSource.value = null;
@@ -76,9 +69,7 @@ export function useSSE() {
 
             eventSource.value = es;
         } catch (error) {
-            if (import.meta.env.DEV) {
-                console.error('[SSE] Failed to get token:', error);
-            }
+            console.error('[SSE] Failed to connect:', error);
         }
     }
 
