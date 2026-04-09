@@ -34,13 +34,10 @@ export function useSSE() {
             // 始终使用相对路径，通过 nginx 反向代理
             const sseUrl = `/api/events/sse?token=${encodeURIComponent(sseToken)}`;
 
-            console.log('[SSE] Connecting to:', sseUrl);
-
             const es = new EventSource(sseUrl);
 
             es.onopen = () => {
                 isConnected.value = true;
-                console.log('[SSE] Connected');
             };
 
             es.onerror = (error) => {
