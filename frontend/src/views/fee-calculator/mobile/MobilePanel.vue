@@ -126,8 +126,18 @@
 
     <div class="result-bar">
       <div class="result-info">
-        <span class="label">实收：</span>
-        <span class="amount">{{ actualAmount }}元</span>
+        <div class="info-row">
+          <span class="label">小计：</span>
+          <span class="amount">{{ subtotal }}元</span>
+        </div>
+        <div class="info-row">
+          <span class="label">折扣：</span>
+          <el-input-number v-model="discount" :min="0" :max="subtotal" size="small" style="width: 80px" />
+        </div>
+        <div class="info-row total">
+          <span class="label">实收：</span>
+          <span class="amount">{{ actualAmount }}元</span>
+        </div>
       </div>
       <div class="bar-actions">
         <el-button type="primary" @click="showDetail = true">明细</el-button>
@@ -245,7 +255,7 @@ init();
 <style scoped>
 .mobile-calculator {
   padding: 12px;
-  padding-bottom: 80px;
+  padding-bottom: 140px;
 }
 
 .header {
@@ -355,7 +365,7 @@ init();
 
 .result-bar {
   position: fixed;
-  bottom: 50px;
+  bottom: 60px;
   left: 0;
   right: 0;
   display: flex;
@@ -364,7 +374,20 @@ init();
   padding: 12px 16px;
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  z-index: 101;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.result-info .info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .result-info .label {
@@ -372,9 +395,13 @@ init();
 }
 
 .result-info .amount {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--primary-color);
+}
+
+.result-info .total .amount {
+  font-size: 20px;
 }
 
 .bar-actions {

@@ -7,7 +7,7 @@
           <p class="header-subtitle">快速计算公务仓各项服务费用</p>
         </div>
         <div class="header-actions">
-          <el-button v-if="canSettings" type="primary" :icon="Setting" @click="showSettings = true">费用设置</el-button>
+          <el-button v-if="canSettings && !isMobile" type="primary" :icon="Setting" @click="showSettings = true">费用设置</el-button>
         </div>
       </div>
 
