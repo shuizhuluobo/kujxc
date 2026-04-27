@@ -72,7 +72,9 @@ export function amountToChinese(num: number): string {
     let zeroFlag = false;
 
     for (let i = 0; i < len; i++) {
-      const digit = parseInt(intStr[i]);
+      const char = intStr[i];
+      if (char === undefined) continue;
+      const digit = parseInt(char);
       const pos = len - 1 - i;
       const unitIdx = pos % 4;
       const bigUnitIdx = Math.floor(pos / 4);
@@ -80,7 +82,10 @@ export function amountToChinese(num: number): string {
       if (digit === 0) {
         zeroFlag = true;
         if (unitIdx === 0 && bigUnitIdx > 0) {
-          result += bigUnits[bigUnitIdx];
+          const bigUnit = bigUnits[bigUnitIdx];
+          if (bigUnit) {
+            result += bigUnit;
+          }
           zeroFlag = false;
         }
       } else {
@@ -88,9 +93,16 @@ export function amountToChinese(num: number): string {
           result += '零';
           zeroFlag = false;
         }
-        result += digits[digit] + units[unitIdx];
+        const digitChar = digits[digit];
+        const unit = units[unitIdx];
+        if (digitChar && unit) {
+          result += digitChar + unit;
+        }
         if (unitIdx === 0 && bigUnitIdx > 0) {
-          result += bigUnits[bigUnitIdx];
+          const bigUnit = bigUnits[bigUnitIdx];
+          if (bigUnit) {
+            result += bigUnit;
+          }
         }
       }
     }
@@ -288,7 +300,7 @@ export function renderA4Template(data: PrintData): string {
           <span class="value">¥${data.subtotal.toFixed(2)}</span>
         </div>
         <div class="a4-summary-row">
-          <span class="label">折扣：</span>
+          <span class="label">优惠金额：</span>
           <span class="value">¥${data.discount.toFixed(2)}</span>
         </div>
         <div class="a4-summary-row a4-summary-total">
@@ -374,7 +386,7 @@ export function renderTriplicateTemplate(data: PrintData): string {
         </div>
         ${data.discount > 0 ? `
         <div class="trip-summary-row">
-          <span class="label">折扣：</span>
+          <span class="label">优惠金额：</span>
           <span class="value">¥${data.discount.toFixed(2)}</span>
         </div>
         ` : ''}

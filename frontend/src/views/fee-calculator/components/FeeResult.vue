@@ -15,7 +15,7 @@
         <span class="amount">{{ subtotal }}元</span>
       </div>
       <div class="summary-row">
-        <span>折扣：</span>
+        <span>优惠金额：</span>
         <el-input-number :model-value="discount" @update:model-value="$emit('update:discount', $event)" :min="0" :max="subtotal" :precision="2" size="small" />
       </div>
       <div class="summary-row total">
