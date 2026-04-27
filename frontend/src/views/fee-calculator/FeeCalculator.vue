@@ -59,6 +59,7 @@
             @update:actual-amount="actualAmount = $event"
             @update:remark="remark = $event"
             @save="saveRecord"
+            @print="handlePrintCurrent"
             @reset="resetCalculator"
           />
         </div>
@@ -94,11 +95,10 @@
               {{ row.creator?.name || row.creatorId || '无' }}
             </template>
           </el-table-column>
-          <el-table-column v-if="canDeleteRecords && !isMobile" label="操作" width="80">
+          <el-table-column v-if="!isMobile" label="操作" :width="canDeleteRecords ? 120 : 70">
             <template #default="{ row }">
-              <el-button type="danger" size="small" link @click="handleDeleteRecord(row.id)">
-                删除
-              </el-button>
+              <el-button type="primary" size="small" link @click="handlePrintRecord(row)">打印</el-button>
+              <el-button v-if="canDeleteRecords" type="danger" size="small" link @click="handleDeleteRecord(row.id)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -125,11 +125,13 @@
         </el-table>
       </div>
     </el-drawer>
+
+    <PrintPreview ref="printPreviewRef" :data="currentPrintData" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, computed } from 'vue';
+import { defineAsyncComponent, computed, ref } from 'vue';
 import { Setting, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import { useResponsive } from '@/composables';
@@ -139,7 +141,10 @@ import ComputerServices from './components/ComputerServices.vue';
 import PeripheralServices from './components/PeripheralServices.vue';
 import ServiceOptions from './components/ServiceOptions.vue';
 import FeeResult from './components/FeeResult.vue';
+import PrintPreview from './components/PrintPreview.vue';
 import { useFeeCalculator } from './composables/useFeeCalculator';
+import { generateDocumentNo, formatPrintDate, recordToPrintData, type PrintData } from './composables/usePrint';
+import type { FeeRecord } from '@/api';
 import type { ServiceItem, FeeSetting } from './composables/useFeeCalculator';
 
 const MobilePanel = defineAsyncComponent(() => import('./mobile/MobilePanel.vue'));
@@ -192,6 +197,44 @@ const {
 } = useFeeCalculator();
 
 init();
+
+// 打印功能
+const printPreviewRef = ref<InstanceType<typeof PrintPreview>>();
+const currentPrintData = ref<PrintData | null>(null);
+
+const buildPrintDataFromItems = (): PrintData => {
+  const authStore = useAuthStore();
+  return {
+    documentNo: generateDocumentNo(),
+    date: formatPrintDate(),
+    clientName: '',
+    contactPerson: '',
+    contactPhone: '',
+    items: selectedItems.value.map((s, idx) => ({
+      index: idx + 1,
+      name: s.displayText,
+      quantity: s.quantity,
+      unit: s.quantity > 1 ? '台' : '次',
+      unitPrice: s.quantity > 0 ? s.total / s.quantity : s.total,
+      total: s.total,
+    })),
+    subtotal: subtotal.value,
+    discount: discount.value,
+    actualAmount: actualAmount.value,
+    remark: remark.value,
+    creatorName: authStore.user?.name || '',
+  };
+};
+
+const handlePrintCurrent = () => {
+  currentPrintData.value = buildPrintDataFromItems();
+  printPreviewRef.value?.open();
+};
+
+const handlePrintRecord = (record: FeeRecord) => {
+  currentPrintData.value = recordToPrintData(record);
+  printPreviewRef.value?.open();
+};
 
 const handleDeleteRecord = async (id: string) => {
   try {

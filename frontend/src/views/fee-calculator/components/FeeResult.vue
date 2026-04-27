@@ -32,6 +32,7 @@
     </div>
     <div class="action-buttons">
       <el-button v-if="canSave !== false" type="primary" @click="emit('save')" :disabled="selectedItems.length === 0">保存记录</el-button>
+      <el-button @click="emit('print')" :disabled="selectedItems.length === 0">打印</el-button>
       <el-button @click="emit('reset')">重置</el-button>
     </div>
   </div>
@@ -54,6 +55,7 @@ const emit = defineEmits<{
   'update:actualAmount': [value: number];
   'update:remark': [value: string];
   save: [];
+  print: [];
   reset: [];
 }>();
 </script>
