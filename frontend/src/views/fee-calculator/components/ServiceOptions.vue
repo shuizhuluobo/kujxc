@@ -9,9 +9,8 @@
         :key="item.id" 
         class="option-item"
         :class="{ selected: selectedTimeSlot === item.id }"
-        @click="emit('selectTimeSlot', item.id)"
       >
-        <el-radio :model-value="selectedTimeSlot" :label="item.id" @click.stop>
+        <el-radio v-model="localSelectedTimeSlot" :label="item.id" @change="handleTimeSlotChange">
           {{ item.item }}
           <span class="price-note">{{ item.price === 0 ? '免费' : '+' + item.price + '元' }}</span>
         </el-radio>
@@ -29,9 +28,8 @@
         :key="item.id" 
         class="option-item"
         :class="{ selected: selectedResponse === item.id }"
-        @click="emit('selectResponse', item.id)"
       >
-        <el-radio :model-value="selectedResponse" :label="item.id" @click.stop>
+        <el-radio v-model="localSelectedResponse" :label="item.id" @change="handleResponseChange">
           {{ item.item }}
           <span v-if="item.description" class="option-description">{{ item.description }}</span>
           <span class="price-note">{{ item.price === 0 ? '免费' : item.price + '元' }}</span>
@@ -61,9 +59,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import type { ServiceItem } from '../composables/useFeeCalculator';
 
-defineProps<{
+const props = defineProps<{
   responseServices: ServiceItem[];
   timeSlotServices: ServiceItem[];
   transportServices: ServiceItem[];
@@ -76,6 +75,31 @@ const emit = defineEmits<{
   selectTimeSlot: [id: string];
   itemChange: [];
 }>();
+
+// 本地响应式变量
+const localSelectedResponse = ref(props.selectedResponse);
+const localSelectedTimeSlot = ref(props.selectedTimeSlot);
+
+// 监听 props 变化
+watch(() => props.selectedResponse, (newValue) => {
+  localSelectedResponse.value = newValue;
+});
+
+watch(() => props.selectedTimeSlot, (newValue) => {
+  localSelectedTimeSlot.value = newValue;
+});
+
+// 处理响应时效选择
+const handleResponseChange = () => {
+  emit('selectResponse', localSelectedResponse.value);
+  emit('itemChange');
+};
+
+// 处理服务时段选择
+const handleTimeSlotChange = () => {
+  emit('selectTimeSlot', localSelectedTimeSlot.value);
+  emit('itemChange');
+};
 
 const handleTransportChange = (item: ServiceItem, value: boolean) => {
   item.selected = value;
