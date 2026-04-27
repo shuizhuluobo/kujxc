@@ -53,6 +53,17 @@
       </el-select>
     </el-form-item>
 
+    <el-form-item label="详情" prop="detail">
+      <el-input
+        v-model="modelValue.detail"
+        type="textarea"
+        :rows="4"
+        placeholder="请输入工单详情"
+        :maxlength="500"
+        show-word-limit
+      />
+    </el-form-item>
+
     <el-form-item label="分值" prop="scoreLevel">
       <el-radio-group v-model="modelValue.scoreLevel" :class="{ 'radio-group-inline': isMobile }">
         <el-radio value="SIMPLE" :class="{ 'radio-item-inline': isMobile }">
@@ -65,17 +76,6 @@
           复杂 {{ !isMobile ? '(-)' : '' }}
         </el-radio>
       </el-radio-group>
-    </el-form-item>
-
-    <el-form-item label="详情" prop="detail">
-      <el-input
-        v-model="modelValue.detail"
-        type="textarea"
-        :rows="4"
-        placeholder="请输入工单详情"
-        :maxlength="500"
-        show-word-limit
-      />
     </el-form-item>
   </el-form>
 </template>

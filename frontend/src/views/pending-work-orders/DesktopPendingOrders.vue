@@ -147,7 +147,7 @@
               v-if="row.status === 'RECEIVED' && String(row.receiverId) === String(authStore.user?.id)" 
               type="warning" 
               size="small"
-              @click.stop="emit('cancelReceive', row)"
+              @click.stop="handleCancelReceive(row)"
             >
               取消
             </el-button>
@@ -162,7 +162,7 @@
               v-if="(row.creatorId === authStore.user?.id || authStore.isAdmin) && row.status === 'PENDING'" 
               type="danger" 
               size="small"
-              @click.stop="emit('delete', row)"
+              @click.stop="handleDelete(row)"
             >
               删除
             </el-button>
@@ -221,6 +221,8 @@ import { useBaseDataStore } from '@/stores/baseData';
 import { usePermission } from '@/composables';
 import WorkOrderForm from './components/WorkOrderForm.vue';
 import { getCustomerDisplayName } from '@/utils/customer';
+import { ElMessageBox, ElMessage } from 'element-plus';
+import { workOrdersApi } from '@/api';
 
 // Define Props
 interface Props {
@@ -260,6 +262,32 @@ const hasActiveFilters = computed(() => {
 });
 
 const canReceive = computed(() => hasPermission('workOrder:receive'));
+
+async function handleCancelReceive(row: WorkOrder) {
+  try {
+    await ElMessageBox.confirm(
+      '确定要取消接收这个工单吗？工单将重新变为待接收状态。',
+      '确认取消接收',
+      { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' }
+    );
+    await workOrdersApi.cancelReceive(row.id);
+    ElMessage.success('已取消接收');
+    emit('cancelReceive', row);
+  } catch {
+    // cancelled
+  }
+}
+
+async function handleDelete(row: WorkOrder) {
+  try {
+    await ElMessageBox.confirm('确定要删除这个工单吗？', '提示', { type: 'warning' });
+    await workOrdersApi.delete(row.id);
+    ElMessage.success('删除成功');
+    emit('delete', row);
+  } catch {
+    // cancelled
+  }
+}
 
 function getStatusClass(status: string) {
   return {

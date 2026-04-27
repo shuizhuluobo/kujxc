@@ -26,7 +26,7 @@
             v-if="canComplete && workOrder.status === 'RECEIVED'" 
             type="success" 
             size="small" 
-            @click.stop="$emit('complete', workOrder)"
+            @click.stop="showCompleteBubble = true"
           >
             完成
           </el-button>
@@ -102,7 +102,7 @@
             v-if="canEdit" 
             type="danger" 
             size="small" 
-            @click.stop="$emit('delete', workOrder)"
+            @click.stop="showDeleteConfirm = true"
           >
             删除
           </el-button>
@@ -114,7 +114,7 @@
             v-if="canComplete"
             type="warning" 
             size="small" 
-            @click.stop="$emit('cancel-receive', workOrder)"
+            @click.stop="showCancelReceiveConfirm = true"
           >
             取消接收
           </el-button>
@@ -131,16 +131,99 @@
       </div>
     </div>
   </div>
+  
+  <!-- 完成工单气泡弹窗 -->
+  <div 
+    v-if="showCompleteBubble" 
+    class="confirm-bubble"
+    @click.self="showCompleteBubble = false"
+  >
+    <div class="bubble-arrow"></div>
+    <div class="bubble-content">
+      <div class="bubble-header">
+        <span>完成工单</span>
+        <span class="close-btn" @click="showCompleteBubble = false">×</span>
+      </div>
+      <div class="bubble-body">
+        <div class="form-item">
+          <label>协作人 (可选)</label>
+          <el-select 
+            v-model="collaboratorIds" 
+            multiple 
+            filterable 
+            :reserve-keyword="false"
+            placeholder="请选择协作人"
+            style="width: 100%"
+            size="small"
+          >
+            <el-option 
+              v-for="u in engineers" 
+              :key="u.id" 
+              :label="u.name" 
+              :value="u.id"
+            />
+          </el-select>
+        </div>
+      </div>
+      <div class="bubble-footer">
+        <button class="btn btn-cancel" @click="showCompleteBubble = false">取消</button>
+        <button class="btn btn-confirm" @click="handleComplete">确认完成</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 删除确认气泡弹窗 -->
+  <div 
+    v-if="showDeleteConfirm" 
+    class="confirm-bubble"
+    @click.self="showDeleteConfirm = false"
+  >
+    <div class="bubble-content">
+      <div class="bubble-header">
+        <span>确认删除</span>
+        <span class="close-btn" @click="showDeleteConfirm = false">×</span>
+      </div>
+      <div class="bubble-body">
+        <p class="confirm-message">确定要删除此工单吗？此操作不可撤销。</p>
+      </div>
+      <div class="bubble-footer">
+        <button class="btn btn-cancel" @click="showDeleteConfirm = false">取消</button>
+        <button class="btn btn-danger" @click="handleDelete">确认删除</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 取消接收确认气泡弹窗 -->
+  <div 
+    v-if="showCancelReceiveConfirm" 
+    class="confirm-bubble"
+    @click.self="showCancelReceiveConfirm = false"
+  >
+    <div class="bubble-content">
+      <div class="bubble-header">
+        <span>取消接收</span>
+        <span class="close-btn" @click="showCancelReceiveConfirm = false">×</span>
+      </div>
+      <div class="bubble-body">
+        <p class="confirm-message">确定要取消接收此工单吗？工单将重新进入待接收队列。</p>
+      </div>
+      <div class="bubble-footer">
+        <button class="btn btn-cancel" @click="showCancelReceiveConfirm = false">取消</button>
+        <button class="btn btn-warning" @click="handleCancelReceive">确认取消</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import dayjs from 'dayjs';
-import { Document, User } from '@element-plus/icons-vue';
-import type { WorkOrder } from '@/types';
+import { User } from '@element-plus/icons-vue';
+import type { WorkOrder, User as UserType } from '@/types';
 import { STATUS_LABELS, SCORE_LABELS, SCORE_VALUES, WorkOrderStatus } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 import { usePermission } from '@/composables';
+import { useBaseDataStore } from '@/stores/baseData';
 import { getCustomerDisplayName } from '@/utils/customer';
 
 const props = defineProps<{
@@ -149,10 +232,11 @@ const props = defineProps<{
 }>();
 
 const { has: hasPermission } = usePermission();
+const baseDataStore = useBaseDataStore();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'receive', workOrder: WorkOrder): void;
-  (e: 'complete', workOrder: WorkOrder): void;
+  (e: 'complete', workOrder: WorkOrder, collaboratorIds: string[]): void;
   (e: 'edit', workOrder: WorkOrder): void;
   (e: 'delete', workOrder: WorkOrder): void;
   (e: 'cancel-receive', workOrder: WorkOrder): void;
@@ -160,6 +244,30 @@ defineEmits<{
 
 const authStore = useAuthStore();
 const expanded = ref(false);
+const showCompleteBubble = ref(false);
+const showDeleteConfirm = ref(false);
+const showCancelReceiveConfirm = ref(false);
+const collaboratorIds = ref<string[]>([]);
+
+const engineers = computed<UserType[]>(() => {
+  return baseDataStore.users.filter(u => u.role?.code === 'engineer');
+});
+
+function handleComplete() {
+  emit('complete', props.workOrder, collaboratorIds.value);
+  showCompleteBubble.value = false;
+  collaboratorIds.value = [];
+}
+
+function handleDelete() {
+  emit('delete', props.workOrder);
+  showDeleteConfirm.value = false;
+}
+
+function handleCancelReceive() {
+  emit('cancel-receive', props.workOrder);
+  showCancelReceiveConfirm.value = false;
+}
 
 const customerDisplayName = computed(() => getCustomerDisplayName(props.workOrder.customer));
 
@@ -220,6 +328,173 @@ const hasSecondaryActions = computed(() => {
 
 <style scoped>
 /* 基础样式继承自全局 .work-order-card，这里仅做微调 */
+
+/* 确认气泡弹窗 */
+.confirm-bubble {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.confirm-bubble .bubble-content {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 340px;
+  overflow: hidden;
+  animation: bubbleFadeIn 0.2s ease;
+}
+
+.confirm-bubble .bubble-arrow {
+  position: absolute;
+  top: -8px;
+  right: 24px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+}
+
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-bubble .bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(180deg, #fafafa 0%, white 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+.confirm-bubble .close-btn {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.confirm-bubble .close-btn:hover {
+  color: #666;
+  background: #f0f0f0;
+}
+
+.confirm-bubble .bubble-body {
+  padding: 16px;
+}
+
+.confirm-bubble .form-item {
+  margin-bottom: 0;
+}
+
+.confirm-bubble .form-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.confirm-bubble .confirm-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  text-align: center;
+  margin: 0;
+}
+
+.confirm-bubble .bubble-footer {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.confirm-bubble .btn {
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-bubble .btn:active {
+  transform: scale(0.98);
+}
+
+.confirm-bubble .btn-cancel {
+  background: #f0f2f5;
+  color: var(--text-secondary);
+  border: 1px solid #e5e6eb;
+}
+
+.confirm-bubble .btn-cancel:hover {
+  background: #e8eaef;
+}
+
+.confirm-bubble .btn-confirm {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.confirm-bubble .btn-confirm:hover {
+  background: linear-gradient(135deg, var(--primary-color-dark) 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.confirm-bubble .btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.confirm-bubble .btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.confirm-bubble .btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.confirm-bubble .btn-warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
 
 .card-header {
   display: flex;

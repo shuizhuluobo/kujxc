@@ -2,21 +2,150 @@
   <div class="pending-work-orders-mobile">
     <!-- 页面标题和操作栏 -->
     <div class="page-header">
-      <div class="header-left">
-        <h2>待办工单</h2>
-        <div class="stats-tag" v-if="stats.total > 0">
-           <span class="stat-item danger" v-if="stats.pending > 0">待:{{ stats.pending }}</span>
-           <span class="stat-item warning" v-if="stats.received > 0">处理:{{ stats.received }}</span>
+      <div class="header-content">
+        <div class="header-left">
+          <h2>待办工单</h2>
+          <div class="header-row">
+            <!-- 数量统计 -->
+            <div class="stats-tag" v-if="stats.total > 0">
+              <span class="stat-item danger" v-if="stats.pending > 0">待:{{ stats.pending }}</span>
+              <span class="stat-item warning" v-if="stats.received > 0">处理:{{ stats.received }}</span>
+            </div>
+            <!-- 滑动筛选条 -->
+            <div class="filter-bar-inline">
+              <div class="filter-bar-container">
+                <div 
+                  class="filter-item" 
+                  :class="{ active: filter.status === '' }"
+                  @click="filter.status = ''"
+                  title="全部工单"
+                >
+                  全部
+                </div>
+                <div 
+                  class="filter-item" 
+                  :class="{ active: filter.status === 'PENDING' }"
+                  @click="filter.status = 'PENDING'"
+                  title="待接收工单"
+                >
+                  待接
+                </div>
+                <div 
+                  class="filter-item" 
+                  :class="{ active: filter.status === 'RECEIVED' }"
+                  @click="filter.status = 'RECEIVED'"
+                  title="已接收工单"
+                >
+                  已接
+                </div>
+                <div 
+                  class="filter-item more-filter"
+                  @click="toggleFilterPopup"
+                  title="更多筛选选项"
+                >
+                  更多
+                  <van-icon name="arrow-down" size="12" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <el-button type="primary" circle :icon="Plus" @click="emit('create')" />
         </div>
       </div>
-      <div class="header-actions">
-        <!-- 筛选按钮 -->
-        <div class="filter-btn-wrapper" @click="showFilterDrawer = true">
-          <el-badge :is-dot="hasActiveFilters" class="filter-badge">
-             <van-icon name="filter-o" size="24" />
-          </el-badge>
+      
+      <!-- 气泡筛选弹窗 -->
+      <div 
+        v-if="showFilterPopup" 
+        class="filter-bubble-popup"
+        @click.self="showFilterPopup = false"
+      >
+        <div class="bubble-content">
+          <div class="bubble-header">
+            <h4>筛选工单</h4>
+            <van-icon name="cross" @click="showFilterPopup = false" />
+          </div>
+          <div class="bubble-body">
+            <div class="bubble-filter-section">
+              <div class="bubble-filter-label">服务类型</div>
+              <div class="bubble-filter-options">
+                <van-button 
+                  :type="filter.serviceTypeId === '' ? 'primary' : 'default'"
+                  size="small"
+                  @click="filter.serviceTypeId = ''"
+                >全部</van-button>
+                <van-button 
+                  v-for="s in baseDataStore.serviceTypes"
+                  :key="s.id"
+                  :type="filter.serviceTypeId === s.id ? 'primary' : 'default'"
+                  size="small"
+                  @click="filter.serviceTypeId = s.id"
+                >{{ s.name }}</van-button>
+              </div>
+            </div>
+            <div class="bubble-filter-section">
+              <div class="bubble-filter-label">所属区域</div>
+              <div class="bubble-filter-options">
+                <van-button 
+                  :type="filter.regionId === '' ? 'primary' : 'default'"
+                  size="small"
+                  @click="filter.regionId = ''"
+                >全部</van-button>
+                <van-button 
+                  v-for="r in baseDataStore.regions"
+                  :key="r.id"
+                  :type="filter.regionId === r.id ? 'primary' : 'default'"
+                  size="small"
+                  @click="filter.regionId = r.id"
+                >{{ r.name }}</van-button>
+              </div>
+            </div>
+            <div class="bubble-filter-section">
+              <div class="bubble-filter-label">关键字</div>
+              <van-search
+                v-model="filter.keyword"
+                placeholder="搜索客户、内容..."
+                shape="round"
+                background="#f7f8fa"
+                show-action
+              >
+                <template #action>
+                  <div @click="filter.keyword = ''">清空</div>
+                </template>
+              </van-search>
+            </div>
+          </div>
+          <div class="bubble-footer">
+            <van-button block size="small" @click="emit('resetFilters')">重置</van-button>
+            <van-button block size="small" type="primary" @click="showFilterPopup = false">完成</van-button>
+          </div>
         </div>
-        <el-button type="primary" circle :icon="Plus" @click="emit('create')" />
+      </div>
+    </div>
+
+    <!-- 筛选状态显示 -->
+    <div v-if="hasActiveFilters" class="filter-status">
+      <div class="filter-status-content">
+        <div v-if="filter.status" class="filter-tag">
+          {{ filter.status === 'PENDING' ? '待接收' : '已接收' }}
+          <van-icon name="cross" size="14" @click="filter.status = ''" />
+        </div>
+        <div v-if="filter.serviceTypeId" class="filter-tag">
+          {{ getServiceTypeName(filter.serviceTypeId) }}
+          <van-icon name="cross" size="14" @click="filter.serviceTypeId = ''" />
+        </div>
+        <div v-if="filter.regionId" class="filter-tag">
+          {{ getRegionName(filter.regionId) }}
+          <van-icon name="cross" size="14" @click="filter.regionId = ''" />
+        </div>
+        <div v-if="filter.keyword" class="filter-tag">
+          关键词: {{ filter.keyword }}
+          <van-icon name="cross" size="14" @click="filter.keyword = ''" />
+        </div>
+        <div class="filter-tag clear-all" @click="emit('resetFilters')">
+          清除全部
+        </div>
       </div>
     </div>
 
@@ -52,117 +181,10 @@
       </van-list>
     </van-pull-refresh>
     
-    <!-- 筛选抽屉 -->
-    <van-popup
-      v-model:show="showFilterDrawer"
-      position="bottom"
-      :style="{ maxHeight: '85%', borderRadius: '24px 24px 0 0' }"
-      :close-on-click-overlay="true"
-    >
-      <div class="van-filter-drawer">
-        <div class="van-drawer-header">
-          <h3>筛选工单</h3>
-          <van-icon name="cross" @click="showFilterDrawer = false" />
-        </div>
-        <div class="van-drawer-body">
-          <div class="filter-section">
-            <div class="filter-label">工单状态</div>
-            <div class="filter-options">
-              <van-button 
-                :type="filter.status === '' ? 'primary' : 'default'"
-                size="small"
-                @click="filter.status = ''"
-              >
-                全部
-              </van-button>
-              <van-button 
-                :type="filter.status === 'PENDING' ? 'primary' : 'default'"
-                size="small"
-                @click="filter.status = 'PENDING'"
-              >
-                待接收
-              </van-button>
-              <van-button 
-                :type="filter.status === 'RECEIVED' ? 'primary' : 'default'"
-                size="small"
-                @click="filter.status = 'RECEIVED'"
-              >
-                已接收
-              </van-button>
-            </div>
-          </div>
-
-          <div class="filter-section">
-            <div class="filter-label">服务类型</div>
-            <div class="filter-options">
-              <van-button 
-                :type="filter.serviceTypeId === '' ? 'primary' : 'default'"
-                size="small"
-                @click="filter.serviceTypeId = ''"
-              >
-                全部
-              </van-button>
-              <van-button 
-                v-for="s in baseDataStore.serviceTypes"
-                :key="s.id"
-                :type="filter.serviceTypeId === s.id ? 'primary' : 'default'"
-                size="small"
-                @click="filter.serviceTypeId = s.id"
-              >
-                {{ s.name }}
-              </van-button>
-            </div>
-          </div>
-
-          <div class="filter-section">
-            <div class="filter-label">所属区域</div>
-            <div class="filter-options">
-              <van-button 
-                :type="filter.regionId === '' ? 'primary' : 'default'"
-                size="small"
-                @click="filter.regionId = ''"
-              >
-                全部
-              </van-button>
-              <van-button 
-                v-for="r in baseDataStore.regions"
-                :key="r.id"
-                :type="filter.regionId === r.id ? 'primary' : 'default'"
-                size="small"
-                @click="filter.regionId = r.id"
-              >
-                {{ r.name }}
-              </van-button>
-            </div>
-          </div>
-
-          <div class="filter-section">
-            <div class="filter-label">关键字</div>
-            <van-search
-              v-model="filter.keyword"
-              placeholder="搜索客户、内容..."
-              shape="round"
-              background="#f7f8fa"
-              show-action
-            >
-              <template #action>
-                <div @click="filter.keyword = ''">清空</div>
-              </template>
-            </van-search>
-          </div>
-        </div>
-        <div class="van-drawer-footer">
-          <van-button block @click="emit('resetFilters')">重置</van-button>
-          <van-button block type="primary" @click="showFilterDrawer = false">完成</van-button>
-        </div>
-      </div>
-    </van-popup>
-
     <!-- 新建/编辑工单抽屉 -->
     <el-drawer
       :model-value="formState.showDialog.value"
       @update:model-value="(val) => formState.showDialog.value = val"
-      :title="formState.editingWorkOrder.value ? '编辑工单' : '新建工单'"
       direction="btt"
       size="85%"
       class="create-drawer"
@@ -171,19 +193,29 @@
       @closed="workOrderFormRef?.clearValidate()"
     >
       <div class="drawer-content">
-        <WorkOrderForm
-          ref="workOrderFormRef"
-          :model-value="formState.form"
-          :rules="formState.formRules"
-          :customers="formState.filteredCustomers.value"
-          :on-search="formState.customerFilterMethod"
-          :is-mobile="true"
-        />
-        <div class="drawer-footer">
-          <el-button @click="formState.showDialog.value = false">取消</el-button>
-          <el-button type="primary" :loading="formState.submitting.value" @click="handleDrawerSubmit">
+        <!-- 顶部操作栏 -->
+        <div class="drawer-header">
+          <el-button text @click="formState.showDialog.value = false">取消</el-button>
+          <span class="drawer-title">{{ formState.editingWorkOrder.value ? '编辑工单' : '新建工单' }}</span>
+          <el-button 
+            type="primary" 
+            :loading="formState.submitting.value" 
+            @click="handleDrawerSubmit"
+          >
             {{ formState.editingWorkOrder.value ? '保存' : '创建' }}
           </el-button>
+        </div>
+        
+        <!-- 表单内容区域（可滚动） -->
+        <div class="drawer-body">
+          <WorkOrderForm
+            ref="workOrderFormRef"
+            :model-value="formState.form"
+            :rules="formState.formRules"
+            :customers="formState.filteredCustomers.value"
+            :on-search="formState.customerFilterMethod"
+            :is-mobile="true"
+          />
         </div>
       </div>
     </el-drawer>
@@ -191,9 +223,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Plus } from '@element-plus/icons-vue';
-import { Button as VanButton, Popup as VanPopup, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
+import { Button as VanButton, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
@@ -217,7 +249,6 @@ const emit = defineEmits<{
   (e: 'edit', row: WorkOrder): void;
   (e: 'delete', row: WorkOrder): void;
   (e: 'receive', row: WorkOrder): void;
-  (e: 'transfer', row: WorkOrder): void;
   (e: 'complete', row: WorkOrder): void;
   (e: 'cancelReceive', row: WorkOrder): void;
   (e: 'resetFilters'): void;
@@ -226,12 +257,28 @@ const emit = defineEmits<{
 }>();
 
 const baseDataStore = useBaseDataStore();
-const showFilterDrawer = ref(false);
+const showFilterPopup = ref(false);
 const workOrderFormRef = ref();
 
+function toggleFilterPopup() {
+  showFilterPopup.value = !showFilterPopup.value;
+}
+
 const hasActiveFilters = computed(() => {
-  return props.filter.status !== '' || props.filter.serviceTypeId !== '' || props.filter.keyword !== '';
+  return props.filter.status !== '' || props.filter.serviceTypeId !== '' || props.filter.keyword !== '' || props.filter.regionId !== '';
 });
+
+// 获取服务类型名称
+function getServiceTypeName(id: string): string {
+  const serviceType = baseDataStore.serviceTypes.find(s => s.id === id);
+  return serviceType?.name || '服务类型';
+}
+
+// 获取区域名称
+function getRegionName(id: string): string {
+  const region = baseDataStore.regions.find(r => r.id === id);
+  return region?.name || '区域';
+}
 
 async function handleDrawerSubmit() {
   if (!workOrderFormRef.value) return;
@@ -249,6 +296,18 @@ const listFinished = computed(() => {
   if (!props.pagination || props.pagination.total === 0) return true;
   return props.pagination.page * props.pagination.pageSize >= props.pagination.total;
 });
+
+// 实时筛选功能
+let filterTimeout: ReturnType<typeof setTimeout> | null = null;
+
+watch(() => props.filter, () => {
+  // 防抖处理，避免频繁触发筛选
+  if (filterTimeout) clearTimeout(filterTimeout);
+  filterTimeout = setTimeout(() => {
+    emit('pageChange', 1);
+    emit('refresh', () => {});
+  }, 300);
+}, { deep: true });
 
 function onLoad() {
   if (!listFinished.value) {
@@ -273,43 +332,188 @@ function onRefresh() {
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 0 4px;
+  padding: 0 16px;
   padding-top: var(--safe-area-top);
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-left h2 {
   font-size: 20px;
   font-weight: 600;
-  margin: 0 0 4px 0;
+  margin: 0;
+  padding: 8px 0 4px;
 }
 
-.header-actions {
+.header-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-}
-
-.filter-btn-wrapper {
-  padding: 8px;
+  gap: 12px;
+  padding-bottom: 8px;
 }
 
 .stats-tag {
   display: flex;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .stat-item {
   border-radius: 4px;
   padding: 2px 6px;
   color: white;
+  font-size: 12px;
 }
+
 .stat-item.danger { background: var(--el-color-danger); }
 .stat-item.warning { background: var(--el-color-warning); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.filter-bar-inline {
+  flex: 1;
+  max-width: 200px;
+  overflow: hidden;
+}
+
+.filter-bar-container {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-bar-container::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-item {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: #f0f2f5;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.filter-item:hover {
+  background-color: #e6e8eb;
+}
+
+.filter-item.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.filter-item.more-filter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  background-color: transparent;
+}
+
+.filter-item.more-filter:hover {
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+/* 气泡筛选弹窗 */
+.filter-bubble-popup {
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  right: 16px;
+  z-index: 100;
+  margin-top: 8px;
+}
+
+.bubble-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: bubbleFadeIn 0.2s ease;
+}
+
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.bubble-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bubble-header .van-icon {
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+}
+
+.bubble-body {
+  padding: 12px 16px;
+}
+
+.bubble-filter-section {
+  margin-bottom: 16px;
+}
+
+.bubble-filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.bubble-filter-label {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.bubble-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bubble-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+}
 
 .card-list {
   display: flex;
@@ -321,55 +525,41 @@ function onRefresh() {
   min-height: calc(100vh - 120px);
 }
 
-/* Vant Drawer Styles */
-.van-filter-drawer {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: white;
+/* 筛选状态显示样式 */
+.filter-status {
+  padding: 0 16px 12px;
 }
 
-.van-drawer-header {
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color-light);
-}
-
-.van-drawer-header h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.van-drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.filter-section {
-  margin-bottom: 24px;
-}
-
-.filter-label {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: var(--text-primary);
-}
-
-.filter-options {
+.filter-status-content {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
-.van-drawer-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-color-light);
+.filter-tag {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tag:hover {
+  background-color: rgba(37, 99, 235, 0.2);
+}
+
+.filter-tag.clear-all {
+  background-color: #f0f2f5;
+  color: var(--text-secondary);
+}
+
+.filter-tag.clear-all:hover {
+  background-color: #e6e8eb;
 }
 
 /* Drawer Content */
@@ -377,13 +567,51 @@ function onRefresh() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 0 20px 20px;
+  padding: 0;
 }
 
-.drawer-footer {
-  margin-top: auto;
+/* 顶部操作栏 */
+.drawer-header {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  padding-top: calc(16px + var(--safe-area-top));
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
+
+.drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drawer-header .el-button {
+  font-size: 15px;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.drawer-header .el-button--text {
+  color: var(--text-secondary);
+}
+
+.drawer-header .el-button--primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* 表单内容区域 */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+
 </style>

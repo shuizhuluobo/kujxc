@@ -22,42 +22,8 @@
       @refresh="handleRefresh"
     />
 
-    <!-- 完成工单弹窗 - Mobile -->
-    <van-popup
-      v-if="isMobile"
-      v-model:show="showCompleteDialog"
-      position="bottom"
-      round
-      :style="{ padding: '20px' }"
-    >
-      <h3 style="text-align: center; margin-bottom: 20px;">完成工单</h3>
-      <div style="margin-bottom: 20px;">
-        <div style="margin-bottom: 8px; font-size: 14px; color: var(--text-secondary);">协作人 (可选)</div>
-        <el-select 
-          v-model="collaboratorIds" 
-          multiple 
-          filterable 
-          :reserve-keyword="false"
-          placeholder="请选择协作人"
-          style="width: 100%"
-          size="large"
-        >
-          <el-option 
-            v-for="u in baseDataStore.users.filter(u => u.role?.code === 'engineer')" 
-            :key="u.id" 
-            :label="u.name" 
-            :value="u.id"
-          />
-        </el-select>
-      </div>
-      <van-button block type="primary" :loading="completeSubmitting" @click="confirmComplete">
-        确认完成
-      </van-button>
-    </van-popup>
-
     <!-- 完成工单模态框 - Desktop -->
     <el-dialog
-      v-else
       v-model="showCompleteDialog"
       title="完成工单"
       width="500px"
@@ -97,7 +63,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Popup as VanPopup, Button as VanButton } from 'vant';
 import type { WorkOrder } from '@/types';
 import { useResponsive } from '@/composables';
 import { useSSE } from '@/composables/useSSE';
@@ -182,10 +147,29 @@ async function handleTransfer(wo: WorkOrder) {
   }
 }
 
-function handleComplete(wo: WorkOrder) {
+async function handleComplete(wo: WorkOrder, collaborators: string[] = []) {
   completingWorkOrder.value = wo;
-  collaboratorIds.value = [];
-  showCompleteDialog.value = true;
+  collaboratorIds.value = collaborators;
+  
+  if (isMobile.value) {
+    // Mobile: 直接完成，因为气泡弹窗已经收集了协作人信息
+    completeSubmitting.value = true;
+    try {
+      await workOrdersApi.complete(wo.id, {
+        collaboratorIds: collaborators,
+      });
+      ElMessage.success('完成成功');
+      fetchData(true);
+      fetchStats();
+    } catch {
+      ElMessage.error('操作失败');
+    } finally {
+      completeSubmitting.value = false;
+    }
+  } else {
+    // Desktop: 显示对话框
+    showCompleteDialog.value = true;
+  }
 }
 
 async function confirmComplete() {
@@ -207,31 +191,14 @@ async function confirmComplete() {
   }
 }
 
-async function handleCancelReceive(wo: WorkOrder) {
-  try {
-    await ElMessageBox.confirm(
-      '确定要取消接收这个工单吗？工单将重新变为待接收状态。', 
-      '确认取消接收', 
-      { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' }
-    );
-    await workOrdersApi.cancelReceive(wo.id);
-    ElMessage.success('已取消接收');
-    fetchData(true);
-    fetchStats();
-  } catch {
-    // cancelled
-  }
+function handleCancelReceive() {
+  fetchData(true);
+  fetchStats();
 }
 
-async function handleDelete(wo: WorkOrder) {
-  try {
-    await ElMessageBox.confirm('确定要删除这个工单吗？', '提示', { type: 'warning' });
-    await workOrdersApi.delete(wo.id);
-    ElMessage.success('删除成功');
-    fetchData(true);
-    fetchStats();
-  } catch {
-  }
+function handleDelete() {
+  fetchData(true);
+  fetchStats();
 }
 
 async function handleRefresh(done: () => void) {

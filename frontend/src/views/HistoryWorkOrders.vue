@@ -1,6 +1,6 @@
 <template>
   <div class="history-work-orders">
-    <div class="page-header">
+    <div class="page-header" v-if="!isMobile">
       <h2>历史工单</h2>
       <div class="header-actions">
         <el-button 
@@ -34,6 +34,7 @@
       :format-date="formatDate"
       :completer-filter-method="completerFilterMethod"
       :handle-completer-visible-change="handleCompleterVisibleChange"
+      :stats="{ total }"
       @toggle-my-orders="toggleMyOrders"
       @reset-filters="resetFilters"
       @load-more="loadMore"

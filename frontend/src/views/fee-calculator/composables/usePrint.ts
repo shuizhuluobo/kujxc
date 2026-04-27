@@ -314,11 +314,8 @@ export function renderA4Template(data: PrintData): string {
       </div>
       <div class="a4-sign">
         <div class="a4-sign-row">
-          <div class="a4-sign-item">经办人：<span class="sign-line"></span></div>
+          <div class="a4-sign-item">经办人：<span class="sign-line">${data.creatorName}</span></div>
           <div class="a4-sign-item">客户签收：<span class="sign-line"></span></div>
-        </div>
-        <div class="a4-sign-row">
-          <div class="a4-sign-item">日　期：<span class="sign-line"></span></div>
         </div>
       </div>
       <div class="a4-footer">
@@ -400,11 +397,8 @@ export function renderTriplicateTemplate(data: PrintData): string {
         <span class="label">备注：</span>${data.remark || '无'}
       </div>
       <div class="trip-sign">
-        <div class="trip-sign-item">经办人:<span class="sign-line"></span></div>
+        <div class="trip-sign-item">经办人:<span class="sign-line">${data.creatorName}</span></div>
         <div class="trip-sign-item">客户签收:<span class="sign-line"></span></div>
-      </div>
-      <div class="trip-sign">
-        <div class="trip-sign-item trip-sign-date">日　期:<span class="sign-line"></span></div>
       </div>
       <div class="trip-footer">
         <div class="trip-footer-text">请您仔细核对此单内容，并签字确认，谢谢您的合作！</div>
