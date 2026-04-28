@@ -218,12 +218,24 @@ function getA4Css(): string {
  * 三联纸模板专用 CSS
  * A4三分之一尺寸: 210mm x 99mm (A4纸张297mm高度三等分)
  * 适配三联复写纸打印，紧凑布局优化
+ * 纸张纵向放置，打印区域为A4上三分之一
  */
 function getTriplicateCss(): string {
   return `
-    @page { size: 210mm 99mm; margin: 4mm 8mm; }
+    @page { 
+      size: A4 portrait; 
+      margin: 0; 
+    }
+    @page :first {
+      margin-top: 0;
+      margin-bottom: 198mm; /* 297mm - 99mm = 198mm，保留底部空白 */
+    }
     ${getPrintBaseCss()}
-    body { padding: 2mm 5mm; }
+    body { 
+      padding: 2mm 8mm; 
+      width: 194mm; 
+      height: 95mm; 
+    }
     .trip-template { width: 100%; }
     .trip-title { font-size: 11pt; font-weight: bold; text-align: center; margin: 1mm 0 1.5mm; letter-spacing: 1px; }
     .trip-info { font-size: 6.5pt; line-height: 1.3; margin-bottom: 1mm; }
