@@ -193,17 +193,9 @@
       @closed="workOrderFormRef?.clearValidate()"
     >
       <div class="drawer-content">
-        <!-- 顶部操作栏 -->
+        <!-- 顶部标题栏 -->
         <div class="drawer-header">
-          <el-button text @click="formState.showDialog.value = false">取消</el-button>
           <span class="drawer-title">{{ formState.editingWorkOrder.value ? '编辑工单' : '新建工单' }}</span>
-          <el-button 
-            type="primary" 
-            :loading="formState.submitting.value" 
-            @click="handleDrawerSubmit"
-          >
-            {{ formState.editingWorkOrder.value ? '保存' : '创建' }}
-          </el-button>
         </div>
         
         <!-- 表单内容区域（可滚动） -->
@@ -216,6 +208,24 @@
             :on-search="formState.customerFilterMethod"
             :is-mobile="true"
           />
+        </div>
+        
+        <!-- 底部操作栏 -->
+        <div class="drawer-footer">
+          <el-button 
+            size="large"
+            @click="formState.showDialog.value = false"
+          >
+            取消
+          </el-button>
+          <el-button 
+            type="primary" 
+            size="large"
+            :loading="formState.submitting.value" 
+            @click="handleDrawerSubmit"
+          >
+            {{ formState.editingWorkOrder.value ? '保存' : '创建' }}
+          </el-button>
         </div>
       </div>
     </el-drawer>
@@ -605,11 +615,11 @@ function onRefresh() {
   overflow: hidden;
 }
 
-/* 顶部操作栏 */
+/* 顶部标题栏 */
 .drawer-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 12px 16px 8px;
   padding-top: calc(8px + var(--safe-area-top));
   background: white;
@@ -626,31 +636,45 @@ function onRefresh() {
   color: #1a1a1a;
 }
 
-.drawer-header .el-button {
-  font-size: 14px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-.drawer-header .el-button--text {
-  color: #666666;
-  font-weight: 400;
-}
-
-.drawer-header .el-button--primary {
-  background: linear-gradient(135deg, #4a6cf7 0%, #3d5af1 100%);
-  border-color: #4a6cf7;
-  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.3);
-}
-
 /* 表单内容区域 */
 .drawer-body {
   flex: 1;
   overflow-y: auto;
   padding: 12px 16px;
-  padding-bottom: calc(140px + var(--safe-area-bottom));
   background-color: #f8f9fa;
+}
+
+/* 底部操作栏 */
+.drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + var(--safe-area-bottom));
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.drawer-footer .el-button {
+  min-width: 88px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.drawer-footer .el-button--default {
+  color: #666666;
+  border-color: #dcdcdc;
+}
+
+.drawer-footer .el-button--primary {
+  background: linear-gradient(135deg, #4a6cf7 0%, #3d5af1 100%);
+  border-color: #4a6cf7;
+  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.3);
 }
 
 
