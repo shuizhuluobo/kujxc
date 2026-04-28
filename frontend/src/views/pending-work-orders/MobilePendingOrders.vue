@@ -591,42 +591,47 @@ function onRefresh() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  padding-top: calc(8px + var(--safe-area-top));
+  padding: 8px 16px;
+  padding-top: calc(4px + var(--safe-area-top));
   background: white;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f5f5f5;
   position: sticky;
   top: 0;
   z-index: 10;
+  min-height: 44px;
 }
 
 .drawer-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1a1a1a;
 }
 
 .drawer-header .el-button {
-  font-size: 15px;
-  padding: 8px 16px;
-  border-radius: 8px;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 .drawer-header .el-button--text {
-  color: var(--text-secondary);
+  color: #666666;
+  font-weight: 400;
 }
 
 .drawer-header .el-button--primary {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #4a6cf7 0%, #3d5af1 100%);
+  border-color: #4a6cf7;
+  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.3);
 }
 
 /* 表单内容区域 */
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
-  padding-bottom: calc(120px + var(--safe-area-bottom));
+  padding: 12px 16px;
+  padding-bottom: calc(140px + var(--safe-area-bottom));
+  background-color: #f8f9fa;
 }
 
 

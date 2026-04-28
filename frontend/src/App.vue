@@ -47,7 +47,7 @@ watch(() => authStore.token, (newToken) => {
 });
 
 function handleNotificationCreated(notification: any) {
-  // 桌面端由NotificationBell处理通知显示，移动端使用ElNotification
+  // 移动端使用ElNotification
   if (isMobile.value) {
     ElNotification({
       title: notification.title,
@@ -59,9 +59,10 @@ function handleNotificationCreated(notification: any) {
         navigateToWorkOrder(notification.workOrderId);
       }
     });
+    return; // 移动端只显示ElNotification，不显示浏览器原生通知
   }
 
-  // 浏览器原生通知（所有平台）
+  // 桌面端：浏览器原生通知（NotificationBell已经处理了面板显示）
   const notificationPref = localStorage.getItem('notification_preference');
   const isNotificationEnabled = notificationPref === null || notificationPref === 'enabled';
 
