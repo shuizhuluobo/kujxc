@@ -7,6 +7,7 @@ import { onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSSE } from '@/composables/useSSE';
+import { useResponsive } from '@/composables';
 import { ElNotification } from 'element-plus';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
@@ -14,6 +15,7 @@ import { Capacitor } from '@capacitor/core';
 const router = useRouter();
 const authStore = useAuthStore();
 const sse = useSSE();
+const { isMobile } = useResponsive();
 
 async function setupStatusBar() {
   if (Capacitor.isNativePlatform()) {
@@ -42,16 +44,19 @@ watch(() => authStore.token, (newToken) => {
 });
 
 sse.on('notification.created', (notification: any) => {
-  ElNotification({
-    title: notification.title,
-    message: notification.content,
-    type: 'info',
-    duration: 5000,
-    offset: 50,
-    onClick: () => {
-      navigateToWorkOrder(notification.workOrderId);
-    }
-  });
+  // 移动端不显示Element Plus通知浮窗，避免与NotificationBell的面板重复
+  if (!isMobile.value) {
+    ElNotification({
+      title: notification.title,
+      message: notification.content,
+      type: 'info',
+      duration: 5000,
+      offset: 50,
+      onClick: () => {
+        navigateToWorkOrder(notification.workOrderId);
+      }
+    });
+  }
 
   const notificationPref = localStorage.getItem('notification_preference');
   const isNotificationEnabled = notificationPref === null || notificationPref === 'enabled';

@@ -128,7 +128,7 @@ export function useWorkOrderFilter() {
     function resetFilters() {
         filter.status = '';
         filter.serviceTypeId = '';
-        filter.regionId = authStore.roleCode === 'admin' ? '' : (authStore.user?.regionId || '');
+        filter.regionId = '';
         filter.keyword = '';
     }
 

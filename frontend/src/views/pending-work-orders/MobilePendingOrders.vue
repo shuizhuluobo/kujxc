@@ -135,7 +135,7 @@
           {{ getServiceTypeName(filter.serviceTypeId) }}
           <van-icon name="cross" size="14" @click="filter.serviceTypeId = ''" />
         </div>
-        <div v-if="filter.regionId" class="filter-tag">
+        <div v-if="filter.regionId && !isDefaultRegion" class="filter-tag">
           {{ getRegionName(filter.regionId) }}
           <van-icon name="cross" size="14" @click="filter.regionId = ''" />
         </div>
@@ -228,6 +228,7 @@ import { Plus } from '@element-plus/icons-vue';
 import { Button as VanButton, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
+import { useAuthStore } from '@/stores/auth';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
 import WorkOrderForm from './components/WorkOrderForm.vue';
 
@@ -257,6 +258,7 @@ const emit = defineEmits<{
 }>();
 
 const baseDataStore = useBaseDataStore();
+const authStore = useAuthStore();
 const showFilterPopup = ref(false);
 const workOrderFormRef = ref();
 
@@ -264,8 +266,15 @@ function toggleFilterPopup() {
   showFilterPopup.value = !showFilterPopup.value;
 }
 
+// Check if current region is the engineer's default region
+const isDefaultRegion = computed(() => {
+  if (authStore.roleCode !== 'engineer') return false;
+  return props.filter.regionId === authStore.user?.regionId;
+});
+
 const hasActiveFilters = computed(() => {
-  return props.filter.status !== '' || props.filter.serviceTypeId !== '' || props.filter.keyword !== '' || props.filter.regionId !== '';
+  return props.filter.status !== '' || props.filter.serviceTypeId !== '' || props.filter.keyword !== '' || 
+         (props.filter.regionId !== '' && !isDefaultRegion.value);
 });
 
 // 获取服务类型名称
