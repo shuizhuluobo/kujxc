@@ -584,8 +584,8 @@ function onRefresh() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  padding-top: calc(16px + var(--safe-area-top));
+  padding: 12px 16px;
+  padding-top: calc(8px + var(--safe-area-top));
   background: white;
   border-bottom: 1px solid #f0f0f0;
   position: sticky;
@@ -618,8 +618,8 @@ function onRefresh() {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding: 16px;
+  padding-bottom: calc(120px + var(--safe-area-bottom));
 }
 
 
