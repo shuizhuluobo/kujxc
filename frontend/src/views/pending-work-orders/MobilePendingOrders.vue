@@ -578,12 +578,31 @@ function onRefresh() {
   background-color: #e6e8eb;
 }
 
+/* 覆盖 el-drawer 默认样式 */
+:deep(.create-drawer) {
+  .el-drawer__header {
+    display: none !important;
+  }
+  
+  .el-drawer__body {
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  .el-drawer__container {
+    outline: none;
+  }
+}
+
 /* Drawer Content */
 .drawer-content {
   height: 100%;
   display: flex;
   flex-direction: column;
   padding: 0;
+  background-color: #ffffff;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
 }
 
 /* 顶部操作栏 */
@@ -591,14 +610,14 @@ function onRefresh() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  padding-top: calc(4px + var(--safe-area-top));
+  padding: 12px 16px 8px;
+  padding-top: calc(8px + var(--safe-area-top));
   background: white;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #f0f0f0;
   position: sticky;
   top: 0;
   z-index: 10;
-  min-height: 44px;
+  min-height: 48px;
 }
 
 .drawer-title {
