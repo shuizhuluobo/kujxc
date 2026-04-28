@@ -109,10 +109,7 @@ const printData = computed<PrintData>(() => ({
 }));
 
 const scaleStyle = computed(() => {
-  if (templateType.value === 'a4') {
-    return { transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%' };
-  }
-  return { transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%' };
+  return { transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%' };
 });
 
 const open = () => {

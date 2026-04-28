@@ -394,11 +394,11 @@ export function renderTriplicateTemplate(data: PrintData): string {
       <table class="trip-table">
         <thead>
           <tr>
-            <th style="width:6%">序号</th>
-            <th style="width:50%">服务项目</th>
-            <th style="width:10%">数量</th>
-            <th style="width:10%">单价</th>
-            <th style="width:24%">金额</th>
+            <th style="width:8%">序号</th>
+            <th style="width:44%">服务项目</th>
+            <th style="width:12%">数量</th>
+            <th style="width:16%">单价</th>
+            <th style="width:20%">金额</th>
           </tr>
         </thead>
         <tbody>

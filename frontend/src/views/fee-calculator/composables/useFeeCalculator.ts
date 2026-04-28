@@ -149,7 +149,7 @@ export function useFeeCalculator() {
         const qty = computerCount.value <= 5 && (s.item === '出库送货' || s.item === '回收转运' || s.item === '出库到就位') ? 1 : computerCount.value;
         items.push({
           id: s.id || name,
-          displayText: `${s.item} × ${computerCount.value}台`,
+          displayText: s.item,
           total: price,
           item: s.item,
           quantity: qty,
@@ -170,7 +170,7 @@ export function useFeeCalculator() {
       
       items.push({
         id: s.id,
-        displayText: `${s.item} × ${s.quantity}台`,
+        displayText: s.item,
         total: basePrice,
         item: s.item,
         quantity: s.quantity,
@@ -179,7 +179,7 @@ export function useFeeCalculator() {
       if (terminalFee > 0) {
         items.push({
           id: s.id + '-terminal',
-          displayText: `${s.item}终端连接费 × ${terminalCount > 5 ? terminalCount - 5 : terminalCount - 3}台`,
+          displayText: `${s.item}终端连接费`,
           total: terminalFee,
           item: s.item + '终端连接费',
           quantity: terminalCount > 5 ? terminalCount - 5 : terminalCount - 3,
@@ -190,7 +190,7 @@ export function useFeeCalculator() {
     peripheralRecycleServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
       items.push({
         id: s.id,
-        displayText: `${s.item} × ${s.quantity}台`,
+        displayText: s.item,
         total: s.price * s.quantity,
         item: s.item,
         quantity: s.quantity,
@@ -332,19 +332,23 @@ export function useFeeCalculator() {
   const updateSetting = async (item: FeeSetting) => {
     try {
       await api.put(`/fee/settings/${item.id}`, { price: item.price, isActive: item.isActive });
+      ElMessage.closeAll();
       ElMessage.success('设置已更新');
     } catch (e: any) {
+      ElMessage.closeAll();
       ElMessage.error('更新失败');
     }
   };
 
   const saveRecord = async () => {
     if (selectedItems.value.length === 0) {
+      ElMessage.closeAll();
       ElMessage.warning('请选择服务项目');
       return;
     }
     const creatorId = authStore.user?.id;
     if (!creatorId) {
+      ElMessage.closeAll();
       ElMessage.warning('无法获取用户信息，请重新登录');
       return;
     }
@@ -364,10 +368,12 @@ export function useFeeCalculator() {
         remark: remark.value,
         creatorId,
       });
+      ElMessage.closeAll();
       ElMessage.success('记录已保存');
       loadRecords();
       resetCalculator();
     } catch (e: any) {
+      ElMessage.closeAll();
       ElMessage.error('保存失败');
     }
   };
@@ -413,9 +419,11 @@ export function useFeeCalculator() {
   const deleteRecord = async (id: string) => {
     try {
       await api.delete(`/fee/records/${id}`);
+      ElMessage.closeAll();
       ElMessage.success('记录已删除');
       loadRecords();
     } catch (e: any) {
+      ElMessage.closeAll();
       ElMessage.error('删除失败');
     }
   };
@@ -694,6 +702,7 @@ export function useFeeCalculator() {
         await api.post('/fee/settings/init');
         loadSettings();
       } catch (err: any) {
+        ElMessage.closeAll();
         ElMessage.error('加载费用设置失败');
       }
     }
