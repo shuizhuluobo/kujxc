@@ -172,13 +172,6 @@
                 >
                   我的工单
                 </van-button>
-                <van-button 
-                  v-for="u in filteredCompleters"
-                  :key="u.id"
-                  :type="filter.completerId === u.id ? 'primary' : 'default'"
-                  size="small"
-                  @click="filter.completerId = u.id"
-                >{{ u.name }}</van-button>
               </div>
             </div>
           </div>
