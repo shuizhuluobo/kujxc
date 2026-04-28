@@ -4,48 +4,48 @@
     <div class="page-header">
       <div class="header-content">
         <div class="header-left">
-          <h2>待办工单</h2>
-          <div class="header-row">
+          <div class="header-row-top">
+            <h2>待办工单</h2>
             <!-- 数量统计 -->
             <div class="stats-tag" v-if="stats.total > 0">
               <span class="stat-item danger" v-if="stats.pending > 0">待:{{ stats.pending }}</span>
               <span class="stat-item warning" v-if="stats.received > 0">处理:{{ stats.received }}</span>
             </div>
-            <!-- 滑动筛选条 -->
-            <div class="filter-bar-inline">
-              <div class="filter-bar-container">
-                <div 
-                  class="filter-item" 
-                  :class="{ active: filter.status === '' }"
-                  @click="filter.status = ''"
-                  title="全部工单"
-                >
-                  全部
-                </div>
-                <div 
-                  class="filter-item" 
-                  :class="{ active: filter.status === 'PENDING' }"
-                  @click="filter.status = 'PENDING'"
-                  title="待接收工单"
-                >
-                  待接
-                </div>
-                <div 
-                  class="filter-item" 
-                  :class="{ active: filter.status === 'RECEIVED' }"
-                  @click="filter.status = 'RECEIVED'"
-                  title="已接收工单"
-                >
-                  已接
-                </div>
-                <div 
-                  class="filter-item more-filter"
-                  @click="toggleFilterPopup"
-                  title="更多筛选选项"
-                >
-                  更多
-                  <van-icon name="arrow-down" size="12" />
-                </div>
+          </div>
+          <!-- 滑动筛选条 -->
+          <div class="filter-bar-inline">
+            <div class="filter-bar-container">
+              <div 
+                class="filter-item" 
+                :class="{ active: filter.status === '' }"
+                @click="filter.status = ''"
+                title="全部工单"
+              >
+                全部
+              </div>
+              <div 
+                class="filter-item" 
+                :class="{ active: filter.status === 'PENDING' }"
+                @click="filter.status = 'PENDING'"
+                title="待接收工单"
+              >
+                待接
+              </div>
+              <div 
+                class="filter-item" 
+                :class="{ active: filter.status === 'RECEIVED' }"
+                @click="filter.status = 'RECEIVED'"
+                title="已接收工单"
+              >
+                已接
+              </div>
+              <div 
+                class="filter-item more-filter"
+                @click="toggleFilterPopup"
+                title="更多筛选选项"
+              >
+                更多
+                <van-icon name="arrow-down" size="12" />
               </div>
             </div>
           </div>
@@ -364,11 +364,18 @@ function onRefresh() {
   padding: 8px 0 4px;
 }
 
-.header-row {
+.header-row-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.header-row-top h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  padding: 8px 0 4px;
 }
 
 .stats-tag {

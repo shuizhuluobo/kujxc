@@ -4,50 +4,50 @@
     <div class="page-header" v-if="!hideTitle">
       <div class="header-content">
         <div class="header-left">
-          <h2>历史工单</h2>
-          <div class="header-row">
+          <div class="header-row-top">
+            <h2>历史工单</h2>
             <!-- 数量统计 -->
             <div class="stats-tag" v-if="stats.total > 0">
               <span class="stat-item primary">共:{{ stats.total }}</span>
             </div>
-            <!-- 滑动筛选条 -->
-            <div class="filter-bar-inline">
-              <div class="filter-bar-container">
-                <div 
-                  class="filter-item" 
-                  :class="{ active: isMyOrders }"
-                  @click="$emit('toggleMyOrders')"
-                  title="我的工单"
-                >
-                  我的工单
-                </div>
-                <div 
-                  class="filter-item" 
-                  :class="{ active: filter.regionId === undefined }"
-                  @click="filter.regionId = undefined"
-                  title="全部区域"
-                >
-                  全部区域
-                </div>
-                <div 
-                  v-for="r in baseDataStore.regions"
-                  :key="r.id"
-                  class="filter-item" 
-                  :class="{ active: filter.regionId === r.id }"
-                  @click="filter.regionId = r.id"
-                  :title="r.name"
-                >
-                  {{ r.name }}
-                </div>
-                <div 
-                  class="filter-item more-filter"
-                  ref="moreFilterBtn"
-                  @click="toggleFilterPopup"
-                  title="更多筛选选项"
-                >
-                  更多
-                  <van-icon name="arrow-down" size="12" />
-                </div>
+          </div>
+          <!-- 滑动筛选条 -->
+          <div class="filter-bar-inline">
+            <div class="filter-bar-container">
+              <div 
+                class="filter-item" 
+                :class="{ active: isMyOrders }"
+                @click="$emit('toggleMyOrders')"
+                title="我的工单"
+              >
+                我的工单
+              </div>
+              <div 
+                class="filter-item" 
+                :class="{ active: filter.regionId === undefined }"
+                @click="filter.regionId = undefined"
+                title="全部区域"
+              >
+                全部区域
+              </div>
+              <div 
+                v-for="r in baseDataStore.regions"
+                :key="r.id"
+                class="filter-item" 
+                :class="{ active: filter.regionId === r.id }"
+                @click="filter.regionId = r.id"
+                :title="r.name"
+              >
+                {{ r.name }}
+              </div>
+              <div 
+                class="filter-item more-filter"
+                ref="moreFilterBtn"
+                @click="toggleFilterPopup"
+                title="更多筛选选项"
+              >
+                更多
+                <van-icon name="arrow-down" size="12" />
               </div>
             </div>
           </div>
@@ -387,11 +387,18 @@ defineExpose({ showFilterDrawer });
   padding: 8px 0 4px;
 }
 
-.header-row {
+.header-row-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.header-row-top h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  padding: 8px 0 4px;
 }
 
 .stats-tag {
