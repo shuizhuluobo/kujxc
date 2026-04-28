@@ -216,45 +216,45 @@ function getA4Css(): string {
 
 /**
  * 三联纸模板专用 CSS
- * 三联纸尺寸: 241mm x 127.6mm (约 910px x 482px at 96dpi)
- * 紧凑布局优化：减少边距和行高，目标容纳5-8条数据
+ * A4三分之一尺寸: 210mm x 99mm (A4纸张297mm高度三等分)
+ * 适配三联复写纸打印，紧凑布局优化
  */
 function getTriplicateCss(): string {
   return `
-    @page { size: 241mm 127.6mm; margin: 6mm 10mm; }
+    @page { size: 210mm 99mm; margin: 4mm 8mm; }
     ${getPrintBaseCss()}
-    body { padding: 2mm 6mm; }
+    body { padding: 2mm 5mm; }
     .trip-template { width: 100%; }
-    .trip-title { font-size: 12pt; font-weight: bold; text-align: center; margin: 1.5mm 0 2mm; letter-spacing: 1px; }
-    .trip-info { font-size: 7pt; line-height: 1.4; margin-bottom: 1.5mm; }
+    .trip-title { font-size: 11pt; font-weight: bold; text-align: center; margin: 1mm 0 1.5mm; letter-spacing: 1px; }
+    .trip-info { font-size: 6.5pt; line-height: 1.3; margin-bottom: 1mm; }
     .trip-info-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px; }
-    .trip-info-row-compact { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: nowrap; }
-    .trip-info-row-compact span { flex: 1; min-width: 80px; }
+    .trip-info-row-compact { display: flex; justify-content: flex-start; gap: 6px; flex-wrap: nowrap; }
+    .trip-info-row-compact span { flex: 1; min-width: 70px; }
     .trip-info-row .label { font-weight: normal; }
-    .trip-info-row .value { border-bottom: 1px solid #333; padding: 0 1px; min-width: 50px; display: inline-block; }
-    .trip-info-row .value.wide { min-width: 60px; }
-    .trip-table { font-size: 7pt; margin-bottom: 1.5mm; }
-    .trip-table th { height: 16px; font-size: 7pt; padding: 1px 2px; white-space: nowrap; }
-    .trip-table td { height: 15px; font-size: 7pt; padding: 0.5px 2px; }
-    .trip-table td.item-name { text-align: left; padding-left: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .trip-table td.amount { text-align: right; padding-right: 3px; font-family: 'Courier New', monospace; white-space: nowrap; }
+    .trip-info-row .value { border-bottom: 1px solid #333; padding: 0 1px; min-width: 45px; display: inline-block; }
+    .trip-info-row .value.wide { min-width: 55px; }
+    .trip-table { font-size: 6.5pt; margin-bottom: 1mm; }
+    .trip-table th { height: 14px; font-size: 6.5pt; padding: 0.5px 2px; white-space: nowrap; }
+    .trip-table td { height: 13px; font-size: 6.5pt; padding: 0.5px 2px; }
+    .trip-table td.item-name { text-align: left; padding-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trip-table td.amount { text-align: right; padding-right: 2px; font-family: 'Courier New', monospace; white-space: nowrap; }
     .trip-table td.qty { text-align: center; font-family: 'Courier New', monospace; }
     .trip-table td.price { text-align: right; font-family: 'Courier New', monospace; }
-    .trip-summary { font-size: 7pt; margin-bottom: 1.5mm; }
-    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.4; gap: 6px; }
-    .trip-summary-row .label { min-width: 35px; text-align: right; }
-    .trip-summary-row .value { min-width: 60px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #333; padding: 0 1px; }
-    .trip-summary-total { font-weight: bold; font-size: 8pt; margin-top: 1mm; padding-top: 1mm; border-top: 1.5px solid #000; }
+    .trip-summary { font-size: 6.5pt; margin-bottom: 1mm; }
+    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.3; gap: 5px; }
+    .trip-summary-row .label { min-width: 32px; text-align: right; }
+    .trip-summary-row .value { min-width: 55px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #333; padding: 0 1px; }
+    .trip-summary-total { font-weight: bold; font-size: 7.5pt; margin-top: 0.8mm; padding-top: 0.8mm; border-top: 1.5px solid #000; }
     .trip-summary-total .value { border-bottom: none; color: #000; }
-    .trip-chinese { text-align: right; font-size: 6pt; color: #555; margin-top: 0.5mm; padding-right: 2px; }
-    .trip-remark { font-size: 7pt; margin-bottom: 2mm; line-height: 1.4; }
+    .trip-chinese { text-align: right; font-size: 5.5pt; color: #555; margin-top: 0.5mm; padding-right: 2px; }
+    .trip-remark { font-size: 6.5pt; margin-bottom: 1.5mm; line-height: 1.3; }
     .trip-remark .label { font-weight: bold; }
-    .trip-sign { font-size: 7pt; margin-top: 3mm; display: flex; justify-content: space-between; align-items: flex-end; }
-    .trip-sign-item { min-width: 80px; }
-    .trip-sign-item .sign-line { width: 60px; }
+    .trip-sign { font-size: 6.5pt; margin-top: 2mm; display: flex; justify-content: space-between; align-items: flex-end; }
+    .trip-sign-item { min-width: 70px; }
+    .trip-sign-item .sign-line { width: 55px; }
     .trip-sign-date { margin-top: 2px; }
-    .trip-footer { margin-top: 2mm; font-size: 7pt; line-height: 1.4; text-align: center; color: #555; }
-    .trip-footer-text { display: inline; margin: 0 6px; }
+    .trip-footer { margin-top: 1.5mm; font-size: 6.5pt; line-height: 1.3; text-align: center; color: #555; }
+    .trip-footer-text { display: inline; margin: 0 5px; }
   `;
 }
 
