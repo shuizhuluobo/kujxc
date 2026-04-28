@@ -44,8 +44,8 @@ watch(() => authStore.token, (newToken) => {
 });
 
 sse.on('notification.created', (notification: any) => {
-  // 移动端不显示Element Plus通知浮窗，避免与NotificationBell的面板重复
-  if (!isMobile.value) {
+  // 桌面端由NotificationBell处理通知显示，移动端使用ElNotification
+  if (isMobile.value) {
     ElNotification({
       title: notification.title,
       message: notification.content,
@@ -58,6 +58,7 @@ sse.on('notification.created', (notification: any) => {
     });
   }
 
+  // 浏览器原生通知（所有平台）
   const notificationPref = localStorage.getItem('notification_preference');
   const isNotificationEnabled = notificationPref === null || notificationPref === 'enabled';
 

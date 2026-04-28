@@ -33,6 +33,7 @@
         
         <div class="header-right">
           <ThemeToggle />
+          <NotificationBell v-if="!isMobile" />
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="32" :src="resolveAssetUrl(authStore.user?.avatar)">
@@ -97,6 +98,7 @@
 <script setup lang="ts">
 import { Fold, Expand } from '@element-plus/icons-vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import DesktopSidebar from './layout/DesktopSidebar.vue';
 import MobileNavBar from './layout/MobileNavBar.vue';
 import { useMainLayout } from './layout/useMainLayout';
