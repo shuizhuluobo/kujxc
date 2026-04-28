@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSSE } from '@/composables/useSSE';
@@ -16,6 +16,9 @@ const router = useRouter();
 const authStore = useAuthStore();
 const sse = useSSE();
 const { isMobile } = useResponsive();
+
+// 清理函数引用
+let cleanupNotificationListener: (() => void) | null = null;
 
 async function setupStatusBar() {
   if (Capacitor.isNativePlatform()) {
@@ -43,7 +46,7 @@ watch(() => authStore.token, (newToken) => {
   }
 });
 
-sse.on('notification.created', (notification: any) => {
+function handleNotificationCreated(notification: any) {
   // 桌面端由NotificationBell处理通知显示，移动端使用ElNotification
   if (isMobile.value) {
     ElNotification({
@@ -78,12 +81,22 @@ sse.on('notification.created', (notification: any) => {
         console.error('Notification error:', e);
     }
   }
-});
+}
 
 onMounted(() => {
   setupStatusBar();
   if (authStore.token) {
     sse.connect();
+  }
+  // 在onMounted中注册监听器，避免重复注册
+  cleanupNotificationListener = sse.on('notification.created', handleNotificationCreated);
+});
+
+onUnmounted(() => {
+  // 清理监听器
+  if (cleanupNotificationListener) {
+    cleanupNotificationListener();
+    cleanupNotificationListener = null;
   }
 });
 </script>
