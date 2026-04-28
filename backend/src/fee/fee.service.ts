@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface FeeItem {
@@ -91,7 +92,7 @@ export class FeeService {
   }) {
     return this.prisma.feeRecord.create({
       data: {
-        items: data.items as any,
+        items: data.items as unknown as Prisma.InputJsonValue,
         subtotal: data.subtotal,
         discount: data.discount,
         actualAmount: data.actualAmount,

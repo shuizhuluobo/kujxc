@@ -29,15 +29,18 @@ export interface PrintItem {
 export type PrintTemplateType = 'a4' | 'triplicate';
 
 /**
- * 生成单据编号 FE-YYYYMMDD-XXX
+ * 生成单据编号 FE-YYYYMMDD-XXXX
+ * 使用时间戳+随机数降低冲突概率
  */
 export function generateDocumentNo(): string {
   const now = new Date();
   const dateStr = now.getFullYear().toString() +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
-  const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-  return `FE-${dateStr}-${seq}`;
+  // 4位随机 + 时间戳后4位，进一步降低冲突
+  const rand = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  const ts = String(Date.now()).slice(-4);
+  return `FE-${dateStr}-${rand}${ts}`;
 }
 
 /**
@@ -148,6 +151,14 @@ export function recordToPrintData(record: FeeRecord): PrintData {
 }
 
 /**
+ * 打印模板的通用配置
+ */
+const PRINT_CONFIG = {
+  contactPhone: (window as any).__PRINT_PHONE__ || '0631-5213686',
+  companyNotice: '请您仔细核对此单内容，并签字确认，谢谢您的合作！',
+};
+
+/**
  * 打印模板的通用 CSS 样式
  */
 function getPrintBaseCss(): string {
@@ -206,44 +217,44 @@ function getA4Css(): string {
 /**
  * 三联纸模板专用 CSS
  * 三联纸尺寸: 241mm x 127.6mm (约 910px x 482px at 96dpi)
- * 边距约 3mm，标题区 25%，内容区 55%，签名区 20%
+ * 紧凑布局优化：减少边距和行高，目标容纳5-8条数据
  */
 function getTriplicateCss(): string {
   return `
-    @page { size: 241mm 127.6mm; margin: 8mm; }
+    @page { size: 241mm 127.6mm; margin: 6mm 10mm; }
     ${getPrintBaseCss()}
-    body { padding: 4mm; }
+    body { padding: 2mm 6mm; }
     .trip-template { width: 100%; }
-    .trip-title { font-size: 14pt; font-weight: bold; text-align: center; margin: 3mm 0 5mm; letter-spacing: 2px; }
-    .trip-info { font-size: 8pt; line-height: 1.8; margin-bottom: 4mm; }
-    .trip-info-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
-    .trip-info-row-compact { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: nowrap; }
-    .trip-info-row-compact span { flex: 1; min-width: 120px; }
+    .trip-title { font-size: 12pt; font-weight: bold; text-align: center; margin: 1.5mm 0 2mm; letter-spacing: 1px; }
+    .trip-info { font-size: 7pt; line-height: 1.4; margin-bottom: 1.5mm; }
+    .trip-info-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px; }
+    .trip-info-row-compact { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: nowrap; }
+    .trip-info-row-compact span { flex: 1; min-width: 80px; }
     .trip-info-row .label { font-weight: normal; }
-    .trip-info-row .value { border-bottom: 1px solid #333; padding: 0 2px; min-width: 60px; display: inline-block; }
-    .trip-info-row .value.wide { min-width: 80px; }
-    .trip-table { font-size: 8pt; margin-bottom: 4mm; }
-    .trip-table th { height: 20px; font-size: 8pt; padding: 2px 3px; white-space: nowrap; }
-    .trip-table td { height: 18px; font-size: 8pt; padding: 1px 3px; }
-    .trip-table td.item-name { text-align: left; padding-left: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .trip-table td.amount { text-align: right; padding-right: 4px; font-family: 'Courier New', monospace; white-space: nowrap; }
+    .trip-info-row .value { border-bottom: 1px solid #333; padding: 0 1px; min-width: 50px; display: inline-block; }
+    .trip-info-row .value.wide { min-width: 60px; }
+    .trip-table { font-size: 7pt; margin-bottom: 1.5mm; }
+    .trip-table th { height: 16px; font-size: 7pt; padding: 1px 2px; white-space: nowrap; }
+    .trip-table td { height: 15px; font-size: 7pt; padding: 0.5px 2px; }
+    .trip-table td.item-name { text-align: left; padding-left: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trip-table td.amount { text-align: right; padding-right: 3px; font-family: 'Courier New', monospace; white-space: nowrap; }
     .trip-table td.qty { text-align: center; font-family: 'Courier New', monospace; }
     .trip-table td.price { text-align: right; font-family: 'Courier New', monospace; }
-    .trip-summary { font-size: 8pt; margin-bottom: 3mm; }
-    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.8; gap: 8px; }
-    .trip-summary-row .label { min-width: 40px; text-align: right; }
-    .trip-summary-row .value { min-width: 70px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #333; padding: 0 2px; }
-    .trip-summary-total { font-weight: bold; font-size: 9pt; margin-top: 2mm; padding-top: 2mm; border-top: 1.5px solid #000; }
+    .trip-summary { font-size: 7pt; margin-bottom: 1.5mm; }
+    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.4; gap: 6px; }
+    .trip-summary-row .label { min-width: 35px; text-align: right; }
+    .trip-summary-row .value { min-width: 60px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #333; padding: 0 1px; }
+    .trip-summary-total { font-weight: bold; font-size: 8pt; margin-top: 1mm; padding-top: 1mm; border-top: 1.5px solid #000; }
     .trip-summary-total .value { border-bottom: none; color: #000; }
-    .trip-chinese { text-align: right; font-size: 7pt; color: #555; margin-top: 1mm; padding-right: 2px; }
-    .trip-remark { font-size: 8pt; margin-bottom: 4mm; line-height: 1.6; }
+    .trip-chinese { text-align: right; font-size: 6pt; color: #555; margin-top: 0.5mm; padding-right: 2px; }
+    .trip-remark { font-size: 7pt; margin-bottom: 2mm; line-height: 1.4; }
     .trip-remark .label { font-weight: bold; }
-    .trip-sign { font-size: 8pt; margin-top: 6mm; display: flex; justify-content: space-between; align-items: flex-end; }
-    .trip-sign-item { min-width: 100px; }
-    .trip-sign-item .sign-line { width: 70px; }
-    .trip-sign-date { margin-top: 4px; }
-    .trip-footer { margin-top: 4mm; font-size: 8pt; line-height: 1.6; text-align: center; color: #555; }
-    .trip-footer-text { display: inline; margin: 0 8px; }
+    .trip-sign { font-size: 7pt; margin-top: 3mm; display: flex; justify-content: space-between; align-items: flex-end; }
+    .trip-sign-item { min-width: 80px; }
+    .trip-sign-item .sign-line { width: 60px; }
+    .trip-sign-date { margin-top: 2px; }
+    .trip-footer { margin-top: 2mm; font-size: 7pt; line-height: 1.4; text-align: center; color: #555; }
+    .trip-footer-text { display: inline; margin: 0 6px; }
   `;
 }
 
@@ -401,8 +412,8 @@ export function renderTriplicateTemplate(data: PrintData): string {
         <div class="trip-sign-item">客户签收:<span class="sign-line"></span></div>
       </div>
       <div class="trip-footer">
-        <div class="trip-footer-text">请您仔细核对此单内容，并签字确认，谢谢您的合作！</div>
-        <div class="trip-footer-text">联系电话：0631-5213686</div>
+        <div class="trip-footer-text">${PRINT_CONFIG.companyNotice}</div>
+        <div class="trip-footer-text">联系电话：${PRINT_CONFIG.contactPhone}</div>
       </div>
     </div>
   `;
@@ -425,18 +436,37 @@ export function doPrint(template: PrintTemplateType, data: PrintData): void {
   document.body.appendChild(iframe);
 
   const doc = iframe.contentWindow?.document;
-  if (!doc) return;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
 
   doc.open();
   doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${html}</body></html>`);
   doc.close();
 
+  // 监听打印对话框关闭后清理iframe
+  const contentWindow = iframe.contentWindow;
+  const cleanup = () => {
+    if (iframe.parentNode) {
+      document.body.removeChild(iframe);
+    }
+  };
+
   iframe.contentWindow?.focus();
   setTimeout(() => {
-    iframe.contentWindow?.print();
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 1000);
+    try {
+      contentWindow?.print();
+    } catch {
+      cleanup();
+      return;
+    }
+    // 打印对话框关闭后清理（兼容不同浏览器）
+    if (contentWindow) {
+      contentWindow.onafterprint = cleanup;
+    }
+    // 兜底清理：5秒后强制移除
+    setTimeout(cleanup, 5000);
   }, 300);
 }
 

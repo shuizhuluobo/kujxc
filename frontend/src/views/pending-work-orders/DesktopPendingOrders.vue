@@ -67,7 +67,7 @@
 
     <!-- 表格视图 -->
     <el-table 
-      v-else
+      v-else-if="workOrders.length > 0"
       :data="workOrders" 
       class="work-order-table card-premium"
       :row-class-name="tableRowClassName"
@@ -170,6 +170,13 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 空状态 -->
+    <div v-else class="empty-state card-premium">
+      <el-empty description="暂无待办工单">
+        <el-button type="primary" @click="emit('create')">新建工单</el-button>
+      </el-empty>
+    </div>
 
     <div class="pagination-container" v-if="pagination.total > 0">
       <el-pagination
@@ -433,6 +440,11 @@ onMounted(() => {
 
 .loading-container {
     padding: 24px;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
 }
 
 /* Card Premium Effect */

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
@@ -25,14 +24,6 @@ import { join } from 'path';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60000, // 1分钟
-          limit: 10, // 每分钟最多10次请求
-        },
-      ],
     }),
     ServeStaticModule.forRoot(
       {

@@ -209,7 +209,9 @@
       </div>
       <div class="bubble-footer">
         <button class="btn btn-cancel" @click="showCancelReceiveConfirm = false">取消</button>
-        <button class="btn btn-warning" @click="handleCancelReceive">确认取消</button>
+        <button class="btn btn-warning" :disabled="actionLoading" @click="handleCancelReceive">
+          {{ actionLoading ? '处理中...' : '确认取消' }}
+        </button>
       </div>
     </div>
   </div>
@@ -225,6 +227,8 @@ import { useAuthStore } from '@/stores/auth';
 import { usePermission } from '@/composables';
 import { useBaseDataStore } from '@/stores/baseData';
 import { getCustomerDisplayName } from '@/utils/customer';
+import { workOrdersApi } from '@/api';
+import { ElMessage } from 'element-plus';
 
 const props = defineProps<{
   workOrder: WorkOrder;
@@ -248,25 +252,48 @@ const showCompleteBubble = ref(false);
 const showDeleteConfirm = ref(false);
 const showCancelReceiveConfirm = ref(false);
 const collaboratorIds = ref<string[]>([]);
+const actionLoading = ref(false);
 
 const engineers = computed<UserType[]>(() => {
   return baseDataStore.users.filter(u => u.role?.code === 'engineer');
 });
 
 function handleComplete() {
+  if (actionLoading.value) return;
+  actionLoading.value = true;
   emit('complete', props.workOrder, collaboratorIds.value);
   showCompleteBubble.value = false;
   collaboratorIds.value = [];
+  // 父组件负责异步操作，延迟重置loading
+  setTimeout(() => { actionLoading.value = false; }, 3000);
 }
 
-function handleDelete() {
-  emit('delete', props.workOrder);
+async function handleDelete() {
+  if (actionLoading.value) return;
+  actionLoading.value = true;
+  try {
+    await workOrdersApi.delete(props.workOrder.id);
+    ElMessage.success('删除成功');
+    emit('delete', props.workOrder);
+  } catch (error) {
+    ElMessage.error('删除失败');
+  }
   showDeleteConfirm.value = false;
+  actionLoading.value = false;
 }
 
-function handleCancelReceive() {
-  emit('cancel-receive', props.workOrder);
+async function handleCancelReceive() {
+  if (actionLoading.value) return;
+  actionLoading.value = true;
+  try {
+    await workOrdersApi.cancelReceive(props.workOrder.id);
+    ElMessage.success('已取消接收');
+    emit('cancel-receive', props.workOrder);
+  } catch (error) {
+    ElMessage.error('取消接收失败');
+  }
   showCancelReceiveConfirm.value = false;
+  actionLoading.value = false;
 }
 
 const customerDisplayName = computed(() => getCustomerDisplayName(props.workOrder.customer));

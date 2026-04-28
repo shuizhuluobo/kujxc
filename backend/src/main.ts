@@ -6,6 +6,25 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+
+  // 生产环境强制校验关键配置
+  if (process.env.NODE_ENV === 'production') {
+    const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+    const insecureDefaults = ['change-in-production', 'dev-jwt-secret', 'dev-refresh-secret'];
+
+    for (const varName of requiredEnvVars) {
+      const value = process.env[varName];
+      if (!value) {
+        logger.error(`Missing required environment variable: ${varName}`);
+        process.exit(1);
+      }
+      if (insecureDefaults.some((d) => value.includes(d))) {
+        logger.error(`Environment variable ${varName} contains insecure default value. Please change it in production.`);
+        process.exit(1);
+      }
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // 注册全局异常过滤器

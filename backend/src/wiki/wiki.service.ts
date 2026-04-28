@@ -332,57 +332,64 @@ export class WikiService {
     this.logger.log('Starting Pinyin backfill...');
     let count = 0;
 
-    // 1. WikiArticles
-    const articles = await this.prisma.wikiArticle.findMany({
-      where: { OR: [{ titlePinyin: null }, { titleInitials: null }] },
-    });
-    for (const article of articles) {
-      const { pinyinStr, initials } = generatePinyinMeta(article.title);
-      await this.prisma.wikiArticle.update({
-        where: { id: article.id },
-        data: { titlePinyin: pinyinStr, titleInitials: initials },
+    // 使用事务批量更新，减少数据库往返
+    await this.prisma.$transaction(async (tx) => {
+      // 1. WikiArticles
+      const articles = await tx.wikiArticle.findMany({
+        where: { OR: [{ titlePinyin: null }, { titleInitials: null }] },
+        select: { id: true, title: true },
       });
-      count++;
-    }
+      for (const article of articles) {
+        const { pinyinStr, initials } = generatePinyinMeta(article.title);
+        await tx.wikiArticle.update({
+          where: { id: article.id },
+          data: { titlePinyin: pinyinStr, titleInitials: initials },
+        });
+        count++;
+      }
 
-    // 2. Customers
-    const customers = await this.prisma.customer.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
-    });
-    for (const customer of customers) {
-      const { pinyinStr, initials } = generatePinyinMeta(customer.name);
-      await this.prisma.customer.update({
-        where: { id: customer.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials },
+      // 2. Customers
+      const customers = await tx.customer.findMany({
+        where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
+        select: { id: true, name: true },
       });
-      count++;
-    }
+      for (const customer of customers) {
+        const { pinyinStr, initials } = generatePinyinMeta(customer.name);
+        await tx.customer.update({
+          where: { id: customer.id },
+          data: { namePinyin: pinyinStr, nameInitials: initials },
+        });
+        count++;
+      }
 
-    // 3. Regions
-    const regions = await this.prisma.region.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
-    });
-    for (const region of regions) {
-      const { pinyinStr, initials } = generatePinyinMeta(region.name);
-      await this.prisma.region.update({
-        where: { id: region.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials },
+      // 3. Regions
+      const regions = await tx.region.findMany({
+        where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
+        select: { id: true, name: true },
       });
-      count++;
-    }
+      for (const region of regions) {
+        const { pinyinStr, initials } = generatePinyinMeta(region.name);
+        await tx.region.update({
+          where: { id: region.id },
+          data: { namePinyin: pinyinStr, nameInitials: initials },
+        });
+        count++;
+      }
 
-    // 4. ServiceTypes
-    const serviceTypes = await this.prisma.serviceType.findMany({
-      where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
-    });
-    for (const st of serviceTypes) {
-      const { pinyinStr, initials } = generatePinyinMeta(st.name);
-      await this.prisma.serviceType.update({
-        where: { id: st.id },
-        data: { namePinyin: pinyinStr, nameInitials: initials },
+      // 4. ServiceTypes
+      const serviceTypes = await tx.serviceType.findMany({
+        where: { OR: [{ namePinyin: null }, { nameInitials: null }] },
+        select: { id: true, name: true },
       });
-      count++;
-    }
+      for (const st of serviceTypes) {
+        const { pinyinStr, initials } = generatePinyinMeta(st.name);
+        await tx.serviceType.update({
+          where: { id: st.id },
+          data: { namePinyin: pinyinStr, nameInitials: initials },
+        });
+        count++;
+      }
+    });
 
     this.logger.log(`Pinyin backfill completed! Total updated: ${count}`);
     return { success: true, count };

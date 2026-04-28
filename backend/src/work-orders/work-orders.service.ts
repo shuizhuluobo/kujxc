@@ -168,6 +168,7 @@ export class WorkOrdersService {
       where,
       include: this.includeRelations,
       orderBy: { createdAt: 'desc' },
+      take: 500,
     });
   }
 
