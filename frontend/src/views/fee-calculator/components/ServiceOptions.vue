@@ -144,7 +144,7 @@ const handleTransportChange = (item: ServiceItem, value: boolean) => {
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .option-item:hover {
@@ -152,7 +152,7 @@ const handleTransportChange = (item: ServiceItem, value: boolean) => {
 }
 
 .option-item.selected {
-  background: var(--primary-color-light, rgba(64, 158, 255, 0.1));
+  background: rgba(var(--primary-rgb), 0.1);
   border-color: var(--primary-color);
 }
 

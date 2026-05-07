@@ -15,10 +15,12 @@ import { CreateRoleDto, UpdateRoleDto } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 
 @ApiTags('角色管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@CsrfProtected()
 @Controller('roles')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}

@@ -148,7 +148,7 @@
     <el-drawer v-model="showSettings" title="费用设置" size="80%" direction="btt">
       <div class="settings-panel">
         <h4>单价设置</h4>
-        <el-table :data="allSettings" stripe size="small" max-height="60vh">
+        <el-table :data="allSettings" stripe size="small" max-height="60vh" empty-text="暂无费用设置">
           <el-table-column prop="category" label="类别" width="80" />
           <el-table-column prop="item" label="项目" />
           <el-table-column label="价格" width="80">
@@ -348,6 +348,12 @@ init();
   padding: 10px;
   background: var(--bg-color-page);
   border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.option-item:hover {
+  background: var(--border-color-lighter);
 }
 
 .option-item.selected {
@@ -372,7 +378,7 @@ init();
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--card-bg);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   z-index: 101;
 }

@@ -112,7 +112,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .milkdown-container :deep(.milkdown code) {
-  background: #3e3d3a;
+  background: var(--bg-color-page);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -120,7 +120,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .milkdown-container :deep(.milkdown pre) {
-  background: #2d2d2d;
+  background: var(--bg-color-page);
   border-radius: 8px;
   padding: 16px;
   overflow-x: auto;

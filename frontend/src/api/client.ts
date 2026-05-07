@@ -1,23 +1,15 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth';
-import { Capacitor } from '@capacitor/core';
 import { getCsrfToken } from './csrf';
 
 // 获取 API 基础地址
 export function getBaseURL(): string {
-    const isNative = Capacitor.isNativePlatform();
     const isDev = import.meta.env.DEV;
 
-    // Capacitor App：使用完整的服务器地址
-    if (isNative) {
-        // 优先使用环境变量
-        if (import.meta.env.VITE_API_URL) {
-            if (isDev) console.log('[API] Using VITE_API_URL:', import.meta.env.VITE_API_URL);
-            return import.meta.env.VITE_API_URL;
-        }
-        // 生产环境必须配置 VITE_API_URL
-        if (isDev) console.log('[API] VITE_API_URL not configured');
-        throw new Error('VITE_API_URL environment variable is required for mobile app');
+    // 优先使用环境变量
+    if (import.meta.env.VITE_API_URL) {
+        if (isDev) console.log('[API] Using VITE_API_URL:', import.meta.env.VITE_API_URL);
+        return import.meta.env.VITE_API_URL;
     }
 
     // Web 环境：使用相对路径
@@ -37,7 +29,7 @@ export function getFileBaseURL(): string {
 
 const baseURL = getBaseURL();
 if (import.meta.env.DEV) {
-    console.log('[API] Client Base URL:', baseURL, 'File Base URL:', getFileBaseURL(), 'Mode:', import.meta.env.MODE, 'Platform:', Capacitor.getPlatform());
+    console.log('[API] Client Base URL:', baseURL, 'File Base URL:', getFileBaseURL(), 'Mode:', import.meta.env.MODE);
 }
 
 const api: AxiosInstance = axios.create({
@@ -64,10 +56,9 @@ const api: AxiosInstance = axios.create({
 
 // 不需要 CSRF 保护的接口
 const CSRF_EXCLUDED_PATHS = [
-    '/auth/login',
-    '/auth/refresh',
-    '/security/csrf-token',
-    '/fee/',
+  '/auth/login',
+  '/auth/refresh',
+  '/security/csrf-token',
 ];
 
 function shouldAddCsrf(config: InternalAxiosRequestConfig): boolean {

@@ -178,10 +178,10 @@ watch(localDateRange, v => emit('update:dateRange', v));
 
 .cell-info .time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
 .text-muted {
-  color: #c0c4cc;
+  color: var(--text-tertiary);
 }
 </style>

@@ -30,10 +30,12 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserData } from '../common/decorators/current-user.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 
 @ApiTags('用户管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

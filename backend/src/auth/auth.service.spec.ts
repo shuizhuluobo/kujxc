@@ -8,6 +8,8 @@ import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/unbound-method */
+
 describe('AuthService', () => {
   let service: AuthService;
   let prismaService: jest.Mocked<PrismaService>;
@@ -134,7 +136,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
 
-      const result = await service.generateTokens(mockUser as any);
+      const result = await service.generateTokens(mockUser);
 
       expect(result).toEqual({
         accessToken: 'access-token',

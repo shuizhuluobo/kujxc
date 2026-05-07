@@ -174,17 +174,29 @@ export function useWikiCategory(fetchCategories: () => Promise<void>) {
 
     async function saveCategory() {
         if (!categoryForm.name) return;
-        await wikiApi.createCategory({ name: categoryForm.name });
-        categoryForm.name = '';
-        fetchCategories();
-        ElMessage.success('添加成功');
+        try {
+            await wikiApi.createCategory({ name: categoryForm.name });
+            categoryForm.name = '';
+            await fetchCategories();
+            ElMessage.success('添加成功');
+        } catch (e) {
+            console.error('添加分类失败:', e);
+            ElMessage.error('添加分类失败');
+        }
     }
 
     async function deleteCategory(id: string) {
-        await ElMessageBox.confirm('确定删除此分类吗？', '提示', { type: 'warning' });
-        await wikiApi.deleteCategory(id);
-        fetchCategories();
-        ElMessage.success('已删除');
+        try {
+            await ElMessageBox.confirm('确定删除此分类吗？', '提示', { type: 'warning' });
+        } catch { return; }
+        try {
+            await wikiApi.deleteCategory(id);
+            await fetchCategories();
+            ElMessage.success('已删除');
+        } catch (e: unknown) {
+            const err = e as { response?: { data?: { message?: string } } };
+            ElMessage.error(err.response?.data?.message || '删除分类失败');
+        }
     }
 
     return {

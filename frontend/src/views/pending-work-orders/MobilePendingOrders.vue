@@ -107,7 +107,7 @@
                 v-model="filter.keyword"
                 placeholder="搜索客户、内容..."
                 shape="round"
-                background="#f7f8fa"
+                background="var(--bg-color-page)"
                 show-action
               >
                 <template #action>
@@ -397,7 +397,7 @@ function onRefresh() {
 .stat-item {
   border-radius: 4px;
   padding: 2px 6px;
-  color: white;
+  color: var(--card-bg);
   font-size: 12px;
 }
 
@@ -431,21 +431,21 @@ function onRefresh() {
   flex-shrink: 0;
   padding: 4px 8px;
   border-radius: 12px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-color-page);
   font-size: 11px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   white-space: nowrap;
 }
 
 .filter-item:hover {
-  background-color: #e6e8eb;
+  background-color: var(--border-color-lighter);
 }
 
 .filter-item.active {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--card-bg);
 }
 
 .filter-item.more-filter {
@@ -458,7 +458,7 @@ function onRefresh() {
 }
 
 .filter-item.more-filter:hover {
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 /* 气泡筛选弹窗 */
@@ -471,31 +471,20 @@ function onRefresh() {
   margin-top: 8px;
 }
 
-.bubble-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  animation: bubbleFadeIn 0.2s ease;
-}
+ .bubble-content {
+   background: var(--card-bg);
+   border-radius: 12px;
+   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+   overflow: hidden;
+   animation: bubbleFadeIn 0.2s ease;
+ }
 
-@keyframes bubbleFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.bubble-header {
+ .bubble-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 
 .bubble-header h4 {
@@ -506,7 +495,7 @@ function onRefresh() {
 
 .bubble-header .van-icon {
   font-size: 18px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
@@ -524,7 +513,7 @@ function onRefresh() {
 
 .bubble-filter-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-bottom: 8px;
 }
 
@@ -538,7 +527,7 @@ function onRefresh() {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color-lighter);
 }
 
 .card-list {
@@ -568,24 +557,24 @@ function onRefresh() {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 16px;
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: rgba(var(--primary-rgb), 0.1);
   color: var(--primary-color);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .filter-tag:hover {
-  background-color: rgba(37, 99, 235, 0.2);
+  background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .filter-tag.clear-all {
-  background-color: #f0f2f5;
+  background-color: var(--bg-color-page);
   color: var(--text-secondary);
 }
 
 .filter-tag.clear-all:hover {
-  background-color: #e6e8eb;
+  background-color: var(--border-color-lighter);
 }
 
 /* 覆盖 el-drawer 默认样式 */
@@ -610,7 +599,7 @@ function onRefresh() {
   display: flex;
   flex-direction: column;
   padding: 0;
-  background-color: #ffffff;
+  background-color: var(--card-bg);
   border-radius: 16px 16px 0 0;
   overflow: hidden;
 }
@@ -622,8 +611,8 @@ function onRefresh() {
   justify-content: center;
   padding: 12px 16px 8px;
   padding-top: calc(8px + var(--safe-area-top));
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color-lighter);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -633,7 +622,7 @@ function onRefresh() {
 .drawer-title {
   font-size: 17px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 /* 表单内容区域 */
@@ -641,7 +630,7 @@ function onRefresh() {
   flex: 1;
   overflow-y: auto;
   padding: 12px 16px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-color-page);
 }
 
 /* 底部操作栏 */
@@ -652,8 +641,8 @@ function onRefresh() {
   gap: 12px;
   padding: 12px 16px;
   padding-bottom: calc(12px + var(--safe-area-bottom));
-  background: white;
-  border-top: 1px solid #f0f0f0;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color-lighter);
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -667,14 +656,14 @@ function onRefresh() {
 }
 
 .drawer-footer .el-button--default {
-  color: #666666;
-  border-color: #dcdcdc;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
 }
 
 .drawer-footer .el-button--primary {
-  background: linear-gradient(135deg, #4a6cf7 0%, #3d5af1 100%);
-  border-color: #4a6cf7;
-  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.3);
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
 }
 
 

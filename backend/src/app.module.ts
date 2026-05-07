@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -19,6 +20,7 @@ import { DingtalkModule } from './dingtalk/dingtalk.module';
 import { FeeModule } from './fee/fee.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CsrfGuard } from './common/guards/csrf.guard';
 
 @Module({
   imports: [
@@ -52,6 +54,12 @@ import { join } from 'path';
     HealthModule,
     DingtalkModule,
     FeeModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
+    },
   ],
 })
 export class AppModule {}

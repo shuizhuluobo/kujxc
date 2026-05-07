@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { WorkOrder } from '@/types';
 import { useResponsive } from '@/composables';
@@ -71,8 +71,8 @@ import { workOrdersApi } from '@/api';
 
 import { useWorkOrderFilter } from './pending-work-orders/composables/useWorkOrderFilter';
 import { useWorkOrderForm } from './pending-work-orders/composables/useWorkOrderForm';
-import DesktopPendingOrders from './pending-work-orders/DesktopPendingOrders.vue';
-import MobilePendingOrders from './pending-work-orders/MobilePendingOrders.vue';
+const DesktopPendingOrders = defineAsyncComponent(() => import('./pending-work-orders/DesktopPendingOrders.vue'));
+const MobilePendingOrders = defineAsyncComponent(() => import('./pending-work-orders/MobilePendingOrders.vue'));
 
 const { isMobile } = useResponsive();
 const baseDataStore = useBaseDataStore();

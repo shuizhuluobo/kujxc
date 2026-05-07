@@ -310,6 +310,13 @@ watch(localActiveTab, v => emit('update:activeTab', v));
 .mobile-avatar-wrapper {
   position: relative;
   margin-bottom: 12px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.2s ease;
+}
+
+.mobile-avatar-wrapper:hover {
+  opacity: 0.85;
 }
 
 .mobile-avatar-edit {
@@ -320,7 +327,7 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   height: 24px;
   background: var(--el-color-primary);
   border-radius: 50%;
-  color: white;
+  color: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -432,7 +439,7 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   padding: 8px;
   border-radius: 12px;
   border: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preset-item.active {
@@ -445,7 +452,7 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   top: 4px;
   right: 4px;
   background: var(--primary-color);
-  color: white;
+  color: var(--card-bg);
   width: 20px;
   height: 20px;
   border-radius: 50%;

@@ -31,6 +31,7 @@
             <PeripheralServices
               :peripheral-install-services="peripheralInstallServices"
               :peripheral-recycle-services="peripheralRecycleServices"
+              :peripheral-delivery-services="peripheralDeliveryServices"
               :max-peripheral-rows="maxPeripheralRows"
               @peripheral-change="onPeripheralChange"
               @item-change="onItemChange"
@@ -71,7 +72,7 @@
 
       <div class="history-section">
         <h3>历史记录</h3>
-        <el-table :data="records" stripe size="small" :max-height="isMobile ? 200 : 300">
+        <el-table :data="records" stripe size="small" :max-height="isMobile ? 200 : 300" empty-text="暂无费用记录">
           <el-table-column :label="isMobile ? '时间' : '时间'" :width="isMobile ? 100 : 160">
             <template #default="{ row }">
               {{ formatDate(row.createdAt) }}
@@ -105,24 +106,29 @@
       </div>
     </div>
 
-    <el-drawer v-model="showSettings" :title="isMobile ? '费用设置' : '费用设置'" :size="isMobile ? '80%' : '600px'" :direction="isMobile ? 'btt' : 'rtl'">
+    <el-drawer v-model="showSettings" :title="isMobile ? '费用设置' : '费用设置'" :size="isMobile ? '80%' : '800px'" :direction="isMobile ? 'btt' : 'rtl'">
       <div class="settings-panel">
-        <h4>单价设置（每次修改后点击保存）</h4>
-        <el-table :data="allSettings" stripe size="small" :max-height="isMobile ? '60vh' : 'auto'">
-          <el-table-column prop="category" :label="isMobile ? '类别' : '类别'" :width="isMobile ? 70 : 120" />
-          <el-table-column prop="item" label="项目" />
-          <el-table-column prop="unit" label="单位" width="60" />
-          <el-table-column label="价格" width="100">
-            <template #default="{ row }">
-              <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="updateSetting(row)" />
-            </template>
-          </el-table-column>
-          <el-table-column label="启用" width="60">
-            <template #default="{ row }">
-              <el-switch v-model="row.isActive" @change="updateSetting(row)" />
-            </template>
-          </el-table-column>
-        </el-table>
+        <h4>单价设置（每次修改后自动保存）</h4>
+        <div class="settings-categories">
+          <el-collapse v-model="activeSettingsCategories" accordion>
+            <el-collapse-item v-for="category in settingsByCategory" :key="category.name" :title="category.name" :name="category.name">
+              <el-table :data="category.items" stripe size="small" empty-text="暂无项目">
+                <el-table-column prop="item" label="项目" />
+                <el-table-column prop="unit" label="单位" width="60" />
+                <el-table-column label="价格" width="120">
+                  <template #default="{ row }">
+                    <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="updateSetting(row)" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="启用" width="70">
+                  <template #default="{ row }">
+                    <el-switch v-model="row.isActive" @change="updateSetting(row)" />
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
       </div>
     </el-drawer>
 
@@ -144,8 +150,8 @@ import FeeResult from './components/FeeResult.vue';
 import PrintPreview from './components/PrintPreview.vue';
 import { useFeeCalculator } from './composables/useFeeCalculator';
 import { generateDocumentNo, formatPrintDate, recordToPrintData, type PrintData } from './composables/usePrint';
-import type { FeeRecord } from '@/api';
-import type { ServiceItem, FeeSetting } from './composables/useFeeCalculator';
+import type { FeeRecord, FeeSetting } from '@/api';
+import type { ServiceItem } from './composables/useFeeCalculator';
 
 const MobilePanel = defineAsyncComponent(() => import('./mobile/MobilePanel.vue'));
 
@@ -175,6 +181,7 @@ const {
   computerServices,
   peripheralInstallServices,
   peripheralRecycleServices,
+  peripheralDeliveryServices,
   responseServices,
   timeSlotServices,
   transportServices,
@@ -201,6 +208,24 @@ init();
 // 打印功能
 const printPreviewRef = ref<InstanceType<typeof PrintPreview>>();
 const currentPrintData = ref<PrintData | null>(null);
+
+// 费用设置按类别分组
+const activeSettingsCategories = ref<string>('');
+
+const settingsByCategory = computed(() => {
+  const categoryMap = new Map<string, FeeSetting[]>();
+  allSettings.value.forEach(setting => {
+    const category = setting.category || '未分类';
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, []);
+    }
+    categoryMap.get(category)!.push(setting);
+  });
+  return Array.from(categoryMap.entries()).map(([name, items]) => ({
+    name,
+    items: items.sort((a, b) => a.sortOrder - b.sortOrder),
+  }));
+});
 
 const buildPrintDataFromItems = (): PrintData => {
   const authStore = useAuthStore();
@@ -254,7 +279,7 @@ const handleDeleteRecord = async (id: string) => {
 }
 
 .calculator-card {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -311,6 +336,28 @@ const handleDeleteRecord = async (id: string) => {
 .settings-panel h4 {
   margin: 0 0 16px;
   color: var(--text-primary);
+}
+
+.settings-categories {
+  padding: 0 4px;
+}
+
+.settings-categories :deep(.el-collapse-item__header) {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-color-page);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.settings-categories :deep(.el-collapse-item__wrap) {
+  border-bottom: none;
+}
+
+.settings-categories :deep(.el-collapse-item__content) {
+  padding-bottom: 8px;
 }
 
 /* Mobile Styles */

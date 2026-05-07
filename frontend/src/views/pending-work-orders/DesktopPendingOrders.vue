@@ -72,6 +72,7 @@
       class="work-order-table card-premium"
       :row-class-name="tableRowClassName"
       @row-click="(row) => emit('rowClick', row)"
+      empty-text="暂无待办工单"
     >
       <el-table-column label="客户" width="180" show-overflow-tooltip>
         <template #default="{ row }">
@@ -453,7 +454,7 @@ onMounted(() => {
   border-radius: 12px;
   border: 1px solid var(--border-color-light);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card-premium:hover {

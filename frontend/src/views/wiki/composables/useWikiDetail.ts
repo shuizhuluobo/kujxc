@@ -38,7 +38,8 @@ export function useWikiDetail() {
             const res = await wikiApi.getArticle(id);
             article.value = res.data;
         } catch (e) {
-            console.error(e);
+            console.error('加载文章失败:', e);
+            ElMessage.error('加载文章失败');
         } finally {
             loading.value = false;
         }

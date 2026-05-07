@@ -89,8 +89,16 @@ export class ThrottleGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const ip = this.getClientIp(request);
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { url: string }>();
+    const ip = this.getClientIp(
+      request as unknown as {
+        ip?: string;
+        connection?: { remoteAddress?: string };
+        headers?: Record<string, string>;
+      },
+    );
     const key = `${ip}:${request.url}`;
 
     const now = Date.now();

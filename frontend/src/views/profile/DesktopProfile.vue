@@ -295,7 +295,7 @@ defineExpose({ formRef });
   cursor: pointer;
   border-radius: 50%;
   overflow: hidden;
-  transition: all 0.3s var(--ease-out);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .avatar-wrapper:hover {
@@ -308,13 +308,13 @@ defineExpose({ formRef });
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  color: white;
+  color: var(--card-bg);
   font-size: 24px;
 }
 
@@ -356,7 +356,7 @@ defineExpose({ formRef });
   background: var(--bg-color);
   border-radius: 12px;
   border: 1px solid var(--border-color-lighter);
-  transition: all 0.3s var(--ease-out);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
 
 .stat-item:hover {
@@ -394,7 +394,7 @@ defineExpose({ formRef });
   padding: 8px;
   border-radius: 12px;
   border: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preset-item:hover {
@@ -411,7 +411,7 @@ defineExpose({ formRef });
   top: 4px;
   right: 4px;
   background: var(--primary-color);
-  color: white;
+  color: var(--card-bg);
   width: 20px;
   height: 20px;
   border-radius: 50%;

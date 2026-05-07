@@ -5,10 +5,14 @@ import {
   IsEnum,
   IsUUID,
   IsArray,
+  IsInt,
+  IsDateString,
   MaxLength,
+  Min,
+  Max,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { WorkOrderStatus, ScoreLevel } from '@prisma/client';
 
 export class CreateWorkOrderDto {
@@ -111,24 +115,33 @@ export class WorkOrderFilterDto {
 
   @ApiProperty({ description: '开始日期', required: false })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   startDate?: string;
 
   @ApiProperty({ description: '结束日期', required: false })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   endDate?: string;
 
   @ApiProperty({ description: '关键词搜索', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   keyword?: string;
 
   @ApiProperty({ description: '页码', required: false, default: 1 })
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  @Type(() => Number)
   page?: number;
 
   @ApiProperty({ description: '每页数量', required: false, default: 20 })
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @Type(() => Number)
   pageSize?: number;
 }

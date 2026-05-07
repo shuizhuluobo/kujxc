@@ -17,7 +17,7 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="customers" v-loading="loading" stripe class="card-premium">
+    <el-table v-if="!isMobile" :data="customers" v-loading="loading" stripe class="card-premium" empty-text="暂无客户数据">
       <el-table-column prop="name" label="客户名称" min-width="150" />
       <el-table-column prop="shortName" label="简称" width="100" />
       <el-table-column prop="contact" label="联系人" width="100" />
@@ -50,7 +50,7 @@
           v-model="searchKeyword"
           placeholder="搜索客户/电话"
           shape="round"
-          background="#fff"
+          background="var(--card-bg)"
           @search="handleSearch"
         />
       </van-sticky>
@@ -110,26 +110,26 @@
 
       <!-- Floating Action Button -->
       <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="#fff" />
+        <van-icon name="plus" size="24" color="var(--card-bg)" />
       </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑客户' : '新增客户'" :width="isMobile ? '90%' : '500px'">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="客户全称" />
+          <el-input v-model="form.name" placeholder="客户全称" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="简称">
-          <el-input v-model="form.shortName" placeholder="客户简称（可选）" />
+          <el-input v-model="form.shortName" placeholder="客户简称（可选）" maxlength="50" />
         </el-form-item>
         <el-form-item label="联系人">
-          <el-input v-model="form.contact" />
+          <el-input v-model="form.contact" maxlength="50" />
         </el-form-item>
         <el-form-item label="电话">
-          <el-input v-model="form.phone" />
+          <el-input v-model="form.phone" maxlength="30" />
         </el-form-item>
         <el-form-item label="地址">
-          <el-input v-model="form.address" type="textarea" :rows="2" />
+          <el-input v-model="form.address" type="textarea" :rows="2" maxlength="200" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -314,7 +314,7 @@ onMounted(fetchData);
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
-  background: #fff;
+  background: var(--card-bg);
   padding: 12px;
   border-radius: 8px;
 }
@@ -344,12 +344,20 @@ onMounted(fetchData);
 .list-title {
     font-weight: 500;
     font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
 }
 .sub-title {
     font-size: 12px;
     color: var(--text-tertiary);
     margin-left: 4px;
     font-weight: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
 }
 
 .list-info {
@@ -396,7 +404,7 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
   z-index: 100;
   transition: transform 0.2s;
 }

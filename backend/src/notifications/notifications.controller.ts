@@ -5,10 +5,12 @@ import { MarkReadDto } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserData } from '../common/decorators/current-user.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 
 @ApiTags('消息通知')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}

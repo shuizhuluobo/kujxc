@@ -14,7 +14,7 @@ export default defineConfig({
         name: '工单管理系统',
         short_name: '工单系统',
         description: '工单管理与追踪系统',
-        theme_color: '#409EFF',
+        theme_color: '#2563EB',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
@@ -78,17 +78,23 @@ export default defineConfig({
     }
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Element Plus 单独分包
-          'element-plus': ['element-plus', '@element-plus/icons-vue'],
-          // Vant 单独分包
-          'vant': ['vant'],
-          // Vue 核心
-          'vue-vendor': ['vue', 'vue-router', 'pinia'],
-        }
-      }
+    manualChunks: {
+      // Element Plus 单独分包
+      'element-plus': ['element-plus', '@element-plus/icons-vue'],
+      // Vant 单独分包
+      'vant': ['vant'],
+      // Vue 核心
+      'vue-vendor': ['vue', 'vue-router', 'pinia'],
+      // Markdown 编辑器（按需加载页面使用）
+      'milkdown': ['@milkdown/core', '@milkdown/preset-commonmark', '@milkdown/preset-gfm', '@milkdown/plugin-listener', '@milkdown/plugin-history', '@milkdown/theme-nord', '@milkdown/utils'],
+      // TipTap 编辑器（按需加载页面使用）
+      'tiptap': ['@tiptap/vue-3', '@tiptap/starter-kit'],
+      // PDF 渲染（仅 PdfViewer 使用）
+      'pdfjs': ['pdfjs-dist'],
+      // 动画库（仅 MainLayout 过渡使用）
+      'gsap': ['gsap'],
+      // 工具库
+      'markdown-utils': ['marked', 'md-editor-v3', 'lowlight'],
     },
     chunkSizeWarningLimit: 600,
   }

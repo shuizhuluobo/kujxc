@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WorkOrderStatus, ScoreLevel } from '@prisma/client';
 
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 describe('WorkOrdersService', () => {
   let service: WorkOrdersService;
   let prismaService: jest.Mocked<PrismaService>;
@@ -56,16 +58,22 @@ describe('WorkOrdersService', () => {
       workOrderCollaborator: {
         createMany: jest.fn(),
       },
-      $transaction: jest.fn((fn) =>
-        fn({
-          workOrder: {
-            update: jest.fn(),
-            findUnique: jest.fn(),
-          },
-          workOrderCollaborator: {
-            createMany: jest.fn(),
-          },
-        }),
+      $transaction: jest.fn(
+        (
+          fn: (tx: {
+            workOrder: { update: jest.Mock; findUnique: jest.Mock };
+            workOrderCollaborator: { createMany: jest.Mock };
+          }) => unknown,
+        ) =>
+          fn({
+            workOrder: {
+              update: jest.fn(),
+              findUnique: jest.fn(),
+            },
+            workOrderCollaborator: {
+              createMany: jest.fn(),
+            },
+          }),
       ),
     };
 
@@ -301,7 +309,12 @@ describe('WorkOrdersService', () => {
         receivedOrder as any,
       );
       (prismaService.$transaction as jest.Mock).mockImplementation(
-        async (fn) => {
+        (
+          fn: (tx: {
+            workOrder: { update: jest.Mock; findUnique: jest.Mock };
+            workOrderCollaborator: { createMany: jest.Mock };
+          }) => Promise<unknown>,
+        ) => {
           const tx = {
             workOrder: {
               update: jest.fn().mockResolvedValue(undefined),

@@ -9,8 +9,8 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="filteredServiceTypes" v-loading="loading" stripe class="card-premium">
-      <el-table-column prop="name" label="类型名称" />
+    <el-table v-if="!isMobile" :data="filteredServiceTypes" v-loading="loading" stripe class="card-premium" empty-text="暂无服务类型">
+      <el-table-column prop="name" label="类型名称" show-overflow-tooltip />
       <el-table-column prop="sortOrder" label="排序" width="80" />
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
@@ -27,7 +27,7 @@
           v-model="searchKeyword"
           placeholder="搜索类型"
           shape="round"
-          background="#fff"
+          background="var(--card-bg)"
         />
       </van-sticky>
 
@@ -49,7 +49,7 @@
           >
             <template #icon>
               <div class="list-icon-wrapper">
-                <van-icon name="apps-o" size="20" color="#1989fa"/>
+                <van-icon name="apps-o" size="20" color="var(--primary-color)"/>
               </div>
             </template>
           </van-cell>
@@ -63,14 +63,14 @@
 
       <!-- Floating Action Button -->
       <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="#fff" />
+        <van-icon name="plus" size="24" color="var(--card-bg)" />
       </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑类型' : '新增类型'" :width="isMobile ? '90%' : '400px'">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="60px">
         <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" />
+          <el-input v-model="form.name" maxlength="50" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="form.sortOrder" :min="0" />
@@ -227,7 +227,7 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
   z-index: 100;
   transition: transform 0.2s;
 }

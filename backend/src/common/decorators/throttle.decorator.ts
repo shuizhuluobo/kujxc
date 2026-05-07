@@ -1,6 +1,4 @@
 import { SetMetadata } from '@nestjs/common';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { applyDecorators } from '@nestjs/common';
 
 export const THROTTLE_KEY = 'throttle';
 

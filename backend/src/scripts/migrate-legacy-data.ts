@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PrismaClient, WorkOrderStatus, ScoreLevel } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';

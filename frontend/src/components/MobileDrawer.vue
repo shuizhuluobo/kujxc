@@ -63,7 +63,7 @@ const handleClose = () => {
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color-lighter);
-  background: white;
+  background: var(--card-bg);
 }
 
 .drawer-header h3 {
@@ -77,6 +77,14 @@ const handleClose = () => {
   font-size: 20px;
   color: var(--text-secondary);
   cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.drawer-header .van-icon:hover {
+  color: var(--primary-color);
+  background-color: rgba(var(--primary-rgb), 0.08);
 }
 
 .drawer-body {

@@ -230,7 +230,7 @@ function getSummary(content: string) {
   margin: 0 0 12px;
   font-size: 36px;
   font-weight: 700;
-  color: white;
+  color: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,7 +298,7 @@ function getSummary(content: string) {
   padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s ease, background-color 0.2s ease;
   color: var(--text-secondary);
   min-height: 44px;
 }
@@ -310,7 +310,7 @@ function getSummary(content: string) {
 
 .category-item.active {
   background: var(--primary-color);
-  color: white;
+  color: var(--card-bg);
 }
 
 .category-item .count-badge {
@@ -320,7 +320,7 @@ function getSummary(content: string) {
 
 .category-item.active .count-badge {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--card-bg);
 }
 
 /* 主内容区 */
@@ -381,7 +381,7 @@ function getSummary(content: string) {
   gap: 16px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   min-height: 88px;
 }
 
@@ -393,12 +393,12 @@ function getSummary(content: string) {
 .card-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, hsl(239, 74%, 60%) 0%, hsl(280, 40%, 48%) 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--card-bg);
   font-size: 24px;
   flex-shrink: 0;
 }

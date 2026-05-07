@@ -36,6 +36,7 @@
                 class="document-title-input" 
                 placeholder="请输入标题..." 
                 type="text"
+                maxlength="200"
             />
             <!-- Meta Bar -->
             <div class="meta-bar">
@@ -257,7 +258,8 @@ async function handleSave() {
     }
     router.push('/wiki');
   } catch (e) {
-    console.error(e);
+    console.error('保存文章失败:', e);
+    ElMessage.error('保存失败');
   } finally {
     submitting.value = false;
   }
@@ -404,12 +406,19 @@ onMounted(async () => {
 .document-title-input {
   width: 100%;
   border: none;
+  border-bottom: 2px solid transparent;
   background: transparent;
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
   outline: none;
   line-height: 1.4;
+  padding-bottom: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.document-title-input:focus {
+  border-bottom-color: var(--primary-color);
 }
 
 .document-title-input::placeholder {
@@ -528,7 +537,7 @@ onMounted(async () => {
   background: var(--card-bg);
   border: 1px solid var(--border-color-lighter);
   border-radius: 8px;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .attachment-item:hover {

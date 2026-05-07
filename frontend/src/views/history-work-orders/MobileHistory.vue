@@ -115,7 +115,7 @@
                 v-model="filter.keyword"
                 placeholder="搜索客户、内容..."
                 shape="round"
-                background="#f7f8fa"
+                background="var(--bg-color-page)"
                 show-action
               >
                 <template #action>
@@ -157,7 +157,7 @@
                 v-model="completerSearchText"
                 placeholder="搜索完成人(支持拼音)"
                 shape="round"
-                background="#f7f8fa"
+                background="var(--bg-color-page)"
                 show-action
               >
                 <template #action>
@@ -403,7 +403,7 @@ defineExpose({ showFilterDrawer });
 .stat-item {
   border-radius: 4px;
   padding: 2px 6px;
-  color: white;
+  color: var(--card-bg);
   font-size: 12px;
 }
 
@@ -436,21 +436,21 @@ defineExpose({ showFilterDrawer });
   flex-shrink: 0;
   padding: 4px 8px;
   border-radius: 12px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-color-page);
   font-size: 11px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   white-space: nowrap;
 }
 
 .filter-item:hover {
-  background-color: #e6e8eb;
+  background-color: var(--border-color-lighter);
 }
 
 .filter-item.active {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--card-bg);
 }
 
 .filter-item.more-filter {
@@ -463,7 +463,7 @@ defineExpose({ showFilterDrawer });
 }
 
 .filter-item.more-filter:hover {
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 /* 气泡筛选弹窗 */
@@ -477,26 +477,15 @@ defineExpose({ showFilterDrawer });
   overflow-y: auto;
 }
 
-.bubble-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  animation: bubbleFadeIn 0.2s ease;
-}
+ .bubble-content {
+   background: var(--card-bg);
+   border-radius: 12px;
+   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+   overflow: hidden;
+   animation: bubbleFadeIn 0.2s ease;
+ }
 
-@keyframes bubbleFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.date-range-inputs {
+ .date-range-inputs {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -507,7 +496,7 @@ defineExpose({ showFilterDrawer });
 }
 
 .date-separator {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   padding: 0 4px;
 }
@@ -517,7 +506,7 @@ defineExpose({ showFilterDrawer });
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 
 .bubble-header h4 {
@@ -528,7 +517,7 @@ defineExpose({ showFilterDrawer });
 
 .bubble-header .van-icon {
   font-size: 18px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
@@ -546,7 +535,7 @@ defineExpose({ showFilterDrawer });
 
 .bubble-filter-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-bottom: 8px;
 }
 
@@ -560,7 +549,7 @@ defineExpose({ showFilterDrawer });
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color-lighter);
 }
 
 /* 筛选状态显示 */
@@ -575,7 +564,7 @@ defineExpose({ showFilterDrawer });
 }
 
 .filter-tag {
-  background: #f0f2f5;
+  background: var(--bg-color-page);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -586,14 +575,14 @@ defineExpose({ showFilterDrawer });
 }
 
 .filter-tag-close {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   cursor: pointer;
   line-height: 1;
 }
 
 .filter-tag-close:hover {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .filter-status-reset {
@@ -610,7 +599,7 @@ defineExpose({ showFilterDrawer });
 
 .loading-container {
   padding: 20px;
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 8px;
 }
 

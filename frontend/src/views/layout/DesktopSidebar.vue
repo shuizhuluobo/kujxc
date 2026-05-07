@@ -77,11 +77,12 @@ defineEmits<{
 <style scoped>
 .sidebar {
   background: var(--sidebar-bg);
-  transition: width 0.3s var(--ease-in-out), background-color 0.3s;
+  transition: background-color 0.3s;
   overflow: hidden;
   border-right: 1px solid var(--border-color-lighter);
   z-index: 10;
   padding: 12px 0;
+  will-change: width;
 }
 
 .logo {
@@ -92,6 +93,12 @@ defineEmits<{
   cursor: pointer;
   margin-bottom: 24px;
   padding: 0 12px;
+  border-radius: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.logo:hover {
+  opacity: 0.8;
 }
 
 .logo-img {
@@ -126,7 +133,7 @@ defineEmits<{
   line-height: 48px;
   margin-bottom: 4px;
   border-radius: 12px;
-  transition: all 0.3s var(--ease-out);
+  transition: background-color 0.3s var(--ease-out), color 0.3s var(--ease-out);
 }
 
 :deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) {
@@ -135,7 +142,7 @@ defineEmits<{
 }
 
 :deep(.el-menu-item.is-active) {
-  color: #fff !important;
+  color: var(--card-bg) !important;
   background-color: var(--primary-color) !important;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);

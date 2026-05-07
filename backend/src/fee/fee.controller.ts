@@ -7,9 +7,24 @@ import {
   Body,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 import { FeeService } from './fee.service';
+import {
+  CreateFeeSettingDto,
+  UpdateFeeSettingDto,
+  CalculateFeeDto,
+  SaveFeeRecordDto,
+  FeeRecordsQueryDto,
+} from './dto/fee.dto';
 
+@ApiTags('费用管理')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('fee')
 export class FeeController {
   constructor(private readonly feeService: FeeService) {}
@@ -22,29 +37,13 @@ export class FeeController {
   @Put('settings/:id')
   async updateSetting(
     @Param('id') id: string,
-    @Body()
-    data: {
-      price?: number;
-      unit?: string;
-      description?: string;
-      isActive?: boolean;
-    },
+    @Body() data: UpdateFeeSettingDto,
   ) {
     return this.feeService.updateSetting(id, data);
   }
 
   @Post('settings')
-  async createSetting(
-    @Body()
-    data: {
-      category: string;
-      item: string;
-      unit: string;
-      price: number;
-      description?: string;
-      threshold?: number;
-    },
-  ) {
+  async createSetting(@Body() data: CreateFeeSettingDto) {
     return this.feeService.createSetting(data);
   }
 
@@ -54,30 +53,12 @@ export class FeeController {
   }
 
   @Post('calculate')
-  calculate(
-    @Body()
-    items: {
-      category: string;
-      item: string;
-      quantity: number;
-      unitPrice: number;
-    }[],
-  ) {
-    return this.feeService.calculate(items);
+  calculate(@Body() body: CalculateFeeDto) {
+    return this.feeService.calculate(body.items);
   }
 
   @Post('records')
-  async saveRecord(
-    @Body()
-    data: {
-      items: any[];
-      subtotal: number;
-      discount: number;
-      actualAmount: number;
-      remark?: string;
-      creatorId?: string;
-    },
-  ) {
+  async saveRecord(@Body() data: SaveFeeRecordDto) {
     return this.feeService.saveRecord(data);
   }
 
@@ -87,11 +68,8 @@ export class FeeController {
   }
 
   @Get('records')
-  async getRecords(
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
-  ) {
-    return this.feeService.getRecords(limit || 20, offset || 0);
+  async getRecords(@Query() query: FeeRecordsQueryDto) {
+    return this.feeService.getRecords(query.limit, query.offset);
   }
 
   @Post('settings/init')

@@ -24,10 +24,12 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserData } from '../common/decorators/current-user.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 
 @ApiTags('知识库管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('wiki')
 export class WikiController {
   constructor(private readonly wikiService: WikiService) {}

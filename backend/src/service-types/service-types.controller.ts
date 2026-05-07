@@ -15,10 +15,12 @@ import { CreateServiceTypeDto, UpdateServiceTypeDto } from '../common/dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 
 @ApiTags('服务类型管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('service-types')
 export class ServiceTypesController {
   constructor(private readonly serviceTypesService: ServiceTypesService) {}

@@ -10,7 +10,11 @@ async function bootstrap() {
   // 生产环境强制校验关键配置
   if (process.env.NODE_ENV === 'production') {
     const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
-    const insecureDefaults = ['change-in-production', 'dev-jwt-secret', 'dev-refresh-secret'];
+    const insecureDefaults = [
+      'change-in-production',
+      'dev-jwt-secret',
+      'dev-refresh-secret',
+    ];
 
     for (const varName of requiredEnvVars) {
       const value = process.env[varName];
@@ -19,7 +23,9 @@ async function bootstrap() {
         process.exit(1);
       }
       if (insecureDefaults.some((d) => value.includes(d))) {
-        logger.error(`Environment variable ${varName} contains insecure default value. Please change it in production.`);
+        logger.error(
+          `Environment variable ${varName} contains insecure default value. Please change it in production.`,
+        );
         process.exit(1);
       }
     }
@@ -42,6 +48,7 @@ async function bootstrap() {
     origin: (origin, callback) => {
       // 允许无origin的请求 (如移动App)
       if (!origin) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return callback(null, true);
       }
       if (
@@ -51,7 +58,8 @@ async function bootstrap() {
         callback(null, true);
       } else {
         logger.warn(`Origin not allowed: ${origin}`);
-        return callback(new Error('Not allowed by CORS') as never);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
@@ -63,6 +71,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),

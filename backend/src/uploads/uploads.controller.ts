@@ -19,6 +19,7 @@ import { extname } from 'path';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
+import { CsrfProtected } from '../common/decorators/csrf-token.decorator';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -109,7 +110,11 @@ function createImageMulterOptions(uploadDir: string) {
   return {
     storage: diskStorage({
       destination: uploadDir,
-      filename: (_req: unknown, file: Express.Multer.File, callback: (error: Error | null, filename: string) => void) => {
+      filename: (
+        _req: unknown,
+        file: Express.Multer.File,
+        callback: (error: Error | null, filename: string) => void,
+      ) => {
         const uniqueSuffix = uuidv4();
         const ext = extname(file.originalname).toLowerCase();
         if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
@@ -118,7 +123,11 @@ function createImageMulterOptions(uploadDir: string) {
         callback(null, `${uniqueSuffix}${ext}`);
       },
     }),
-    fileFilter: (_req: unknown, file: Express.Multer.File, callback: (error: Error | null, accept: boolean) => void) => {
+    fileFilter: (
+      _req: unknown,
+      file: Express.Multer.File,
+      callback: (error: Error | null, accept: boolean) => void,
+    ) => {
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
         return callback(new Error('Only image files are allowed!'), false);
       }
@@ -134,6 +143,7 @@ function createImageMulterOptions(uploadDir: string) {
 @ApiTags('文件上传')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@CsrfProtected()
 @Controller('uploads')
 export class UploadsController {
   @Post('avatar')
@@ -147,7 +157,9 @@ export class UploadsController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @UseInterceptors(FileInterceptor('file', createImageMulterOptions(UPLOAD_DIR)))
+  @UseInterceptors(
+    FileInterceptor('file', createImageMulterOptions(UPLOAD_DIR)),
+  )
   async uploadAvatar(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -180,7 +192,9 @@ export class UploadsController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @UseInterceptors(FileInterceptor('file', createImageMulterOptions(IMAGE_UPLOAD_DIR)))
+  @UseInterceptors(
+    FileInterceptor('file', createImageMulterOptions(IMAGE_UPLOAD_DIR)),
+  )
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -217,7 +231,11 @@ export class UploadsController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: WIKI_ATTACHMENT_DIR,
-        filename: (_req: unknown, file: Express.Multer.File, callback: (error: Error | null, filename: string) => void) => {
+        filename: (
+          _req: unknown,
+          file: Express.Multer.File,
+          callback: (error: Error | null, filename: string) => void,
+        ) => {
           const uniqueSuffix = uuidv4();
           const ext = extname(file.originalname).toLowerCase();
           if (!ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext)) {
@@ -243,7 +261,10 @@ export class UploadsController {
       const detectedType = await fileType.fromBuffer(buffer);
 
       // 压缩包的MIME检测可能返回null（如.rar），回退到扩展名+报头检查
-      if (detectedType && !ALLOWED_ATTACHMENT_MIME_TYPES.includes(detectedType.mime)) {
+      if (
+        detectedType &&
+        !ALLOWED_ATTACHMENT_MIME_TYPES.includes(detectedType.mime)
+      ) {
         fs.unlinkSync(file.path);
         throw new BadRequestException(
           `Invalid attachment type. Detected: ${detectedType.mime}. Only archive files are allowed.`,

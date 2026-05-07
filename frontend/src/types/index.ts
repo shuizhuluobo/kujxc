@@ -199,9 +199,9 @@ export const SCORE_LABELS: Record<ScoreLevel, string> = {
 };
 
 export const STATUS_COLORS: Record<WorkOrderStatus, string> = {
-    [WorkOrderStatus.PENDING]: '#E6A23C',
-    [WorkOrderStatus.RECEIVED]: '#409EFF',
-    [WorkOrderStatus.COMPLETED]: '#67C23A',
+    [WorkOrderStatus.PENDING]: '#F59E0B',
+    [WorkOrderStatus.RECEIVED]: '#2563EB',
+    [WorkOrderStatus.COMPLETED]: '#10B981',
 };
 
 // ==================== 通知类型 ====================

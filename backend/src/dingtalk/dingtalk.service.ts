@@ -19,6 +19,12 @@ export class DingtalkService {
 
   constructor(private prisma: PrismaService) {}
 
+  private logError(context: string, error: unknown): void {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const stack = error instanceof Error ? error.stack : undefined;
+    this.logger.error(`${context}: ${message}`, stack);
+  }
+
   /**
    * 构建编辑工单通知消息
    */
@@ -73,7 +79,7 @@ export class DingtalkService {
         `钉钉消息推送成功: 工单 ${workOrder.id} -> 区域 ${region.name}`,
       );
     } catch (error) {
-      this.logger.error(`钉钉消息推送失败: ${error.message}`, error.stack);
+      this.logError('钉钉消息推送失败', error);
     }
   }
 
@@ -105,7 +111,7 @@ export class DingtalkService {
         `钉钉消息推送成功: 工单 ${workOrder.id} -> 区域 ${region.name}`,
       );
     } catch (error) {
-      this.logger.error(`钉钉消息推送失败: ${error.message}`, error.stack);
+      this.logError('钉钉消息推送失败', error);
     }
   }
 
@@ -115,14 +121,14 @@ export class DingtalkService {
   async sendEditedNotification(
     workOrder: WorkOrderData,
     regionId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const region = await this.prisma.region.findUnique({
       where: { id: regionId },
     });
 
     if (!region?.dingtalkWebhook) {
       this.logger.debug(`区域 ${regionId} 未配置钉钉机器人，跳过推送`);
-      return;
+      return false;
     }
 
     const message = this.buildEditedWorkOrderMessage(workOrder);
@@ -136,8 +142,10 @@ export class DingtalkService {
       this.logger.log(
         `钉钉编辑通知推送成功: 工单 ${workOrder.id} -> 区域 ${region.name}`,
       );
+      return true;
     } catch (error) {
-      this.logger.error(`钉钉消息推送失败: ${error.message}`, error.stack);
+      this.logError('钉钉编辑通知推送失败', error);
+      return false;
     }
   }
 

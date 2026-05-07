@@ -147,7 +147,7 @@ function handlePasswordChangeSuccess() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
+  background: linear-gradient(135deg, var(--bg-color) 0%, var(--border-color) 100%);
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -162,7 +162,7 @@ function handlePasswordChangeSuccess() {
   left: 0;
   background-image: 
     radial-gradient(at 0% 0%, hsla(var(--primary-h), 80%, 90%, 1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(280, 80%, 90%, 1) 0px, transparent 50%);
+    radial-gradient(at 100% 100%, hsla(var(--primary-h), 60%, 90%, 1) 0px, transparent 50%);
   opacity: 0.6;
 }
 
@@ -174,23 +174,23 @@ function handlePasswordChangeSuccess() {
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 48px 40px;
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
-  transition: transform 0.3s ease;
+    0 0 0 1px var(--border-color-lighter) inset;
+  transition: box-shadow 0.3s ease;
 }
 
 .login-card:hover {
-  transform: translateY(-2px);
   box-shadow: 
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    0 0 0 1px var(--border-color-lighter) inset;
 }
 
 .login-header {
@@ -223,13 +223,13 @@ function handlePasswordChangeSuccess() {
 .login-form :deep(.el-input__wrapper) {
   border-radius: 12px;
   padding: 12px 16px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--bg-color);
   box-shadow: 0 0 0 1px var(--border-color) inset !important;
 }
 
 .login-form :deep(.el-input__wrapper:focus-within) {
-  background-color: #fff;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) inset, 0 0 0 1px var(--primary-color) inset !important;
+  background-color: var(--card-bg);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2) inset, 0 0 0 1px var(--primary-color) inset !important;
 }
 
 .login-btn {
@@ -240,12 +240,12 @@ function handlePasswordChangeSuccess() {
   font-weight: 600;
   letter-spacing: 0.05em;
   margin-top: 8px;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 6px -1px rgba(var(--primary-rgb), 0.4);
 }
 
 .login-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 10px 15px -3px rgba(var(--primary-rgb), 0.4);
 }
 
 .login-footer {

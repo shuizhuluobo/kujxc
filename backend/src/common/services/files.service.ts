@@ -25,14 +25,14 @@ export class FilesService {
       return;
     }
 
-    await this.physicalDelete(url);
+    this.physicalDelete(url);
   }
 
   /**
    * Forced physical deletion of a file.
    * @param url The file URL
    */
-  async physicalDelete(url: string) {
+  physicalDelete(url: string) {
     try {
       const localPath = path.join(process.cwd(), url);
       if (fs.existsSync(localPath)) {
@@ -40,7 +40,8 @@ export class FilesService {
         this.logger.log(`Deleted file: ${localPath}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to delete file ${url}: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to delete file ${url}: ${message}`);
     }
   }
 
@@ -73,7 +74,7 @@ export class FilesService {
   extractUrls(content: string): string[] {
     if (!content) return [];
     // Match /uploads/... patterns in markdown (e.g., ![img](/uploads/images/xxx.png))
-    const regex = /\/uploads\/[^\s\)]+/g;
+    const regex = /\/uploads\/[^\s)]+/g;
     const matches = content.match(regex) || [];
     // Filter out potential duplicates and clean up
     return [...new Set(matches)].map(

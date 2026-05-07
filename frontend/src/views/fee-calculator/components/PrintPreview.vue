@@ -195,7 +195,7 @@ defineExpose({ open });
 .preview-container {
   flex: 1;
   overflow: auto;
-  background: #e8e8e8;
+  background: var(--bg-color-page);
   border-radius: 4px;
   padding: 12px;
 }

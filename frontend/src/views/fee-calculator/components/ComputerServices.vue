@@ -227,7 +227,7 @@ const emitComputerServiceChange = (name: string, value: boolean) => {
 }
 
 .table-body {
-  background: #fff;
+  background: var(--card-bg);
 }
 
 .table-row {
@@ -263,12 +263,12 @@ const emitComputerServiceChange = (name: string, value: boolean) => {
 }
 
 .table-cell.disabled :deep(.el-checkbox__inner) {
-  background-color: #f5f7fa;
-  border-color: #dcdfe6;
+  background-color: var(--border-color-lighter);
+  border-color: var(--border-color);
 }
 
 .table-cell.disabled :deep(.el-checkbox__label) {
-  color: #c0c4cc;
+  color: var(--text-tertiary);
 }
 
 .price-note {

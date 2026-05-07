@@ -182,7 +182,7 @@ function formatFileSize(bytes: number) {
 }
 
 .nav-back {
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .nav-back:hover {
@@ -267,7 +267,7 @@ function formatFileSize(bytes: number) {
 }
 
 .like-btn {
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, color 0.3s ease, background-color 0.3s ease;
   padding: 8px 16px;
 }
 
@@ -329,7 +329,7 @@ function formatFileSize(bytes: number) {
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 14px;
-  color: #e74c3c;
+  color: var(--danger-color);
 }
 
 :deep(.md-preview pre) {
@@ -488,7 +488,7 @@ function formatFileSize(bytes: number) {
   border: 1px solid var(--border-color-lighter);
   border-radius: 12px;
   text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: inherit;
 }
 

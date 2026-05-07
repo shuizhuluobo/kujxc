@@ -4,7 +4,6 @@ import { WikiService } from './wiki.service';
 
 describe('WikiController', () => {
   let controller: WikiController;
-  let wikiService: jest.Mocked<WikiService>;
 
   beforeEach(async () => {
     const mockWikiService = {
@@ -26,7 +25,6 @@ describe('WikiController', () => {
     }).compile();
 
     controller = module.get<WikiController>(WikiController);
-    wikiService = module.get(WikiService);
   });
 
   it('should be defined', () => {

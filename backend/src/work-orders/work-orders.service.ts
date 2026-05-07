@@ -24,18 +24,6 @@ const SCORE_VALUES: Record<ScoreLevel, number | null> = {
   COMPLEX: null,
 };
 
-const SCORE_LABELS: Record<ScoreLevel, string> = {
-  SIMPLE: '简单',
-  NORMAL: '一般',
-  COMPLEX: '复杂',
-};
-
-const STATUS_LABELS: Record<WorkOrderStatus, string> = {
-  PENDING: '待接收',
-  RECEIVED: '已接收',
-  COMPLETED: '已完成',
-};
-
 @Injectable()
 export class WorkOrdersService {
   constructor(
@@ -401,6 +389,8 @@ export class WorkOrdersService {
   async export(filterDto: WorkOrderFilterDto) {
     const MAX_EXPORT_LIMIT = 50000;
     const BATCH_SIZE = 1000;
+
+    // 分页参数在导出中不需要，仅用于过滤条件构建
 
     const {
       page: _page,

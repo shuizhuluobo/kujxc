@@ -1,4 +1,11 @@
-import { IsOptional, IsInt, Min, IsString } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -7,6 +14,7 @@ export class PaginationDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(10000)
   @Type(() => Number)
   page?: number = 1;
 
@@ -14,11 +22,13 @@ export class PaginationDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(100)
   @Type(() => Number)
   pageSize?: number = 20;
 
   @ApiProperty({ description: '搜索关键字', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   keyword?: string;
 }

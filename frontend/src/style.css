@@ -1,4 +1,24 @@
 /* 全局样式 & 响应式变量 */
+
+/* Focus-visible 全局指示器 — 所有可交互元素统一 focus ring */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion: 尊重用户系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root {
   /* HSL 调色板 */
   --primary-h: 221;
@@ -48,8 +68,15 @@
   --danger-rgb: 239, 68, 68;
   --primary-rgb: 37, 99, 235;
 
+  /* Page background for sub-surfaces */
+  --bg-color-page: #F1F5F9; /* Slate 100 */
+
   /* Transparent colors for glassmorphism */
-  --header-bg-rgb: 255, 255, 255;
+  --header-bg-rgb: 254, 254, 254;
+
+  /* Surfaces - tinted neutrals (never pure #fff or #000) */
+  --surface-white: #FEFEFE;   /* warm-tinted white, never pure */
+  --surface-dark: #0A0F1A;    /* warm-tinted black, never pure */
 
   /* Safe Area Insets for mobile devices */
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -70,7 +97,7 @@ html.dark {
     0 1px 3px rgba(0, 0, 0, 0.02),
     0 4px 12px rgba(0, 0, 0, 0.03),
     0 15px 30px -5px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
@@ -105,6 +132,13 @@ html.dark {
   --border-color-lighter: #1E293B;
   /* Slate 800 */
 
+  /* Page background for sub-surfaces */
+  --bg-color-page: #1E293B; /* Slate 800 */
+
+  /* Surfaces - tinted neutrals in dark mode */
+  --surface-white: #1E293B;  /* dark surface replaces white */
+  --surface-dark: #F8FAFC;    /* light text replaces black */
+
   /* Dark mode shadows (subtle glow) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
@@ -138,8 +172,7 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  /* Slate 300 */
+  background: var(--text-tertiary);
   border-radius: 3px;
 }
 
@@ -153,8 +186,7 @@ body,
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   padding: 20px;
-  transition: all 0.3s var(--ease-out);
-  transition: all 0.3s var(--ease-out);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
   border: 1px solid var(--border-color);
 }
 
@@ -170,7 +202,7 @@ body,
   padding: 12px 14px;
   margin-bottom: 10px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s var(--ease-out);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
   border: 1px solid var(--border-color-lighter);
   position: relative;
   overflow: hidden;
@@ -235,7 +267,7 @@ body,
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .status-tag.pending {
@@ -288,7 +320,7 @@ body,
 /* 页面过渡动画 - Fade & Slide Up */
 .fade-enter-active,
 .fade-leave-active {
-  transition: all 0.3s var(--ease-out);
+  transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
 }
 
 .fade-enter-from {
@@ -304,11 +336,23 @@ body,
 /* 列表交错动画辅助类 */
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
   transform: translateX(-20px);
+}
+
+/* Bubble popup fade-in animation (shared) */
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

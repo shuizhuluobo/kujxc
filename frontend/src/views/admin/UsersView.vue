@@ -9,7 +9,7 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="paginatedUsers" v-loading="loading" stripe class="card-premium">
+    <el-table v-if="!isMobile" :data="paginatedUsers" v-loading="loading" stripe class="card-premium" empty-text="暂无用户数据">
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="name" label="姓名" width="120" />
       <el-table-column label="角色" width="100">
@@ -58,7 +58,7 @@
           v-model="searchKeyword"
           placeholder="搜索用户/姓名"
           shape="round"
-          background="#fff"
+          background="var(--card-bg)"
         />
       </van-sticky>
 
@@ -120,20 +120,20 @@
 
       <!-- Floating Action Button -->
       <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="#fff" />
+        <van-icon name="plus" size="24" color="var(--card-bg)" />
       </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑用户' : '新增用户'" :width="isMobile ? '90%' : '500px'">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" :disabled="!!editing" />
+          <el-input v-model="form.username" :disabled="!!editing" maxlength="50" />
         </el-form-item>
         <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" />
+          <el-input v-model="form.name" maxlength="50" />
         </el-form-item>
         <el-form-item label="密码" prop="password" v-if="!editing">
-          <el-input v-model="form.password" type="password" show-password />
+          <el-input v-model="form.password" type="password" show-password maxlength="100" />
         </el-form-item>
         <el-form-item label="角色" prop="roleId">
           <el-select v-model="form.roleId" style="width: 100%">
@@ -157,11 +157,11 @@
 
     <el-dialog v-model="resetDialogVisible" title="重置密码" :width="isMobile ? '90%' : '400px'">
       <el-form ref="resetFormRef" :model="resetForm" :rules="resetRules" label-width="80px">
-        <div style="margin-bottom: 20px; padding-left: 20px; color: #666;">
+        <div style="margin-bottom: 20px; padding-left: 20px; color: var(--text-secondary);">
           正在为用户 <b>{{ editing?.name }}</b> ({{ editing?.username }}) 重置密码
         </div>
         <el-form-item label="新密码" prop="password">
-          <el-input v-model="resetForm.password" type="password" show-password />
+          <el-input v-model="resetForm.password" type="password" show-password maxlength="100" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -339,10 +339,17 @@ function handleResetPassword(row: User) {
 }
 
 async function handleDelete(row: User) {
-  await ElMessageBox.confirm('确定删除此用户吗？', '提示', { type: 'warning' });
-  await usersApi.delete(row.id);
-  ElMessage.success('删除成功');
-  fetchData();
+  try {
+    await ElMessageBox.confirm('确定删除此用户吗？', '提示', { type: 'warning' });
+  } catch { return; }
+  try {
+    await usersApi.delete(row.id);
+    ElMessage.success('删除成功');
+    fetchData();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } };
+    ElMessage.error(err.response?.data?.message || '删除失败');
+  }
 }
 
 async function handleSubmit() {
@@ -414,7 +421,7 @@ onMounted(fetchData);
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
-  background: #fff;
+  background: var(--card-bg);
   padding: 12px;
   border-radius: 8px;
 }
@@ -444,12 +451,20 @@ onMounted(fetchData);
 .list-title {
     font-weight: 500;
     font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
 }
 .sub-title {
     font-size: 12px;
     color: var(--text-tertiary);
     margin-left: 4px;
     font-weight: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
 }
 
 .list-info {
@@ -513,7 +528,7 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
   z-index: 100;
   transition: transform 0.2s;
 }

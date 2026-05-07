@@ -54,7 +54,7 @@ const toggleDark = useToggle(isDark);
 .toggle-thumb {
   width: 20px;
   height: 20px;
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 50%;
   position: absolute;
   top: 1px;
@@ -67,7 +67,7 @@ const toggleDark = useToggle(isDark);
 }
 
 .dark .toggle-thumb {
-  background-color: #1E293B;
+  background-color: var(--bg-color);
   transform: translateX(20px);
 }
 
@@ -76,10 +76,10 @@ const toggleDark = useToggle(isDark);
 }
 
 .sun {
-  color: #F59E0B;
+  color: var(--warning-color);
 }
 
 .moon {
-  color: #60A5FA;
+  color: var(--primary-color);
 }
 </style>

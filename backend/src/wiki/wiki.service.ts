@@ -166,7 +166,7 @@ export class WikiService {
     });
     if (!article) throw new NotFoundException('文章不存在');
 
-    this.incrementViewCount(id).catch((err) => {
+    this.incrementViewCount(id).catch((err: Error) => {
       this.logger.warn(
         `Failed to increment viewCount for article ${id}: ${err.message}`,
       );

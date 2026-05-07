@@ -6,10 +6,14 @@ export interface CurrentUserData {
   roleCode: string;
 }
 
+interface RequestWithUser extends Request {
+  user?: CurrentUserData;
+}
+
 export const CurrentUser = createParamDecorator(
   (data: keyof CurrentUserData | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    const user = request.user as CurrentUserData;
+    const request = ctx.switchToHttp().getRequest<RequestWithUser>();
+    const user = request.user;
     return data ? user?.[data] : user;
   },
 );

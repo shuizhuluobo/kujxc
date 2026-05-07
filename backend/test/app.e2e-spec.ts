@@ -3,6 +3,60 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    username: string;
+    name: string;
+    role: {
+      code: string;
+    };
+  };
+}
+
+interface RoleResponse {
+  id: string;
+  code: string;
+  name: string;
+}
+
+interface UserResponse {
+  id: string;
+  username: string;
+  name: string;
+}
+
+interface CustomerResponse {
+  id: string;
+  name: string;
+  namePinyin: string;
+  nameInitials: string;
+  contact: string;
+}
+
+interface WorkOrderResponse {
+  id: string;
+  detail: string;
+  status: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface WikiArticleResponse {
+  id: string;
+  title: string;
+  content: string;
+  titlePinyin: string;
+  titleInitials: string;
+  isLiked?: boolean;
+}
+
+interface FeeResponse {
+  subtotal: number;
+}
+
 describe('API End-to-End Tests', () => {
   let app: INestApplication;
   let adminToken: string;
@@ -50,11 +104,12 @@ describe('API End-to-End Tests', () => {
         .send(adminCredentials)
         .expect(201);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      expect(response.body.user).toHaveProperty('username', 'admin');
-      adminToken = response.body.accessToken;
-      refreshToken = response.body.refreshToken;
+      const loginResponse = response.body as LoginResponse;
+      expect(loginResponse).toHaveProperty('accessToken');
+      expect(loginResponse).toHaveProperty('refreshToken');
+      expect(loginResponse.user).toHaveProperty('username', 'admin');
+      adminToken = loginResponse.accessToken;
+      refreshToken = loginResponse.refreshToken;
     });
 
     it('should reject invalid credentials', async () => {
@@ -63,7 +118,11 @@ describe('API End-to-End Tests', () => {
         .send({ username: 'admin', password: 'wrongpassword' })
         .expect(401);
 
-      expect(response.body.message).toContain('密码错误');
+      const errorResponse = response.body as { message: string | string[] };
+      const message = Array.isArray(errorResponse.message)
+        ? errorResponse.message.join(', ')
+        : errorResponse.message;
+      expect(message).toContain('密码错误');
     });
 
     it('should refresh tokens', async () => {
@@ -72,10 +131,11 @@ describe('API End-to-End Tests', () => {
         .send({ refreshToken })
         .expect(201);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      adminToken = response.body.accessToken;
-      refreshToken = response.body.refreshToken;
+      const loginResponse = response.body as LoginResponse;
+      expect(loginResponse).toHaveProperty('accessToken');
+      expect(loginResponse).toHaveProperty('refreshToken');
+      adminToken = loginResponse.accessToken;
+      refreshToken = loginResponse.refreshToken;
     });
 
     it('should reject invalid refresh token', async () => {
@@ -91,8 +151,9 @@ describe('API End-to-End Tests', () => {
         .send(engineerCredentials)
         .expect(201);
 
-      engineerToken = response.body.accessToken;
-      expect(response.body.user.role.code).toBe('engineer');
+      const loginResponse = response.body as LoginResponse;
+      engineerToken = loginResponse.accessToken;
+      expect(loginResponse.user.role.code).toBe('engineer');
     });
 
     it('should get current user profile', async () => {
@@ -119,10 +180,9 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const engineerRole = rolesResponse.body.find(
-        (r: any) => r.code === 'engineer',
-      );
-      newUser.roleId = engineerRole.id;
+      const roles = rolesResponse.body as RoleResponse[];
+      const engineerRole = roles.find((r) => r.code === 'engineer');
+      newUser.roleId = engineerRole?.id ?? '';
 
       const response = await request(app.getHttpServer())
         .post('/api/users')
@@ -130,9 +190,10 @@ describe('API End-to-End Tests', () => {
         .send(newUser)
         .expect(201);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.username).toBe(newUser.username);
-      testUserId = response.body.id;
+      const userResponse = response.body as UserResponse;
+      expect(userResponse).toHaveProperty('id');
+      expect(userResponse.username).toBe(newUser.username);
+      testUserId = userResponse.id;
     });
 
     it('should reject duplicate username', async () => {
@@ -165,7 +226,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(testUserId);
+      const userResponse = response.body as UserResponse;
+      expect(userResponse.id).toBe(testUserId);
     });
 
     it('should update user', async () => {
@@ -175,7 +237,8 @@ describe('API End-to-End Tests', () => {
         .send({ name: 'Updated Name' })
         .expect(200);
 
-      expect(response.body.name).toBe('Updated Name');
+      const userResponse = response.body as UserResponse;
+      expect(userResponse.name).toBe('Updated Name');
     });
 
     it('should change password', async () => {
@@ -217,10 +280,11 @@ describe('API End-to-End Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body).toHaveProperty('namePinyin');
-      expect(response.body).toHaveProperty('nameInitials');
-      testCustomerId = response.body.id;
+      const customerResponse = response.body as CustomerResponse;
+      expect(customerResponse).toHaveProperty('id');
+      expect(customerResponse).toHaveProperty('namePinyin');
+      expect(customerResponse).toHaveProperty('nameInitials');
+      testCustomerId = customerResponse.id;
     });
 
     it('should list customers with keyword search', async () => {
@@ -239,7 +303,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(testCustomerId);
+      const customerResponse = response.body as CustomerResponse;
+      expect(customerResponse.id).toBe(testCustomerId);
     });
 
     it('should update customer', async () => {
@@ -308,9 +373,10 @@ describe('API End-to-End Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.status).toBe('PENDING');
-      testWorkOrderId = response.body.id;
+      const workOrderResponse = response.body as WorkOrderResponse;
+      expect(workOrderResponse).toHaveProperty('id');
+      expect(workOrderResponse.status).toBe('PENDING');
+      testWorkOrderId = workOrderResponse.id;
     });
 
     it('should list work orders with filters', async () => {
@@ -329,7 +395,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(testWorkOrderId);
+      const workOrderResponse = response.body as WorkOrderResponse;
+      expect(workOrderResponse.id).toBe(testWorkOrderId);
     });
 
     it('should update work order', async () => {
@@ -339,7 +406,8 @@ describe('API End-to-End Tests', () => {
         .send({ detail: 'Updated detail' })
         .expect(200);
 
-      expect(response.body.detail).toBe('Updated detail');
+      const workOrderResponse = response.body as WorkOrderResponse;
+      expect(workOrderResponse.detail).toBe('Updated detail');
     });
 
     it('should receive a work order', async () => {
@@ -348,7 +416,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${engineerToken}`)
         .expect(201);
 
-      expect(response.body.status).toBe('RECEIVED');
+      const workOrderResponse = response.body as WorkOrderResponse;
+      expect(workOrderResponse.status).toBe('RECEIVED');
     });
 
     it('should complete a work order', async () => {
@@ -358,8 +427,9 @@ describe('API End-to-End Tests', () => {
         .send({})
         .expect(201);
 
-      expect(response.body.status).toBe('COMPLETED');
-      expect(response.body).toHaveProperty('completedAt');
+      const workOrderResponse = response.body as WorkOrderResponse;
+      expect(workOrderResponse.status).toBe('COMPLETED');
+      expect(workOrderResponse).toHaveProperty('completedAt');
     });
 
     it('should get pending work orders', async () => {
@@ -415,10 +485,11 @@ describe('API End-to-End Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body).toHaveProperty('titlePinyin');
-      expect(response.body).toHaveProperty('titleInitials');
-      testWikiArticleId = response.body.id;
+      const articleResponse = response.body as WikiArticleResponse;
+      expect(articleResponse).toHaveProperty('id');
+      expect(articleResponse).toHaveProperty('titlePinyin');
+      expect(articleResponse).toHaveProperty('titleInitials');
+      testWikiArticleId = articleResponse.id;
     });
 
     it('should list wiki articles', async () => {
@@ -437,7 +508,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(testWikiArticleId);
+      const articleResponse = response.body as WikiArticleResponse;
+      expect(articleResponse.id).toBe(testWikiArticleId);
     });
 
     it('should update wiki article', async () => {
@@ -447,7 +519,8 @@ describe('API End-to-End Tests', () => {
         .send({ content: 'Updated content' })
         .expect(200);
 
-      expect(response.body.content).toBe('Updated content');
+      const articleResponse = response.body as WikiArticleResponse;
+      expect(articleResponse.content).toBe('Updated content');
     });
 
     it('should toggle like on article', async () => {
@@ -456,7 +529,8 @@ describe('API End-to-End Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(201);
 
-      expect(response.body).toHaveProperty('isLiked');
+      const articleResponse = response.body as WikiArticleResponse;
+      expect(articleResponse).toHaveProperty('isLiked');
     });
 
     it('should delete wiki article', async () => {
@@ -513,8 +587,9 @@ describe('API End-to-End Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('subtotal');
-      expect(response.body.subtotal).toBe(100);
+      const feeResponse = response.body as FeeResponse;
+      expect(feeResponse).toHaveProperty('subtotal');
+      expect(feeResponse.subtotal).toBe(100);
     });
   });
 

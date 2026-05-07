@@ -1,31 +1,35 @@
-// @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import js from '@eslint/js';
 import globals from 'globals';
+import vue from 'eslint-plugin-vue';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['node_modules/', 'dist/'],
   },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     languageOptions: {
       globals: {
+        ...globals.browser,
         ...globals.node,
-        ...globals.jest,
       },
-      sourceType: 'commonjs',
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
-  },
-  {
+    settings: {
+      vue: {
+        version: '3.13',
+      },
+    },
+    plugins: {
+      vue,
+    },
     rules: {
+      ...vue.configs['flat/recommended'].rules,
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
@@ -36,7 +40,7 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/unbound-method': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      'vue/no-v-html': 'off',
     },
   },
 );

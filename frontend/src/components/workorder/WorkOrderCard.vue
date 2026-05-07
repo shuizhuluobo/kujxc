@@ -373,7 +373,7 @@ const hasSecondaryActions = computed(() => {
 
 .confirm-bubble .bubble-content {
   position: relative;
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 90%;
@@ -390,18 +390,7 @@ const hasSecondaryActions = computed(() => {
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-bottom: 8px solid white;
-}
-
-@keyframes bubbleFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  border-bottom: 8px solid var(--card-bg);
 }
 
 .confirm-bubble .bubble-header {
@@ -409,26 +398,26 @@ const hasSecondaryActions = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 18px 16px 14px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color-lighter);
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(180deg, #fafafa 0%, white 100%);
+  background: var(--card-bg);
   border-radius: 16px 16px 0 0;
 }
 
 .confirm-bubble .close-btn {
   font-size: 24px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
   line-height: 1;
   padding: 4px;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .confirm-bubble .close-btn:hover {
-  color: #666;
-  background: #f0f0f0;
+  color: var(--text-secondary);
+  background: var(--border-color-lighter);
 }
 
 .confirm-bubble .bubble-body {
@@ -458,7 +447,7 @@ const hasSecondaryActions = computed(() => {
   display: flex;
   gap: 12px;
   padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color-lighter);
 }
 
 .confirm-bubble .btn {
@@ -469,7 +458,7 @@ const hasSecondaryActions = computed(() => {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   min-height: 48px;
   display: flex;
   align-items: center;
@@ -481,46 +470,46 @@ const hasSecondaryActions = computed(() => {
 }
 
 .confirm-bubble .btn-cancel {
-  background: #f0f2f5;
+  background: var(--bg-color-page);
   color: var(--text-secondary);
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-color);
 }
 
 .confirm-bubble .btn-cancel:hover {
-  background: #e8eaef;
+  background: var(--border-color-lighter);
 }
 
 .confirm-bubble .btn-confirm {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  background: var(--primary-color);
+  color: var(--card-bg) !important;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
 }
 
 .confirm-bubble .btn-confirm:hover {
-  background: linear-gradient(135deg, var(--primary-color-dark) 0%, #1e40af 100%);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  background: hsl(var(--primary-h), var(--primary-s), 48%);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
 }
 
 .confirm-bubble .btn-danger {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  background: var(--danger-color);
+  color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(var(--danger-rgb), 0.3);
 }
 
 .confirm-bubble .btn-danger:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(var(--danger-rgb), 0.4);
 }
 
 .confirm-bubble .btn-warning {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  background: var(--warning-color);
+  color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(var(--warning-rgb), 0.3);
 }
 
 .confirm-bubble .btn-warning:hover {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  background: hsl(38, 92%, 42%);
+  box-shadow: 0 4px 12px rgba(var(--warning-rgb), 0.4);
 }
 
 .card-header {
@@ -573,7 +562,7 @@ const hasSecondaryActions = computed(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease, -webkit-line-clamp 0.3s ease;
 }
 
 .customer-name.expanded {

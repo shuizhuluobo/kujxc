@@ -6,7 +6,7 @@
     border-radius: 8px;
     padding: 10px 18px;
     height: auto;
-    transition: all 0.2s var(--ease-out);
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background-color 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
     border: 1px solid var(--border-color);
 }
 
@@ -17,7 +17,7 @@
 .el-button--primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(var(--primary-rgb), 0.2), 0 2px 4px -1px rgba(var(--primary-rgb), 0.1);
 }
 
 .el-button--primary:hover,
@@ -25,7 +25,7 @@
     background-color: hsl(var(--primary-h), var(--primary-s), 48%);
     border-color: hsl(var(--primary-h), var(--primary-s), 48%);
     transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 6px 8px -1px rgba(var(--primary-rgb), 0.25);
 }
 
 .el-button:active {
@@ -39,7 +39,7 @@
     border-radius: 8px;
     padding: 10px 12px;
     /* Increased from 8px to match button height (approx 36px) */
-    transition: all 0.2s ease;
+    transition: box-shadow 0.2s ease;
 }
 
 .el-input__wrapper:hover,
@@ -49,7 +49,7 @@
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focused {
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) inset, 0 0 0 1px var(--primary-color) inset !important;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2) inset, 0 0 0 1px var(--primary-color) inset !important;
 }
 
 /* 3. 表格 (Tables) */
@@ -113,7 +113,7 @@
     border: none;
     border-radius: 12px;
     box-shadow: var(--shadow-sm) !important;
-    transition: all 0.3s var(--ease-out);
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
 }
 
 .el-card:hover {
@@ -207,10 +207,10 @@
 }
 
 /* 修复 Element Plus 默认对话框动画 */
-:deep(.el-dialog-fade-enter-active) {
+.el-dialog-fade-enter-active {
     animation: dialog-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
-:deep(.el-dialog-fade-leave-active) {
+.el-dialog-fade-leave-active {
     animation: dialog-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) reverse !important;
 }

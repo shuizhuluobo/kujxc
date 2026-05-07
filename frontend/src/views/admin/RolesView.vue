@@ -7,9 +7,9 @@
       </div>
     </div>
 
-    <el-table v-if="!isMobile" :data="roles" v-loading="loading" stripe class="card-premium">
-      <el-table-column prop="name" label="角色名称" width="150" />
-      <el-table-column prop="code" label="角色代码" width="120" />
+    <el-table v-if="!isMobile" :data="roles" v-loading="loading" stripe class="card-premium" empty-text="暂无角色数据">
+      <el-table-column prop="name" label="角色名称" width="150" show-overflow-tooltip />
+      <el-table-column prop="code" label="角色代码" width="120" show-overflow-tooltip />
       <el-table-column label="权限数量" width="100">
         <template #default="{ row }">
           <el-tag :type="getPermissionTagType(row.permissions?.length)">
@@ -65,7 +65,7 @@
             </template>
             <template #icon>
               <div class="list-icon-wrapper">
-                <van-icon name="user-o" size="20" color="#1989fa"/>
+                <van-icon name="user-o" size="20" color="var(--primary-color)"/>
               </div>
             </template>
           </van-cell>
@@ -79,7 +79,7 @@
 
       <!-- Floating Action Button -->
       <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="#fff" />
+        <van-icon name="plus" size="24" color="var(--card-bg)" />
       </div>
     </div>
 
@@ -92,10 +92,10 @@
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="角色名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入角色名称" />
+          <el-input v-model="form.name" placeholder="请输入角色名称" maxlength="50" />
         </el-form-item>
         <el-form-item label="角色代码" prop="code">
-          <el-input v-model="form.code" placeholder="请输入角色代码" :disabled="!!editing" />
+          <el-input v-model="form.code" placeholder="请输入角色代码" :disabled="!!editing" maxlength="50" />
         </el-form-item>
       </el-form>
 
@@ -399,10 +399,17 @@ function handleEdit(row: Role) {
 }
 
 async function handleDelete(row: Role) {
-  await ElMessageBox.confirm('确定删除此角色吗？', '提示', { type: 'warning' });
-  await rolesApi.delete(row.id);
-  ElMessage.success('删除成功');
-  fetchData();
+  try {
+    await ElMessageBox.confirm('确定删除此角色吗？', '提示', { type: 'warning' });
+  } catch { return; }
+  try {
+    await rolesApi.delete(row.id);
+    ElMessage.success('删除成功');
+    fetchData();
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } };
+    ElMessage.error(err.response?.data?.message || '删除失败');
+  }
 }
 
 async function handleSubmit() {
@@ -593,7 +600,7 @@ onMounted(fetchData);
 }
 
 .mobile-header {
-  background: #fff;
+  background: var(--card-bg);
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color-light);
 }
@@ -653,7 +660,7 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
   z-index: 100;
   transition: transform 0.2s;
 }

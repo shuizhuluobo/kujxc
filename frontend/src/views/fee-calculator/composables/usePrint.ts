@@ -1,6 +1,20 @@
 import { type FeeRecord } from '@/api';
 
 /**
+ * 转义 HTML 特殊字符，防止 XSS 攻击
+ */
+function escapeHtml(text: string): string {
+  const escapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+  };
+  return String(text).replace(/[&<>"']/g, (char) => escapeMap[char]);
+}
+
+/**
  * 打印数据结构 - 统一打印数据接口
  */
 export interface PrintData {
@@ -218,60 +232,65 @@ function getA4Css(): string {
  * 三联纸模板专用 CSS
  * A4纵向纸张，打印内容在顶部1/3区域
  * 纸张尺寸: 210mm x 297mm (标准A4纵向)
- * 打印区域: 210mm x 99mm (上部三分之一)
+ * 边距: 左侧3.5cm, 右侧4cm
+ * 字体优化: 使用高对比度黑体，适合针式打印机
  */
 function getTriplicateCss(): string {
   return `
     @page { 
       size: 210mm 297mm portrait; 
       margin-top: 5mm;
-      margin-bottom: 193mm; /* 297 - 99 - 5 = 193，底部留白 */
-      margin-left: 8mm;
-      margin-right: 8mm;
+      margin-bottom: 193mm;
+      margin-left: 15mm;
+      margin-right: 15mm;
     }
     ${getPrintBaseCss()}
     html, body { 
-      width: 194mm; 
+      width: 180mm; 
       height: 99mm; 
       overflow: hidden;
       page-break-after: avoid;
     }
     body {
       padding: 0;
+      font-family: 'SimHei', 'Microsoft YaHei', 'Courier New', monospace;
     }
     .trip-template { 
       width: 100%; 
       height: 100%;
     }
-    .trip-title { font-size: 11pt; font-weight: bold; text-align: center; margin: 1mm 0 1.5mm; letter-spacing: 1px; }
-    .trip-info { font-size: 6.5pt; line-height: 1.3; margin-bottom: 1mm; }
-    .trip-info-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px; }
-    .trip-info-row-compact { display: flex; justify-content: flex-start; gap: 6px; flex-wrap: nowrap; }
-    .trip-info-row-compact span { flex: 1; min-width: 70px; }
+    .trip-title { font-size: 14pt; font-weight: bold; text-align: center; margin: 1mm 0 1.5mm; letter-spacing: 2px; }
+    .trip-info { font-size: 8pt; line-height: 1.4; margin-bottom: 1mm; }
+    .trip-info-row { display: flex; justify-content: flex-start; flex-wrap: nowrap; gap: 1.5mm; margin-bottom: 0.8mm; align-items: baseline; }
+    .trip-info-row:first-child { display: flex; justify-content: space-between; }
+    .trip-info-row-compact { display: inline-flex; gap: 3mm; flex-wrap: nowrap; }
+    .trip-info-row-compact span { white-space: nowrap; }
     .trip-info-row .label { font-weight: normal; }
-    .trip-info-row .value { border-bottom: 1px solid #333; padding: 0 1px; min-width: 45px; display: inline-block; }
-    .trip-info-row .value.wide { min-width: 55px; }
-    .trip-table { font-size: 6.5pt; margin-bottom: 1mm; }
-    .trip-table th { height: 14px; font-size: 6.5pt; padding: 0.5px 2px; white-space: nowrap; }
-    .trip-table td { height: 13px; font-size: 6.5pt; padding: 0.5px 2px; }
+    .trip-info-row .value { border-bottom: 1px solid #000; padding: 0 1px; min-width: 30px; display: inline-block; }
+    .trip-info-row .value.wide { min-width: 60px; }
+    .trip-info-row .client-name { font-size: 10pt; font-weight: bold; border-bottom: 2px solid #000; }
+    .trip-table { font-size: 8pt; margin-bottom: 1mm; }
+    .trip-table th { height: 14px; font-size: 8pt; padding: 0.5px 2px; white-space: nowrap; border-bottom: 2px solid #000; background: #fff; }
+    .trip-table td { height: 13px; font-size: 8pt; padding: 0.5px 2px; }
     .trip-table td.item-name { text-align: left; padding-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .trip-table td.amount { text-align: right; padding-right: 2px; font-family: 'Courier New', monospace; white-space: nowrap; }
-    .trip-table td.qty { text-align: center; font-family: 'Courier New', monospace; }
+    .trip-table td.qty { text-align: right; font-family: 'Courier New', monospace; }
     .trip-table td.price { text-align: right; font-family: 'Courier New', monospace; }
-    .trip-summary { font-size: 6.5pt; margin-bottom: 1mm; }
-    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.3; gap: 5px; }
-    .trip-summary-row .label { min-width: 32px; text-align: right; }
-    .trip-summary-row .value { min-width: 55px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #333; padding: 0 1px; }
-    .trip-summary-total { font-weight: bold; font-size: 7.5pt; margin-top: 0.8mm; padding-top: 0.8mm; border-top: 1.5px solid #000; }
+    .trip-summary { font-size: 8pt; margin-bottom: 1mm; }
+    .trip-summary-row { display: flex; justify-content: flex-end; line-height: 1.4; gap: 3mm; margin-bottom: 0.5mm; }
+    .trip-summary-row .label { min-width: 28px; text-align: right; }
+    .trip-summary-row .value { min-width: 50px; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #000; padding: 0 1px; }
+    .trip-summary-total { font-weight: bold; font-size: 9pt; margin-top: 0.8mm; padding-top: 0.8mm; border-top: 1.5px solid #000; }
     .trip-summary-total .value { border-bottom: none; color: #000; }
-    .trip-chinese { text-align: right; font-size: 5.5pt; color: #555; margin-top: 0.5mm; padding-right: 2px; }
-    .trip-remark { font-size: 6.5pt; margin-bottom: 1.5mm; line-height: 1.3; }
+    .trip-chinese { text-align: right; font-size: 7pt; color: #000; margin-top: 0.5mm; padding-right: 2px; }
+    .trip-remark { font-size: 8pt; margin-bottom: 1mm; line-height: 1.4; }
     .trip-remark .label { font-weight: bold; }
-    .trip-sign { font-size: 6.5pt; margin-top: 2mm; display: flex; justify-content: space-between; align-items: flex-end; }
-    .trip-sign-item { min-width: 70px; }
-    .trip-sign-item .sign-line { width: 55px; }
+    .trip-sign { font-size: 8pt; margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 2mm; }
+    .trip-sign-item { min-width: 60px; }
+    .trip-sign-item .sign-line { width: 55px; display: inline-block; border-bottom: 1px solid #000; }
+    .trip-sign-item .client-sign-line { width: 90px; border-bottom-width: 1.5px; }
     .trip-sign-date { margin-top: 2px; }
-    .trip-footer { margin-top: 1.5mm; font-size: 6.5pt; line-height: 1.3; text-align: center; color: #555; }
+    .trip-footer { margin-top: 1.5mm; font-size: 7pt; line-height: 1.4; text-align: center; color: #000; }
     .trip-footer-text { display: inline; margin: 0 5px; }
   `;
 }
@@ -283,7 +302,7 @@ export function renderA4Template(data: PrintData): string {
   const itemsHtml = data.items.map(item => `
     <tr>
       <td>${item.index}</td>
-      <td class="item-name">${item.name}</td>
+      <td class="item-name">${escapeHtml(item.name)}</td>
       <td>${item.quantity}${item.unit}</td>
       <td class="amount">${item.unitPrice.toFixed(2)}</td>
       <td class="amount">${item.total.toFixed(2)}</td>
@@ -297,16 +316,16 @@ export function renderA4Template(data: PrintData): string {
       <div class="a4-title">服务费用结算单</div>
       <div class="a4-info">
         <div class="a4-info-row">
-          <span style="min-width:280px"><span class="label">单据编号：</span>${data.documentNo}</span>
-          <span><span class="label">日期：</span>${data.date}</span>
+          <span style="min-width:280px"><span class="label">单据编号：</span>${escapeHtml(data.documentNo)}</span>
+          <span><span class="label">日期：</span>${escapeHtml(data.date)}</span>
         </div>
         <div class="a4-info-row">
-          <span style="min-width:280px"><span class="label">委托单位：</span><span class="value">${data.clientName}</span></span>
-          <span><span class="label">操作人：</span>${data.creatorName}</span>
+          <span style="min-width:280px"><span class="label">委托单位：</span><span class="value">${escapeHtml(data.clientName)}</span></span>
+          <span><span class="label">操作人：</span>${escapeHtml(data.creatorName)}</span>
         </div>
         <div class="a4-info-row">
-          <span style="min-width:280px"><span class="label">联 系 人：</span><span class="value">${data.contactPerson}</span></span>
-          <span><span class="label">联系电话：</span><span class="value">${data.contactPhone}</span></span>
+          <span style="min-width:280px"><span class="label">联 系 人：</span><span class="value">${escapeHtml(data.contactPerson)}</span></span>
+          <span><span class="label">联系电话：</span><span class="value">${escapeHtml(data.contactPhone)}</span></span>
         </div>
       </div>
       <table class="a4-table">
@@ -339,11 +358,11 @@ export function renderA4Template(data: PrintData): string {
         <div class="a4-chinese-amount">大写：${chineseAmount}</div>
       </div>
       <div class="a4-remark">
-        <span class="label">备注：</span>${data.remark || '无'}
+        <span class="label">备注：</span>${escapeHtml(data.remark || '无')}
       </div>
       <div class="a4-sign">
         <div class="a4-sign-row">
-          <div class="a4-sign-item">经办人：<span class="sign-line">${data.creatorName}</span></div>
+          <div class="a4-sign-item">经办人：<span class="sign-line">${escapeHtml(data.creatorName)}</span></div>
           <div class="a4-sign-item">客户签收：<span class="sign-line"></span></div>
         </div>
       </div>
@@ -357,18 +376,13 @@ export function renderA4Template(data: PrintData): string {
 
 /**
  * 渲染三联纸模板 HTML（单份，复写纸自动产生三联）
- * 表格列分配策略（基于三联纸物理尺寸优化）：
- * - 序号: 6% (约 40px) - 只需显示1-2位数字
- * - 服务项目: 50% (约 325px) - 主要内容区，允许长名称换行显示
- * - 数量: 10% (约 65px) - 居中显示，紧凑布局
- * - 单价: 10% (约 65px) - 右对齐，金额类数据
- * - 金额: 24% (约 155px) - 右对齐显示，最宽列
+ * A4纵向纸张，边距左侧3.5cm右侧4cm
  */
 export function renderTriplicateTemplate(data: PrintData): string {
   const itemsHtml = data.items.map(item => `
     <tr>
       <td>${item.index}</td>
-      <td class="item-name">${item.name}</td>
+      <td class="item-name">${escapeHtml(item.name)}</td>
       <td class="qty">${item.quantity}${item.unit}</td>
       <td class="price">${item.unitPrice.toFixed(2)}</td>
       <td class="amount">${item.total.toFixed(2)}</td>
@@ -377,18 +391,25 @@ export function renderTriplicateTemplate(data: PrintData): string {
 
   const chineseAmount = amountToChinese(data.actualAmount);
 
+  // 备注按需显示（无内容时不打印）
+  const remarkHtml = data.remark && data.remark.trim()
+    ? `<div class="trip-remark"><span class="label">备注：</span>${escapeHtml(data.remark)}</div>`
+    : '';
+
   return `
     <div class="trip-template">
       <div class="trip-title">服务费用结算单</div>
       <div class="trip-info">
         <div class="trip-info-row">
-          <span>No: ${data.documentNo}</span>
-          <span>${data.date}</span>
+          <span>No: ${escapeHtml(data.documentNo)}</span>
+          <span>${escapeHtml(data.date)}</span>
         </div>
         <div class="trip-info-row trip-info-row-compact">
-          <span><span class="label">委托单位:</span><span class="value wide">${data.clientName}</span></span>
-          <span><span class="label">联系人:</span><span class="value">${data.contactPerson}</span></span>
-          <span><span class="label">电话:</span><span class="value">${data.contactPhone}</span></span>
+          <span><span class="label">委托单位:</span><span class="value client-name">${escapeHtml(data.clientName)}</span></span>
+        </div>
+        <div class="trip-info-row trip-info-row-compact">
+          <span><span class="label">联系人:</span><span class="value">${escapeHtml(data.contactPerson)}</span></span>
+          <span><span class="label">电话:</span><span class="value">${escapeHtml(data.contactPhone)}</span></span>
         </div>
       </div>
       <table class="trip-table">
@@ -422,12 +443,10 @@ export function renderTriplicateTemplate(data: PrintData): string {
         </div>
         <div class="trip-chinese">大写：${chineseAmount}</div>
       </div>
-      <div class="trip-remark">
-        <span class="label">备注：</span>${data.remark || '无'}
-      </div>
+      ${remarkHtml}
       <div class="trip-sign">
-        <div class="trip-sign-item">经办人:<span class="sign-line">${data.creatorName}</span></div>
-        <div class="trip-sign-item">客户签收:<span class="sign-line"></span></div>
+        <div class="trip-sign-item">经办人:<span class="sign-line">${escapeHtml(data.creatorName)}</span></div>
+        <div class="trip-sign-item">客户签收:<span class="sign-line client-sign-line"></span></div>
       </div>
       <div class="trip-footer">
         <div class="trip-footer-text">${PRINT_CONFIG.companyNotice}</div>

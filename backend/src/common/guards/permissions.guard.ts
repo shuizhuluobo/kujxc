@@ -12,6 +12,10 @@ interface UserWithPermissions {
   permissions?: string[];
 }
 
+interface RequestWithUser extends Request {
+  user?: UserWithPermissions;
+}
+
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -26,8 +30,8 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user as UserWithPermissions;
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const user = request.user;
 
     if (!user || !user.roleId) {
       throw new ForbiddenException('用户信息无效');

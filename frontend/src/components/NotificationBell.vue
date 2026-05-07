@@ -136,15 +136,9 @@ onMounted(() => {
   loadUnreadCount();
   // SSE 实时监听
   const sse = useSSE();
-  // 监听通知创建
+  // 监听通知创建（仅更新未读计数，不自动弹出气泡）
   cleanupSSE = sse.on('notification.created', () => {
     unreadCount.value++;
-    // 自动弹出气泡
-    if (!popoverVisible.value) {
-      popoverVisible.value = true;
-    } else {
-      loadNotifications();
-    }
   });
   
   // 30秒兜底轮询
@@ -181,7 +175,7 @@ const handleHide = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 
 .panel-header .title {
@@ -207,12 +201,12 @@ const handleHide = async () => {
 }
 
 .notification-item:hover {
-  background-color: var(--el-fill-color-light);
+  background-color: var(--bg-color);
 }
 
 .notification-item.unread {
-  background-color: var(--el-color-primary-light-9);
-  border-left-color: var(--el-color-primary);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  background-color: rgba(var(--primary-rgb), 0.06);
 }
 
 .item-header {
@@ -225,16 +219,20 @@ const handleHide = async () => {
 .item-title {
   font-weight: 500;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
 }
 
 .item-time {
   font-size: 11px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-tertiary);
 }
 
 .item-content {
   font-size: 12px;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;

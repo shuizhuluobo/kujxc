@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WikiService } from './wiki.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 describe('WikiService', () => {
   let service: WikiService;
   let prismaService: jest.Mocked<PrismaService>;

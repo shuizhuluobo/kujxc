@@ -149,7 +149,8 @@ const {
   padding-top: var(--safe-area-top);
   background: var(--card-bg);
   border-bottom: 1px solid var(--border-color-lighter);
-  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .header-left {
@@ -227,13 +228,16 @@ const {
   border-radius: 12px;
   background: var(--bg-color);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color 0.2s ease, color 0.2s ease;
   font-weight: 500;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
 }
 
 .admin-menu-item:hover {
   background: var(--primary-color);
-  color: #fff;
+  color: var(--card-bg);
 }
 
 @media (max-width: 768px) {

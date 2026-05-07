@@ -35,13 +35,13 @@
       <div class="category-manage">
         <el-form :inline="true" :model="categoryForm" class="add-form">
           <el-form-item>
-            <el-input v-model="categoryForm.name" placeholder="新分类名称" />
+            <el-input v-model="categoryForm.name" placeholder="新分类名称" maxlength="100" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="saveCategory">添加</el-button>
           </el-form-item>
         </el-form>
-        <el-table :data="categories" stripe size="small">
+        <el-table :data="categories" stripe size="small" empty-text="暂无分类">
           <el-table-column prop="name" label="名称" />
           <el-table-column label="文章数" width="80">
             <template #default="{ row }">

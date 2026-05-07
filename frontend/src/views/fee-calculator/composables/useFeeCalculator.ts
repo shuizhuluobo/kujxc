@@ -59,6 +59,7 @@ export function useFeeCalculator() {
   const computerServices = ref<ServiceItem[]>([]);
   const peripheralInstallServices = ref<ServiceItem[]>([]);
   const peripheralRecycleServices = ref<ServiceItem[]>([]);
+  const peripheralDeliveryServices = ref<ServiceItem[]>([]);
   const responseServices = ref<ServiceItem[]>([]);
   const timeSlotServices = ref<ServiceItem[]>([]);
   const transportServices = ref<ServiceItem[]>([]);
@@ -66,8 +67,16 @@ export function useFeeCalculator() {
   // 计算机服务状态存储
   const computerServiceState = ref<Record<string, { selected: boolean; disabled: boolean }>>({});
 
+  // 外设服务状态存储（按设备类型）
+  const peripheralServiceState = ref<Record<string, { selected: boolean; disabled: boolean }>>({});
+
   const maxPeripheralRows = computed(() => {
-    return Math.max(peripheralInstallServices.value.length, peripheralRecycleServices.value.length, 4);
+    return Math.max(
+      peripheralInstallServices.value.length, 
+      peripheralRecycleServices.value.length,
+      peripheralDeliveryServices.value.length, 
+      4
+    );
   });
 
   const computerServiceMap = computed(() => {
@@ -140,6 +149,16 @@ export function useFeeCalculator() {
     const items: SelectedItem[] = [];
     
     const currentMap = computerServiceMap.value;
+    // 计算机服务名称到显示文本的映射
+    const computerDisplayNames: Record<string, string> = {
+      '出库送货': '计算机出库',
+      '安装就位': '计算机安装',
+      '回收转运': '计算机回收',
+      '脱密入库': '计算机脱密入库',
+      '出库到就位': '计算机出库到就位',
+      '回收到入库': '计算机回收到入库',
+      '全流程服务': '计算机全流程服务',
+    };
     const serviceNames = ['出库送货', '安装就位', '回收转运', '脱密入库', '出库到就位', '回收到入库', '全流程服务'];
     
     serviceNames.forEach(name => {
@@ -149,14 +168,15 @@ export function useFeeCalculator() {
         const qty = computerCount.value <= 5 && (s.item === '出库送货' || s.item === '回收转运' || s.item === '出库到就位') ? 1 : computerCount.value;
         items.push({
           id: s.id || name,
-          displayText: s.item,
+          displayText: computerDisplayNames[s.item] || s.item,
           total: price,
-          item: s.item,
+          item: computerDisplayNames[s.item] || s.item,
           quantity: qty,
         });
       }
     });
 
+    // 外设安装服务（安装包含送货）
     peripheralInstallServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
       let basePrice = s.price * s.quantity;
       let terminalFee = 0;
@@ -168,18 +188,32 @@ export function useFeeCalculator() {
         terminalFee = (terminalCount - 3) * 10 * s.quantity;
       }
       
+      // 根据设备类型生成显示名称（安装含送货）
+      let displayName = s.item;
+      if (s.item.includes('复印机')) {
+        displayName = '复印机安装（含送货）';
+      } else if (s.item.includes('打印机')) {
+        displayName = '打印机安装（含送货）';
+      } else if (s.item.includes('扫描仪')) {
+        displayName = '扫描仪安装（含送货）';
+      } else if (s.item.includes('碎纸机')) {
+        displayName = '碎纸机安装';
+      } else if (s.item.includes('投影机')) {
+        displayName = '投影机安装';
+      }
+      
       items.push({
         id: s.id,
-        displayText: s.item,
+        displayText: displayName,
         total: basePrice,
-        item: s.item,
+        item: displayName,
         quantity: s.quantity,
       });
       
       if (terminalFee > 0) {
         items.push({
           id: s.id + '-terminal',
-          displayText: `${s.item}终端连接费`,
+          displayText: `额外：${s.item}终端连接费`,
           total: terminalFee,
           item: s.item + '终端连接费',
           quantity: terminalCount > 5 ? terminalCount - 5 : terminalCount - 3,
@@ -187,7 +221,11 @@ export function useFeeCalculator() {
       }
     });
 
+    // 外设回收服务（单项回收）
     peripheralRecycleServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
+      // 跳过全流程服务项，这些在下面单独处理
+      if (s.item.includes('全流程')) return;
+      
       items.push({
         id: s.id,
         displayText: s.item,
@@ -195,6 +233,43 @@ export function useFeeCalculator() {
         item: s.item,
         quantity: s.quantity,
       });
+    });
+    
+    // 外设全流程服务
+    peripheralRecycleServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
+      if (!s.item.includes('全流程')) return;
+      
+      let basePrice = s.price * s.quantity;
+      let terminalFee = 0;
+      let terminalCount = s.terminalCount || 0;
+      
+      // 复印机全流程：基础含≤5台终端，超过按10元/台
+      if (s.item.includes('复印机') && terminalCount > 5) {
+        terminalFee = (terminalCount - 5) * 10 * s.quantity;
+      } 
+      // 打印机全流程：基础含≤3台终端，超过按10元/台
+      else if (s.item.includes('打印机') && terminalCount > 3) {
+        terminalFee = (terminalCount - 3) * 10 * s.quantity;
+      }
+      
+      items.push({
+        id: s.id,
+        displayText: s.item,
+        total: basePrice + terminalFee,
+        item: s.item,
+        quantity: s.quantity,
+      });
+      
+      // 添加终端连接费用明细
+      if (terminalFee > 0) {
+        items.push({
+          id: s.id + '-terminal',
+          displayText: `额外：${s.item}终端连接费`,
+          total: terminalFee,
+          item: s.item + '终端连接费',
+          quantity: terminalCount > 5 ? terminalCount - 5 : terminalCount - 3,
+        });
+      }
     });
 
     responseServices.value.filter(s => s.id === selectedResponse.value).forEach(s => {
@@ -309,6 +384,46 @@ export function useFeeCalculator() {
     onItemChange();
   };
 
+  // 更新外设服务禁用状态（单项与全流程互斥）
+  const updatePeripheralServiceDisabledState = () => {
+    const deviceTypes = ['复印机', '打印机', '扫描仪', '碎纸机', '投影机'];
+    
+    deviceTypes.forEach(deviceType => {
+      // 初始化状态
+      if (!peripheralServiceState.value[deviceType]) {
+        peripheralServiceState.value[deviceType] = { selected: false, disabled: false };
+      }
+      
+      // 获取该设备类型的服务状态
+      const installService = peripheralInstallServices.value.find(s => s.item.includes(deviceType));
+      const recycleService = peripheralRecycleServices.value.find(s => !s.item.includes('全流程') && s.item.includes(deviceType));
+      const otherRecycle = peripheralRecycleServices.value.find(s => s.item.includes('其他外设'));
+      const comboService = peripheralRecycleServices.value.find(s => s.item.includes('全流程') && s.item.includes(deviceType));
+      
+      // 判断是否有全流程服务被选中
+      const comboSelected = comboService?.selected;
+      
+      // 判断是否有单项服务被选中（安装或回收）
+      const singleSelected = (installService?.selected && installService.quantity > 0) || 
+                            (recycleService?.selected && recycleService.quantity > 0) ||
+                            (deviceType === '打印机' && otherRecycle?.selected && otherRecycle.quantity > 0);
+      
+      // 全流程选中时，禁用单项；单项选中时，禁用全流程
+      if (installService) {
+        installService.disabled = !!comboSelected;
+      }
+      if (recycleService) {
+        recycleService.disabled = !!comboSelected;
+      }
+      if (deviceType === '打印机' && otherRecycle) {
+        otherRecycle.disabled = !!comboSelected;
+      }
+      if (comboService) {
+        comboService.disabled = !!singleSelected;
+      }
+    });
+  };
+
   const onPeripheralChange = (item: ServiceItem) => {
     if (item.selected && item.quantity === 0) {
       item.quantity = 1;
@@ -316,6 +431,7 @@ export function useFeeCalculator() {
     if (!item.selected) {
       item.quantity = 0;
     }
+    updatePeripheralServiceDisabledState();
     onItemChange();
   };
 
@@ -394,6 +510,11 @@ export function useFeeCalculator() {
       s.quantity = 0;
       s.terminalCount = 0;
     });
+    peripheralDeliveryServices.value.forEach(s => {
+      s.selected = false;
+      s.quantity = 0;
+      s.terminalCount = 0;
+    });
     responseServices.value.forEach(s => s.selected = false);
     timeSlotServices.value.forEach(s => s.selected = false);
     transportServices.value.forEach(s => s.selected = false);
@@ -440,148 +561,136 @@ export function useFeeCalculator() {
 
       const computerItems: ServiceItem[] = [];
       
-      const deliverySmall = data.find(s => s.item.includes('出库送货') && s.item.includes('≤5台'));
-      const deliveryLarge = data.find(s => s.item.includes('出库送货') && s.item.includes('>5台'));
-      if (deliverySmall && deliveryLarge) {
-        computerItems.push({
-          id: deliverySmall.id,
-          category: '计算机单项服务',
-          item: '出库送货',
-          unit: deliverySmall.unit,
-          priceSmall: deliverySmall.price,
-          priceLarge: deliveryLarge.price,
-          unitSmall: '次',
-          unitLarge: '台',
-          price: deliverySmall.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: deliverySmall.description || deliveryLarge.description,
-        });
-      }
+      // 计算机服务 - 按数据库实际类别名加载
+      const computerOutSmall = data.find(s => s.category === '计算机出库' && s.item.includes('≤5台'));
+      const computerOutLarge = data.find(s => s.category === '计算机出库' && s.item.includes('>5台'));
+      computerItems.push({
+        id: computerOutSmall?.id || 'cs-out',
+        category: '计算机服务',
+        item: '出库送货',
+        unit: computerOutSmall?.unit || '次',
+        priceSmall: computerOutSmall?.price ?? 100,
+        priceLarge: computerOutLarge?.price ?? 20,
+        unitSmall: '次',
+        unitLarge: '台',
+        price: computerOutSmall?.price ?? 100,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerOutSmall?.description || computerOutLarge?.description,
+      });
       
-      const install = data.find(s => s.item.includes('安装就位'));
-      if (install) {
-        computerItems.push({
-          id: install.id,
-          category: '计算机单项服务',
-          item: '安装就位',
-          unit: install.unit,
-          priceSmall: install.price,
-          priceLarge: install.price,
-          unitSmall: '台',
-          unitLarge: '台',
-          price: install.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: install.description,
-        });
-      }
+      const computerInstall = data.find(s => s.category === '计算机安装' && s.item.includes('安装'));
+      computerItems.push({
+        id: computerInstall?.id || 'cs-install',
+        category: '计算机服务',
+        item: '安装就位',
+        unit: computerInstall?.unit || '台',
+        priceSmall: computerInstall?.price ?? 20,
+        priceLarge: computerInstall?.price ?? 20,
+        unitSmall: '台',
+        unitLarge: '台',
+        price: computerInstall?.price ?? 20,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerInstall?.description,
+      });
       
-      const recycleSmall = data.find(s => s.item.includes('回收转运') && s.item.includes('≤5台'));
-      const recycleLarge = data.find(s => s.item.includes('回收转运') && s.item.includes('>5台'));
-      if (recycleSmall && recycleLarge) {
-        computerItems.push({
-          id: recycleSmall.id,
-          category: '计算机单项服务',
-          item: '回收转运',
-          unit: recycleSmall.unit,
-          priceSmall: recycleSmall.price,
-          priceLarge: recycleLarge.price,
-          unitSmall: '次',
-          unitLarge: '台',
-          price: recycleSmall.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: recycleSmall.description || recycleLarge.description,
-        });
-      }
+      const computerRecycleSmall = data.find(s => s.category === '计算机回收' && s.item.includes('≤5台'));
+      const computerRecycleLarge = data.find(s => s.category === '计算机回收' && s.item.includes('>5台'));
+      computerItems.push({
+        id: computerRecycleSmall?.id || 'cs-recycle',
+        category: '计算机服务',
+        item: '回收转运',
+        unit: computerRecycleSmall?.unit || '次',
+        priceSmall: computerRecycleSmall?.price ?? 100,
+        priceLarge: computerRecycleLarge?.price ?? 20,
+        unitSmall: '次',
+        unitLarge: '台',
+        price: computerRecycleSmall?.price ?? 100,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerRecycleSmall?.description || computerRecycleLarge?.description,
+      });
       
-      const secure = data.find(s => s.item.includes('脱密装箱入库'));
-      if (secure) {
-        computerItems.push({
-          id: secure.id,
-          category: '计算机单项服务',
-          item: '脱密入库',
-          unit: secure.unit,
-          priceSmall: secure.price,
-          priceLarge: secure.price,
-          unitSmall: '台',
-          unitLarge: '台',
-          price: secure.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: secure.description,
-        });
-      }
+      const computerSecure = data.find(s => s.category === '脱密入库');
+      computerItems.push({
+        id: computerSecure?.id || 'cs-secure',
+        category: '计算机服务',
+        item: '脱密入库',
+        unit: computerSecure?.unit || '台',
+        priceSmall: computerSecure?.price ?? 150,
+        priceLarge: computerSecure?.price ?? 150,
+        unitSmall: '台',
+        unitLarge: '台',
+        price: computerSecure?.price ?? 150,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerSecure?.description,
+      });
 
-      const deliveryInstallSmall = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('出库到就位') && !s.item.includes('>5台'));
-      const deliveryInstallLarge = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('出库到就位') && s.item.includes('>5台'));
-      if (deliveryInstallSmall && deliveryInstallLarge) {
-        computerItems.push({
-          id: deliveryInstallSmall.id,
-          category: '计算机组合服务',
-          item: '出库到就位',
-          unit: deliveryInstallSmall.unit,
-          priceSmall: deliveryInstallSmall.price,
-          priceLarge: deliveryInstallLarge.price,
-          unitSmall: '次',
-          unitLarge: '台',
-          price: deliveryInstallSmall.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: deliveryInstallSmall.description || deliveryInstallLarge.description,
-        });
-      }
+      // 计算机组合服务（使用实际数据库类别名）
+      const computerOutInstall = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('出库到就位'));
+      const computerOutInstallLarge = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('>5台'));
+      computerItems.push({
+        id: computerOutInstall?.id || 'cs-out-install',
+        category: '计算机组合服务',
+        item: '出库到就位',
+        unit: computerOutInstall?.unit || '台',
+        priceSmall: computerOutInstall?.price ?? 150,
+        priceLarge: computerOutInstallLarge?.price ?? 40,
+        unitSmall: '次',
+        unitLarge: '台',
+        price: computerOutInstall?.price ?? 150,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerOutInstall?.description,
+      });
       
-      const recycleSecure = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('回收到入库'));
-      if (recycleSecure) {
-        computerItems.push({
-          id: recycleSecure.id,
-          category: '计算机组合服务',
-          item: '回收到入库',
-          unit: recycleSecure.unit,
-          priceSmall: recycleSecure.price,
-          priceLarge: recycleSecure.price,
-          unitSmall: '台',
-          unitLarge: '台',
-          price: recycleSecure.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: recycleSecure.description,
-        });
-      }
+      const computerRecycleSecure = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('回收到入库'));
+      computerItems.push({
+        id: computerRecycleSecure?.id || 'cs-recycle-secure',
+        category: '计算机组合服务',
+        item: '回收到入库',
+        unit: computerRecycleSecure?.unit || '台',
+        priceSmall: computerRecycleSecure?.price ?? 150,
+        priceLarge: computerRecycleSecure?.price ?? 150,
+        unitSmall: '台',
+        unitLarge: '台',
+        price: computerRecycleSecure?.price ?? 150,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerRecycleSecure?.description,
+      });
       
-      const fullService = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('全流程服务'));
-      if (fullService) {
-        computerItems.push({
-          id: fullService.id,
-          category: '计算机组合服务',
-          item: '全流程服务',
-          unit: fullService.unit,
-          priceSmall: fullService.price,
-          priceLarge: fullService.price,
-          unitSmall: '台',
-          unitLarge: '台',
-          price: fullService.price,
-          quantity: 0,
-          total: 0,
-          selected: false,
-          disabled: false,
-          description: fullService.description,
-        });
-      }
+      const computerFullService = data.find(s => s.category === '计算机设备组合服务' && s.item.includes('全流程服务'));
+      computerItems.push({
+        id: computerFullService?.id || 'cs-full',
+        category: '计算机组合服务',
+        item: '全流程服务',
+        unit: computerFullService?.unit || '台',
+        priceSmall: computerFullService?.price ?? 180,
+        priceLarge: computerFullService?.price ?? 180,
+        unitSmall: '台',
+        unitLarge: '台',
+        price: computerFullService?.price ?? 180,
+        quantity: 0,
+        total: 0,
+        selected: false,
+        disabled: false,
+        description: computerFullService?.description,
+      });
 
       computerServices.value = computerItems;
 
@@ -602,10 +711,12 @@ export function useFeeCalculator() {
           selected: false,
           disabled: false,
           terminalCount: 0,
+          description: s.description,
         }));
 
-      peripheralRecycleServices.value = data
-        .filter(s => s.category === '外设回收')
+      // 外设回收（单项）+ 外设全流程服务一起加载
+      const recycleAndComboItems = data
+        .filter(s => s.category === '外设回收' || s.category === '外设全流程服务')
         .map(s => ({
           id: s.id,
           category: s.category,
@@ -622,6 +733,98 @@ export function useFeeCalculator() {
           disabled: false,
           terminalCount: 0,
         }));
+
+      // 动态补充全流程服务（数据库可能已有，需避免重复，不存在则创建到数据库）
+      const existingItems = recycleAndComboItems.map(s => s.item);
+      const fullServiceItems = [
+        { name: '复印机全流程服务', price: 260, unit: '台' },
+        { name: '打印机全流程服务', price: 140, unit: '台' },
+        { name: '扫描仪全流程服务', price: 140, unit: '台' },
+        { name: '碎纸机全流程服务', price: 60, unit: '台' },
+        { name: '投影机全流程服务', price: 160, unit: '台' },
+      ];
+      for (const fp of fullServiceItems) {
+        if (!existingItems.includes(fp.name)) {
+          // 调用创建接口保存到数据库
+          try {
+            const res = await api.post('/fee/settings', {
+              category: '外设全流程服务',
+              item: fp.name,
+              unit: fp.unit,
+              price: fp.price,
+              description: '含送货、安装、回收全流程',
+            });
+            const created = res.data as FeeSetting;
+            recycleAndComboItems.push({
+              id: created.id,
+              category: created.category,
+              item: created.item,
+              unit: created.unit,
+              price: created.price,
+              priceSmall: created.price,
+              priceLarge: created.price,
+              unitSmall: created.unit,
+              unitLarge: created.unit,
+              quantity: 0,
+              total: 0,
+              selected: false,
+              disabled: false,
+              terminalCount: 0,
+            });
+          } catch (e) {
+            // 创建失败则使用临时ID（只读模式）
+            recycleAndComboItems.push({
+              id: 'combo-' + fp.name,
+              category: '外设全流程服务',
+              item: fp.name,
+              unit: fp.unit,
+              price: fp.price,
+              priceSmall: fp.price,
+              priceLarge: fp.price,
+              unitSmall: fp.unit,
+              unitLarge: fp.unit,
+              quantity: 0,
+              total: 0,
+              selected: false,
+              disabled: false,
+              terminalCount: 0,
+            });
+          }
+        }
+      }
+
+      peripheralRecycleServices.value = recycleAndComboItems;
+
+      // 将全流程服务动态项也加入 allSettings，以便在费用设置面板显示
+      for (const fp of fullServiceItems) {
+        if (!existingItems.includes(fp.name) && !allSettings.value.some(s => s.item === fp.name)) {
+          try {
+            const res = await api.post('/fee/settings', {
+              category: '外设全流程服务',
+              item: fp.name,
+              unit: fp.unit,
+              price: fp.price,
+              description: '含送货、安装、回收全流程',
+            });
+            const created = res.data as FeeSetting;
+            allSettings.value.push(created);
+          } catch (e) {
+            // 创建失败则使用临时ID（只读模式）
+            allSettings.value.push({
+              id: 'combo-' + fp.name,
+              category: '外设全流程服务',
+              item: fp.name,
+              unit: fp.unit,
+              price: fp.price,
+              isActive: true,
+              sortOrder: 999,
+            } as FeeSetting);
+          }
+        }
+      }
+      
+      // 送货服务现在为空，安装已包含送货
+      peripheralDeliveryServices.value = [];
 
       responseServices.value = data
         .filter(s => s.category === '响应时效')
@@ -731,6 +934,7 @@ export function useFeeCalculator() {
     computerServices,
     peripheralInstallServices,
     peripheralRecycleServices,
+    peripheralDeliveryServices,
     responseServices,
     timeSlotServices,
     transportServices,
@@ -743,6 +947,7 @@ export function useFeeCalculator() {
     getComputerPrice,
     onItemChange,
     updateComputerServiceDisabledState,
+    updatePeripheralServiceDisabledState,
     onComputerServiceChange,
     onPeripheralChange,
     selectResponse,

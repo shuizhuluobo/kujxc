@@ -6,8 +6,11 @@ import {
   IsUUID,
   IsInt,
   Min,
+  Max,
   IsArray,
   ValidateNested,
+  MaxLength,
+  IsUrl,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
@@ -16,6 +19,7 @@ export class CreateWikiCategoryDto {
   @ApiProperty({ description: '分类名称' })
   @IsString()
   @IsNotEmpty({ message: '分类名称不能为空' })
+  @MaxLength(100)
   name: string;
 
   @ApiProperty({ description: '排序', required: false, default: 0 })
@@ -36,6 +40,7 @@ export class CreateWikiTagDto {
   @ApiProperty({ description: '标签名称' })
   @IsString()
   @IsNotEmpty({ message: '标签名称不能为空' })
+  @MaxLength(50)
   name: string;
 }
 
@@ -43,19 +48,25 @@ export class WikiAttachmentDto {
   @ApiProperty({ description: '文件名' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   filename: string;
 
   @ApiProperty({ description: '文件URL' })
   @IsString()
   @IsNotEmpty()
+  @IsUrl({ require_protocol: true }, { message: '附件URL必须是合法URL' })
+  @MaxLength(2000)
   url: string;
 
   @ApiProperty({ description: '文件大小 (bytes)' })
   @IsInt()
+  @Min(0)
+  @Max(104857600) // 100MB
   size: number;
 
   @ApiProperty({ description: 'MIME类型' })
   @IsString()
+  @MaxLength(100)
   mimeType: string;
 }
 
@@ -63,11 +74,13 @@ export class CreateWikiArticleDto {
   @ApiProperty({ description: '标题' })
   @IsString()
   @IsNotEmpty({ message: '标题不能为空' })
+  @MaxLength(200)
   title: string;
 
   @ApiProperty({ description: '内容' })
   @IsString()
   @IsNotEmpty({ message: '内容不能为空' })
+  @MaxLength(100000)
   content: string;
 
   @ApiProperty({ description: '分类ID' })

@@ -145,7 +145,10 @@ export class UsersService {
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
-    const oldUser = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('用户不存在');
+    }
 
     const user = await this.prisma.user.update({
       where: { id },
@@ -156,10 +159,10 @@ export class UsersService {
     // Cleanup old avatar if it was changed
     if (
       updateProfileDto.avatar &&
-      oldUser?.avatar &&
-      oldUser.avatar !== updateProfileDto.avatar
+      existing.avatar &&
+      existing.avatar !== updateProfileDto.avatar
     ) {
-      await this.filesService.deleteFileIfUnused(oldUser.avatar);
+      await this.filesService.deleteFileIfUnused(existing.avatar);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

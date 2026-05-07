@@ -90,7 +90,8 @@ defineEmits<{
   padding-top: 8px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
   z-index: 100;
-  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .nav-item {
@@ -101,8 +102,15 @@ defineEmits<{
   color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
-  transition: color 0.3s;
+  transition: color 0.2s ease;
   padding: 8px 16px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.nav-item:hover {
+  color: var(--primary-color);
 }
 
 .nav-item.active {

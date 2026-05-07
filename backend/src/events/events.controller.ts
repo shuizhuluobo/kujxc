@@ -16,14 +16,6 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 // SSE专用payload（短时效）
-interface SSETokenPayload {
-  sub: string;
-  regionId?: string | null;
-  type: 'sse';
-  iat: number;
-  exp: number;
-}
-
 @ApiTags('Events')
 @Controller('events')
 export class EventsController {
@@ -72,9 +64,14 @@ export class EventsController {
       throw new UnauthorizedException('Token is required');
     }
 
-    let payload;
+    interface JwtPayload {
+      sub: string;
+      type: string;
+    }
+
+    let payload: JwtPayload;
     try {
-      payload = await this.jwtService.verifyAsync(token);
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       // 验证token类型必须是sse
       if (payload.type !== 'sse') {
         throw new UnauthorizedException('Invalid token type');
@@ -109,13 +106,13 @@ export class EventsController {
           // 如果用户没有区域，或事件区域与用户区域不匹配，则不发送
           if (userRegionId && eventPayload.regionId !== userRegionId) {
             // 返回空数据，客户端忽略
-            return { data: { type: 'heartbeat', payload: {} } } as MessageEvent;
+            return { data: { type: 'heartbeat', payload: {} } };
           }
         }
 
         return {
           data: { type: data.type, payload: data.payload },
-        } as MessageEvent;
+        };
       }),
     );
   }

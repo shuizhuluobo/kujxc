@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsArray,
   IsObject,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 
@@ -11,11 +12,13 @@ export class CreateRoleDto {
   @ApiProperty({ description: '角色名称', example: '管理员' })
   @IsString()
   @IsNotEmpty({ message: '角色名称不能为空' })
+  @MaxLength(50)
   name: string;
 
   @ApiProperty({ description: '角色代码', example: 'admin' })
   @IsString()
   @IsNotEmpty({ message: '角色代码不能为空' })
+  @MaxLength(50)
   code: string;
 
   @ApiProperty({
@@ -26,6 +29,7 @@ export class CreateRoleDto {
   })
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   permissions?: string[];
 
   @ApiProperty({

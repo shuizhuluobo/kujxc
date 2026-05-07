@@ -102,10 +102,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private sanitizeBody(
-    body: Record<string, unknown>,
-  ): Record<string, unknown> | undefined {
-    if (!body) return undefined;
+  private sanitizeBody(body: unknown): Record<string, unknown> | undefined {
+    if (!body || typeof body !== 'object') {
+      return undefined;
+    }
 
     const sanitized: Record<string, unknown> = {};
     const sensitiveFields = [
@@ -117,7 +117,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       'authorization',
     ];
 
-    for (const [key, value] of Object.entries(body)) {
+    const bodyObj = body as Record<string, unknown>;
+    for (const [key, value] of Object.entries(bodyObj)) {
       if (sensitiveFields.some((sf) => key.toLowerCase().includes(sf))) {
         sanitized[key] = '[REDACTED]';
       } else {

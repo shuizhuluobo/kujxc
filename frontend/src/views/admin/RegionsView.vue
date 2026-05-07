@@ -9,8 +9,8 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="filteredRegions" v-loading="loading" stripe class="card-premium">
-      <el-table-column prop="name" label="区域名称" />
+    <el-table v-if="!isMobile" :data="filteredRegions" v-loading="loading" stripe class="card-premium" empty-text="暂无区域数据">
+      <el-table-column prop="name" label="区域名称" show-overflow-tooltip />
       <el-table-column prop="sortOrder" label="排序" width="80" />
       <el-table-column label="钉钉通知" width="100">
         <template #default="{ row }">
@@ -34,7 +34,7 @@
           v-model="searchKeyword"
           placeholder="搜索区域"
           shape="round"
-          background="#fff"
+          background="var(--card-bg)"
         />
       </van-sticky>
 
@@ -56,7 +56,7 @@
           >
             <template #icon>
               <div class="list-icon-wrapper">
-                <van-icon name="location-o" size="20" color="#1989fa"/>
+                <van-icon name="location-o" size="20" color="var(--primary-color)"/>
               </div>
             </template>
           </van-cell>
@@ -70,24 +70,24 @@
 
       <!-- Floating Action Button -->
       <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="#fff" />
+        <van-icon name="plus" size="24" color="var(--card-bg)" />
       </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑区域' : '新增区域'" :width="isMobile ? '90%' : '450px'">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" />
+          <el-input v-model="form.name" maxlength="50" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="form.sortOrder" :min="0" />
         </el-form-item>
         <el-divider content-position="left">钉钉配置</el-divider>
         <el-form-item label="Webhook">
-          <el-input v-model="form.dingtalkWebhook" placeholder="钉钉群机器人 Webhook 地址" />
+          <el-input v-model="form.dingtalkWebhook" placeholder="钉钉群机器人 Webhook 地址" maxlength="500" />
         </el-form-item>
         <el-form-item label="加签密钥">
-          <el-input v-model="form.dingtalkSecret" placeholder="钉钉加签密钥（可选）" />
+          <el-input v-model="form.dingtalkSecret" placeholder="钉钉加签密钥（可选）" maxlength="200" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -241,7 +241,7 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
   z-index: 100;
   transition: transform 0.2s;
 }
