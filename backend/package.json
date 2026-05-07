@@ -37,7 +37,8 @@
     "@nestjs/swagger": "^11.4.2",
     "@nestjs/throttler": "^6.5.0",
     "@node-rs/jieba": "^2.0.1",
-    "@prisma/client": "^5.22.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.8",
@@ -52,8 +53,9 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pdf-parse": "^1.1.1",
+    "pg": "^8.20.0",
     "pinyin-pro": "^3.28.0",
-    "prisma": "^5.22.0",
+    "prisma": "^7.8.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^13.0.2"
@@ -71,6 +73,7 @@
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
     "@types/pdf-parse": "^1.1.5",
+    "@types/pg": "^8.20.0",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "eslint": "^9.18.0",
@@ -98,13 +101,17 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "tsconfig.test.json", "useESM": true }]
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".ts"],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    }
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

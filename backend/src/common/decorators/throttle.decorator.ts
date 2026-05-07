@@ -4,7 +4,7 @@ export const THROTTLE_KEY = 'throttle';
 
 export interface ThrottleOptions {
   limit: number;
-  ttl: number; // 毫秒
+  ttl: number; // 秒（seconds）
 }
 
 /**

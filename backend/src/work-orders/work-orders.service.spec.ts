@@ -8,13 +8,14 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WorkOrdersService } from './work-orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { DingtalkService } from '../dingtalk/dingtalk.service';
 import { WorkOrderStatus, ScoreLevel } from '@prisma/client';
 
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 
 describe('WorkOrdersService', () => {
   let service: WorkOrdersService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let mockPrisma: any;
   let notificationsService: jest.Mocked<NotificationsService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
@@ -43,7 +44,7 @@ describe('WorkOrdersService', () => {
   };
 
   beforeEach(async () => {
-    const mockPrisma = {
+    mockPrisma = {
       workOrder: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -86,17 +87,22 @@ describe('WorkOrdersService', () => {
       emit: jest.fn(),
     };
 
+    const mockDingtalkService = {
+      sendWorkOrderNotification: jest.fn(),
+      sendEditedNotification: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkOrdersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: DingtalkService, useValue: mockDingtalkService },
       ],
     }).compile();
 
     service = module.get<WorkOrdersService>(WorkOrdersService);
-    prismaService = module.get(PrismaService);
     notificationsService = module.get(NotificationsService);
     eventEmitter = module.get(EventEmitter2);
   });
@@ -110,7 +116,7 @@ describe('WorkOrdersService', () => {
         detail: 'Test work order',
       };
 
-      prismaService.workOrder.create.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.create.mockResolvedValue(mockWorkOrder as any);
       notificationsService.notifyRegionEngineers.mockResolvedValue(undefined);
 
       const result = await service.create(createDto, 'user-id-1');
@@ -126,7 +132,7 @@ describe('WorkOrdersService', () => {
 
   describe('findOne', () => {
     it('should return a work order when found', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
 
@@ -136,7 +142,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw NotFoundException when work order not found', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(null);
+      mockPrisma.workOrder.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('nonexistent')).rejects.toThrow(
         NotFoundException,
@@ -149,10 +155,10 @@ describe('WorkOrdersService', () => {
       const updateDto = { detail: 'Updated detail' };
       const updatedOrder = { ...mockWorkOrder, detail: 'Updated detail' };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
-      prismaService.workOrder.update.mockResolvedValue(updatedOrder as any);
+      mockPrisma.workOrder.update.mockResolvedValue(updatedOrder as any);
 
       const result = await service.update('wo-id-1', updateDto, 'user-id-1');
 
@@ -160,7 +166,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw ForbiddenException when user is not creator', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
 
@@ -172,10 +178,10 @@ describe('WorkOrdersService', () => {
 
   describe('remove', () => {
     it('should delete a work order when user is creator', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
-      prismaService.workOrder.delete.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.delete.mockResolvedValue(mockWorkOrder as any);
 
       const result = await service.remove('wo-id-1', 'user-id-1');
 
@@ -187,7 +193,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw ForbiddenException when user is not creator', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
 
@@ -207,10 +213,10 @@ describe('WorkOrdersService', () => {
         receiver: { id: 'user-id-2', name: 'Receiver' },
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
-      prismaService.workOrder.update.mockResolvedValue(receivedOrder as any);
+      mockPrisma.workOrder.update.mockResolvedValue(receivedOrder as any);
 
       const result = await service.receive('wo-id-1', 'user-id-2');
 
@@ -224,7 +230,7 @@ describe('WorkOrdersService', () => {
         status: WorkOrderStatus.COMPLETED,
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         completedOrder as any,
       );
 
@@ -244,10 +250,10 @@ describe('WorkOrdersService', () => {
         receiver: { id: 'user-id-2', name: 'Receiver' },
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         receivedOrder as any,
       );
-      prismaService.workOrder.update.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.update.mockResolvedValue(mockWorkOrder as any);
 
       const result = await service.cancelReceive('wo-id-1', 'user-id-2');
 
@@ -261,7 +267,7 @@ describe('WorkOrdersService', () => {
         receiverId: 'user-id-2',
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         receivedOrder as any,
       );
 
@@ -277,7 +283,7 @@ describe('WorkOrdersService', () => {
         receiverId: 'user-id-1',
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         pendingOrderWithReceiver as any,
       );
 
@@ -305,10 +311,10 @@ describe('WorkOrdersService', () => {
         completer: { id: 'user-id-2', name: 'Completer' },
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         receivedOrder as any,
       );
-      (prismaService.$transaction as jest.Mock).mockImplementation(
+      mockPrisma.$transaction.mockImplementation(
         (
           fn: (tx: {
             workOrder: { update: jest.Mock; findUnique: jest.Mock };
@@ -340,7 +346,7 @@ describe('WorkOrdersService', () => {
         receiverId: 'user-id-2',
       };
 
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         receivedOrder as any,
       );
 
@@ -350,7 +356,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw BadRequestException when work order is not received', async () => {
-      prismaService.workOrder.findUnique.mockResolvedValue(
+      mockPrisma.workOrder.findUnique.mockResolvedValue(
         mockWorkOrder as any,
       );
 
@@ -362,7 +368,7 @@ describe('WorkOrdersService', () => {
 
   describe('getStats', () => {
     it('should return work order statistics', async () => {
-      prismaService.workOrder.count
+      mockPrisma.workOrder.count
         .mockResolvedValueOnce(5) // pending
         .mockResolvedValueOnce(3); // received
 

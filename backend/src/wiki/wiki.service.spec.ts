@@ -1,15 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WikiService } from './wiki.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { FilesService } from '../common/services/files.service';
 
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 
 describe('WikiService', () => {
   let service: WikiService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let mockPrisma: any;
 
   beforeEach(async () => {
-    const mockPrisma = {
+    mockPrisma = {
       wikiCategory: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -29,15 +30,20 @@ describe('WikiService', () => {
       },
     };
 
+    const mockFilesService = {
+      uploadFile: jest.fn(),
+      deleteFile: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WikiService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: FilesService, useValue: mockFilesService },
       ],
     }).compile();
 
     service = module.get<WikiService>(WikiService);
-    prismaService = module.get(PrismaService);
   });
 
   it('should be defined', () => {
@@ -49,7 +55,7 @@ describe('WikiService', () => {
       const dto = { name: 'Test Category' };
       const expected = { id: '1', ...dto, sortOrder: 0 };
 
-      prismaService.wikiCategory.create.mockResolvedValue(expected as any);
+      mockPrisma.wikiCategory.create.mockResolvedValue(expected);
 
       const result = await service.createCategory(dto);
 
@@ -64,7 +70,7 @@ describe('WikiService', () => {
         { id: '2', name: 'Category 2', _count: { articles: 3 } },
       ];
 
-      prismaService.wikiCategory.findMany.mockResolvedValue(expected as any);
+      mockPrisma.wikiCategory.findMany.mockResolvedValue(expected);
 
       const result = await service.findAllCategories();
 

@@ -12,7 +12,7 @@ jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let mockPrisma: any;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
 
@@ -30,7 +30,7 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
-    const mockPrisma = {
+    mockPrisma = {
       user: {
         findUnique: jest.fn(),
       },
@@ -55,14 +55,13 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prismaService = module.get(PrismaService);
     jwtService = module.get(JwtService);
     configService = module.get(ConfigService);
   });
 
   describe('validateUser', () => {
     it('should return user without password when credentials are valid', async () => {
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       configService.get.mockReturnValue(null);
 
@@ -77,7 +76,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
         service.validateUser('nonexistent', 'password'),
@@ -85,7 +84,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user is inactive', async () => {
-      prismaService.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         ...mockUser,
         isActive: false,
       } as any);
@@ -96,7 +95,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when password is invalid', async () => {
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(
@@ -152,7 +151,7 @@ describe('AuthService', () => {
         sub: 'user-id-1',
         username: 'testuser',
       });
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser as any);
       configService.get.mockReturnValue('15m');
       jwtService.signAsync
         .mockResolvedValueOnce('new-access-token')
@@ -179,7 +178,7 @@ describe('AuthService', () => {
         sub: 'user-id-1',
         username: 'testuser',
       });
-      prismaService.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         ...mockUser,
         isActive: false,
       } as any);
