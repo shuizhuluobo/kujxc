@@ -40,6 +40,14 @@ export class CsrfGuard implements CanActivate {
     // Get CSRF token from header
     const csrfToken = request.headers['x-csrf-token'] as string | undefined;
 
+    // 开发环境允许跳过CSRF验证
+    if (process.env.NODE_ENV === 'development') {
+      if (!csrfToken) {
+        console.warn('[CSRF] Missing CSRF token in development mode, allowing request');
+        return true;
+      }
+    }
+
     if (!csrfToken) {
       throw new ForbiddenException('CSRF token缺失');
     }

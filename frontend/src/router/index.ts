@@ -103,7 +103,7 @@ const router = createRouter({
 let lastRedirectTime = 0;
 let redirectCount = 0;
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to) => {
     const authStore = useAuthStore();
     const now = Date.now();
 
@@ -114,12 +114,18 @@ router.beforeEach((to, _from, next) => {
     lastRedirectTime = now;
 
     if (to.meta.requiresAuth && !authStore.token) {
-        next('/login');
-    } else if (to.meta.guest && authStore.token) {
-        next('/');
-    } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
-        next('/');
-    } else if (to.meta.permission && authStore.token) {
+        return { path: '/login' };
+    }
+
+    if (to.meta.guest && authStore.token) {
+        return { path: '/' };
+    }
+
+    if (to.meta.requiresAdmin && !authStore.isAdmin) {
+        return { path: '/' };
+    }
+
+    if (to.meta.permission && authStore.token) {
         const permissions = authStore.user?.role?.permissions || [];
         const hasAccess = hasPermission(permissions, to.meta.permission as string) || permissions.includes('*');
 
@@ -129,24 +135,23 @@ router.beforeEach((to, _from, next) => {
                 // 避免无限循环，且目标不是个人中心时才重定向到个人中心
                 if (to.path === '/profile') {
                     // 如果个人中心也没权访问（理论上不应该，因为我们已经去掉了权限要求），则停止
-                    next(false);
+                    return false;
                 } else {
-                    next('/profile');
+                    return { path: '/profile' };
                 }
             } else {
                 // 避免原地重定向
                 if (to.path === '/') {
-                    next('/profile');
+                    return { path: '/profile' };
                 } else {
-                    next('/');
+                    return { path: '/' };
                 }
             }
-        } else {
-            next();
         }
-    } else {
-        next();
     }
+
+    // 默认允许导航
+    return true;
 });
 
 export default router;

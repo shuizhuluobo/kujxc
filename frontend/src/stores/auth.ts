@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginDto, LoginResponse } from '@/types';
 import { authApi, usersApi } from '@/api';
+import { getCsrfToken } from '@/api/csrf';
 
 // 安全地从localStorage解析JSON
 function safeJSONParse<T>(value: string | null, defaultValue: T): T {
@@ -43,6 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('refreshToken', newRefreshToken);
             localStorage.setItem('user', JSON.stringify(userData));
 
+            // 登录成功后立即获取 CSRF token
+            await getCsrfToken();
+
             return true;
         } catch (error) {
             throw error;
@@ -72,6 +76,9 @@ export const useAuthStore = defineStore('auth', () => {
 
                 localStorage.setItem('token', accessToken);
                 localStorage.setItem('refreshToken', newRefreshToken);
+
+                // 刷新token后重新获取 CSRF token
+                await getCsrfToken();
             } finally {
                 refreshPromise = null;
             }
@@ -101,9 +108,10 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('user');
     }
 
-    // 初始化时获取用户信息
+    // 初始化时获取用户信息和CSRF token
     if (token.value) {
         fetchProfile();
+        getCsrfToken().catch(console.error);
     }
 
     return {

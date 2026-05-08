@@ -35,19 +35,29 @@
 
       <!-- 工单统计卡片 -->
       <div class="card stats-card">
-        <h3>我的统计</h3>
+        <div class="stats-header">
+          <h3>我的统计</h3>
+          <el-tabs v-model="activeStatsTab" type="card" class="stats-tabs">
+            <el-tab-pane label="本月" name="monthly"></el-tab-pane>
+            <el-tab-pane label="总计" name="total"></el-tab-pane>
+          </el-tabs>
+        </div>
         <div class="stats-grid" v-if="!loading">
           <div class="stat-item">
-            <div class="stat-value">{{ stats.completed }}</div>
+            <div class="stat-value">{{ activeStatsTab === 'monthly' ? stats.monthlyCompleted : stats.completed }}</div>
             <div class="stat-label">完成工单</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ stats.received }}</div>
+            <div class="stat-value">{{ activeStatsTab === 'monthly' ? stats.monthlyReceived : stats.received }}</div>
             <div class="stat-label">已接收</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ stats.created }}</div>
+            <div class="stat-value">{{ activeStatsTab === 'monthly' ? stats.monthlyCreated : stats.created }}</div>
             <div class="stat-label">已创建</div>
+          </div>
+          <div class="stat-item fee-item">
+            <div class="stat-value fee-value">¥ {{ (activeStatsTab === 'monthly' ? stats.monthlyRepairFee : stats.totalRepairFee).toFixed(2) }}</div>
+            <div class="stat-label">维修费</div>
           </div>
         </div>
         <el-skeleton v-else :rows="2" />
@@ -173,6 +183,7 @@ const authStore = useAuthStore();
 const formRef = ref<FormInstance>();
 const fileInputRef = ref<HTMLInputElement>();
 const cropperRef = ref();
+const activeStatsTab = ref('monthly');
 
 watch(fileInputRef, val => emit('updateFileInput', val));
 watch(cropperRef, val => {
@@ -338,16 +349,44 @@ defineExpose({ formRef });
   margin-top: 16px;
 }
 
-.stats-card h3 {
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.stats-header h3 {
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
 }
 
+.stats-tabs {
+  font-size: 12px;
+}
+
+.stats-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+
+.stats-tabs :deep(.el-tabs__nav) {
+  gap: 8px;
+}
+
+.stats-tabs :deep(.el-tab__button) {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+}
+
+.fee-value {
+  color: var(--danger-color) !important;
 }
 
 .stat-item {

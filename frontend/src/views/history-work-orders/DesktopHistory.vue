@@ -80,6 +80,14 @@
           </span>
         </template>
       </el-table-column>
+      <el-table-column label="维修费" width="100">
+        <template #default="{ row }">
+          <span v-if="canViewRepairFee(row) && row.repairFee !== null && row.repairFee !== undefined" class="fee-value">
+            ¥ {{ row.repairFee.toFixed(2) }}
+          </span>
+          <span v-else class="text-muted">--</span>
+        </template>
+      </el-table-column>
       <el-table-column label="完成信息" width="150">
         <template #default="{ row }">
           <template v-if="row.completedAt">
@@ -114,9 +122,16 @@ import { Search } from '@element-plus/icons-vue';
 import type { WorkOrder, WorkOrderFilterParams, User as UserType } from '@/types';
 import type { WorkOrderStatus } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
+import { useAuthStore } from '@/stores/auth';
 import { getCustomerDisplayName } from '@/utils/customer';
 
 const baseDataStore = useBaseDataStore();
+const authStore = useAuthStore();
+
+function canViewRepairFee(row: WorkOrder): boolean {
+  // 管理员或工单完成人可以查看维修费
+  return authStore.isAdmin || String(row.completerId) === String(authStore.user?.id);
+}
 
 const props = defineProps<{
   workOrders: WorkOrder[];
@@ -183,5 +198,10 @@ watch(localDateRange, v => emit('update:dateRange', v));
 
 .text-muted {
   color: var(--text-tertiary);
+}
+
+.fee-value {
+  color: var(--danger-color);
+  font-weight: 600;
 }
 </style>

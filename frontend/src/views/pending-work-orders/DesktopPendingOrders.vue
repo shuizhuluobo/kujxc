@@ -153,14 +153,14 @@
               取消
             </el-button>
             <el-button 
-              v-if="(row.creatorId === authStore.user?.id || authStore.isAdmin) && row.status === 'PENDING'" 
+              v-if="row.creatorId === authStore.user?.id || authStore.isAdmin" 
               size="small"
               @click.stop="emit('edit', row)"
             >
               编辑
             </el-button>
             <el-button 
-              v-if="(row.creatorId === authStore.user?.id || authStore.isAdmin) && row.status === 'PENDING'" 
+              v-if="row.creatorId === authStore.user?.id || authStore.isAdmin" 
               type="danger" 
               size="small"
               @click.stop="handleDelete(row)"

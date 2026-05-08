@@ -78,23 +78,87 @@ export default defineConfig({
     }
   },
   build: {
-    manualChunks: {
-      // Element Plus 单独分包
-      'element-plus': ['element-plus', '@element-plus/icons-vue'],
-      // Vant 单独分包
-      'vant': ['vant'],
-      // Vue 核心
-      'vue-vendor': ['vue', 'vue-router', 'pinia'],
-      // Markdown 编辑器（按需加载页面使用）
-      'milkdown': ['@milkdown/core', '@milkdown/preset-commonmark', '@milkdown/preset-gfm', '@milkdown/plugin-listener', '@milkdown/plugin-history', '@milkdown/theme-nord', '@milkdown/utils'],
-      // TipTap 编辑器（按需加载页面使用）
-      'tiptap': ['@tiptap/vue-3', '@tiptap/starter-kit'],
-      // PDF 渲染（仅 PdfViewer 使用）
-      'pdfjs': ['pdfjs-dist'],
-      // 动画库（仅 MainLayout 过渡使用）
-      'gsap': ['gsap'],
-      // 工具库
-      'markdown-utils': ['marked', 'md-editor-v3', 'lowlight'],
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus') || id.includes('@element-plus/icons-vue')) {
+              return 'element-plus'
+            }
+            if (id.includes('vant')) {
+              return 'vant'
+            }
+            if (id.includes('vue') && !id.includes('vue-router') && !id.includes('pinia')) {
+              return 'vue-core'
+            }
+            if (id.includes('vue-router')) {
+              return 'vue-router'
+            }
+            if (id.includes('pinia')) {
+              return 'pinia'
+            }
+            if (id.includes('md-editor-v3')) {
+              return 'md-editor'
+            }
+            if (id.includes('lowlight')) {
+              return 'lowlight'
+            }
+            if (id.includes('@milkdown')) {
+              return 'milkdown'
+            }
+            if (id.includes('@tiptap')) {
+              return 'tiptap'
+            }
+            if (id.includes('pdfjs-dist')) {
+              return 'pdfjs'
+            }
+            if (id.includes('gsap')) {
+              return 'gsap'
+            }
+            if (id.includes('marked')) {
+              return 'markdown-utils'
+            }
+            if (id.includes('vue-cropper')) {
+              return 'vue-cropper'
+            }
+            if (id.includes('@vueuse')) {
+              return 'vueuse'
+            }
+            if (id.includes('axios')) {
+              return 'axios'
+            }
+            if (id.includes('dayjs')) {
+              return 'dayjs'
+            }
+            if (id.includes('pinyin-pro')) {
+              return 'pinyin'
+            }
+            if (id.includes('prismjs')) {
+              return 'prismjs'
+            }
+            if (id.includes('sortablejs')) {
+              return 'sortablejs'
+            }
+            if (id.includes('refractor') || id.includes('hast-util-to-text')) {
+              return 'markdown-utils'
+            }
+            if (id.includes('unist-util')) {
+              return 'markdown-utils'
+            }
+            if (id.includes('micromark') || id.includes('mdast-util')) {
+              return 'markdown-utils'
+            }
+            if (id.includes('micromark-')) {
+              return 'markdown-utils'
+            }
+          }
+        },
+        // 启用更好的代码分割策略
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        codeSplitting: true,
+      }
     },
     chunkSizeWarningLimit: 600,
   }

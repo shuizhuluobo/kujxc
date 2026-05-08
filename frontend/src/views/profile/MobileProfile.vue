@@ -22,21 +22,51 @@
       <p class="mobile-role">{{ authStore.user?.role?.name }}</p>
     </div>
 
-    <!-- Stats Grid -->
-    <van-grid :column-num="3" :border="false" class="mobile-stats-grid" :gutter="10">
-      <van-grid-item>
-        <div class="mobile-stat-value">{{ stats.completed }}</div>
-        <div class="mobile-stat-label">完成工单</div>
-      </van-grid-item>
-      <van-grid-item>
-        <div class="mobile-stat-value">{{ stats.received }}</div>
-        <div class="mobile-stat-label">已接收</div>
-      </van-grid-item>
-      <van-grid-item>
-        <div class="mobile-stat-value">{{ stats.created }}</div>
-        <div class="mobile-stat-label">已创建</div>
-      </van-grid-item>
-    </van-grid>
+    <!-- Stats Tab -->
+    <div class="mobile-stats-container">
+      <van-tabs v-model:active="activeStatsTab" class="mobile-stats-tabs" :border="false">
+        <van-tab title="本月" name="monthly">
+          <van-grid :column-num="4" :border="false" class="mobile-stats-grid" :gutter="10">
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.monthlyCompleted }}</div>
+              <div class="mobile-stat-label">完成工单</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.monthlyReceived }}</div>
+              <div class="mobile-stat-label">已接收</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.monthlyCreated }}</div>
+              <div class="mobile-stat-label">已创建</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value fee-value">¥ {{ stats.monthlyRepairFee.toFixed(2) }}</div>
+              <div class="mobile-stat-label">维修费</div>
+            </van-grid-item>
+          </van-grid>
+        </van-tab>
+        <van-tab title="总计" name="total">
+          <van-grid :column-num="4" :border="false" class="mobile-stats-grid" :gutter="10">
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.completed }}</div>
+              <div class="mobile-stat-label">完成工单</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.received }}</div>
+              <div class="mobile-stat-label">已接收</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value">{{ stats.created }}</div>
+              <div class="mobile-stat-label">已创建</div>
+            </van-grid-item>
+            <van-grid-item>
+              <div class="mobile-stat-value fee-value">¥ {{ stats.totalRepairFee.toFixed(2) }}</div>
+              <div class="mobile-stat-label">维修费</div>
+            </van-grid-item>
+          </van-grid>
+        </van-tab>
+      </van-tabs>
+    </div>
 
     <!-- Info Cells -->
     <van-cell-group inset class="mt-4">
@@ -46,11 +76,6 @@
 
     <!-- Actions -->
     <van-cell-group inset class="mt-4">
-      <van-cell center title="消息通知">
-        <template #right-icon>
-          <van-switch :model-value="notificationsEnabled" size="24" @change="$emit('toggleNotifications', $event)" />
-        </template>
-      </van-cell>
       <van-cell title="修改密码" is-link @click="$emit('showPasswordDialog')" />
     </van-cell-group>
 
@@ -214,6 +239,7 @@ const authStore = useAuthStore();
 
 const fileInputRef = ref<HTMLInputElement>();
 const cropperRef = ref();
+const activeStatsTab = ref('monthly');
 
 watch(fileInputRef, val => emit('updateFileInput', val));
 watch(cropperRef, val => {
@@ -232,7 +258,6 @@ const props = defineProps<{
   showAvatarDialog: boolean;
   activeTab: string;
   stats: UserStats;
-  notificationsEnabled: boolean;
   presetAvatars: string[];
   selectedPreset: string;
   tempImageUrl: string;
@@ -249,7 +274,6 @@ const emit = defineEmits<{
   saveAvatar: [];
   triggerFileInput: [];
   fileChange: [e: Event];
-  toggleNotifications: [checked: boolean];
   logout: [];
   updateCropper: [val: any];
   updateFileInput: [val: any];
@@ -360,9 +384,18 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   margin: 0;
 }
 
-.mobile-stats-grid {
+.mobile-stats-container {
   background: var(--card-bg);
   margin-bottom: 12px;
+}
+
+.mobile-stats-tabs {
+  --van-tabs-bottom-bar-color: var(--primary-color);
+  --van-tab-active-color: var(--primary-color);
+}
+
+.mobile-stats-grid {
+  background: var(--card-bg);
 }
 
 .mobile-stat-value {
@@ -370,6 +403,10 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   font-weight: 600;
   color: var(--el-color-primary);
   margin-bottom: 4px;
+}
+
+.mobile-stat-value.fee-value {
+  color: var(--danger-color);
 }
 
 .mobile-stat-label {

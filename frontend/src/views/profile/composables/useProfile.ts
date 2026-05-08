@@ -19,56 +19,16 @@ export function useProfile() {
     const showPasswordDialog = ref(false);
     const showAvatarDialog = ref(false);
     const activeTab = ref('preset');
-    const stats = ref<UserStats>({ completed: 0, received: 0, created: 0 });
-
-    // 通知偏好
-    const NOTIFICATION_PREF_KEY = 'notification_preference';
-
-    const getInitialNotificationState = (): boolean => {
-        const preference = localStorage.getItem(NOTIFICATION_PREF_KEY);
-        if (preference !== null) {
-            return preference === 'enabled';
-        }
-        if (typeof Notification !== 'undefined') {
-            return Notification.permission === 'granted';
-        }
-        return false;
-    };
-
-    const notificationsEnabled = ref(getInitialNotificationState());
-
-    function toggleNotifications(checked: boolean) {
-        if (typeof Notification === 'undefined' || !('Notification' in window)) {
-            ElMessage.warning('您的浏览器不支持通知功能');
-            notificationsEnabled.value = false;
-            return;
-        }
-
-        if (checked) {
-            if (Notification.permission === 'granted') {
-                localStorage.setItem(NOTIFICATION_PREF_KEY, 'enabled');
-                notificationsEnabled.value = true;
-                new Notification('通知已开启', { body: '您将收到工单更新通知' });
-            } else if (Notification.permission === 'denied') {
-                ElMessage.warning('通知权限已被拒绝，请在浏览器设置中允许通知');
-                notificationsEnabled.value = false;
-            } else {
-                Notification.requestPermission().then((permission) => {
-                    if (permission === 'granted') {
-                        localStorage.setItem(NOTIFICATION_PREF_KEY, 'enabled');
-                        notificationsEnabled.value = true;
-                        new Notification('通知已开启', { body: '您将收到工单更新通知' });
-                    } else {
-                        notificationsEnabled.value = false;
-                    }
-                });
-            }
-        } else {
-            localStorage.setItem(NOTIFICATION_PREF_KEY, 'disabled');
-            notificationsEnabled.value = false;
-            ElMessage.success('已关闭通知，您可以在设置中重新开启');
-        }
-    }
+    const stats = ref<UserStats>({ 
+    completed: 0, 
+    received: 0, 
+    created: 0,
+    monthlyCompleted: 0,
+    monthlyReceived: 0,
+    monthlyCreated: 0,
+    totalRepairFee: 0,
+    monthlyRepairFee: 0,
+});
 
     // 预设头像
     const presetAvatars = [
@@ -231,7 +191,6 @@ export function useProfile() {
         showAvatarDialog,
         activeTab,
         stats,
-        notificationsEnabled,
         presetAvatars,
         selectedPreset,
         cropper,
@@ -240,7 +199,6 @@ export function useProfile() {
         options,
         passwordForm,
         // Methods
-        toggleNotifications,
         getAvatarUrl,
         formatDate,
         fetchStats,

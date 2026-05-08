@@ -112,6 +112,8 @@ export interface WorkOrder {
 
     collaborators?: WorkOrderCollaborator[];
 
+    repairFee?: number;
+
     updatedAt: string;
 }
 
@@ -140,6 +142,7 @@ export interface UpdateWorkOrderDto extends Partial<CreateWorkOrderDto> { }
 
 export interface CompleteWorkOrderDto {
     collaboratorIds?: string[];
+    repairFee?: number;
 }
 
 export interface WorkOrderFilterParams {
@@ -168,6 +171,13 @@ export interface UserStats {
     completed: number;
     received: number;
     created: number;
+    // 当月统计
+    monthlyCompleted: number;
+    monthlyReceived: number;
+    monthlyCreated: number;
+    // 维修费统计
+    totalRepairFee: number;
+    monthlyRepairFee: number;
 }
 
 export interface UpdateUserDto {

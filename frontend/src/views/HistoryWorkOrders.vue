@@ -45,15 +45,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, defineAsyncComponent } from 'vue';
+import { onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { Download } from '@element-plus/icons-vue';
 import { useResponsive } from '@/composables';
 import { useHistoryFilter } from './history-work-orders/composables/useHistoryFilter';
+import { useSSE } from '@/composables/useSSE';
 
 const MobileHistory = defineAsyncComponent(() => import('./history-work-orders/MobileHistory.vue'));
 const DesktopHistory = defineAsyncComponent(() => import('./history-work-orders/DesktopHistory.vue'));
 
 const { isMobile } = useResponsive();
+const sse = useSSE();
+let unsubscribe: (() => void) | null = null;
 
 const {
   loading,
@@ -84,6 +87,17 @@ const {
 
 onMounted(() => {
   fetchData();
+  
+  // 监听工单状态变化事件，实时更新历史工单列表
+  unsubscribe = sse.on('work-order.updated', () => {
+    fetchData();
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 

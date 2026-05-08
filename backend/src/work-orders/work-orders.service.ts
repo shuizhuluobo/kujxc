@@ -352,6 +352,7 @@ export class WorkOrdersService {
           status: WorkOrderStatus.COMPLETED,
           completerId: userId,
           completedAt: new Date(),
+          repairFee: completeDto.repairFee,
         },
       });
 

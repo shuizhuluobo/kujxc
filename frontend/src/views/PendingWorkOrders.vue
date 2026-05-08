@@ -30,6 +30,20 @@
       append-to-body
     >
       <el-form>
+        <!-- 同区域工程师快捷选择 -->
+        <el-form-item label="同区域工程师">
+          <el-checkbox-group v-model="sameRegionEngineerIds">
+            <el-checkbox 
+              v-for="engineer in sameRegionEngineers" 
+              :key="engineer.id" 
+              :value="engineer.id"
+            >
+              {{ engineer.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        
+        <!-- 协作人选择 -->
         <el-form-item label="协作人">
           <el-select 
             v-model="collaboratorIds" 
@@ -47,6 +61,18 @@
             />
           </el-select>
         </el-form-item>
+        
+        <!-- 维修费记录 -->
+        <el-form-item label="维修费">
+          <el-input 
+            v-model.number="repairFee" 
+            type="number" 
+            placeholder="输入维修费用（可选）"
+            style="width: 100%"
+            :min="0"
+            step="0.01"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -61,12 +87,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { WorkOrder } from '@/types';
 import { useResponsive } from '@/composables';
 import { useSSE } from '@/composables/useSSE';
 import { useBaseDataStore } from '@/stores/baseData';
+import { useAuthStore } from '@/stores/auth';
 import { workOrdersApi } from '@/api';
 
 import { useWorkOrderFilter } from './pending-work-orders/composables/useWorkOrderFilter';
@@ -76,6 +103,7 @@ const MobilePendingOrders = defineAsyncComponent(() => import('./pending-work-or
 
 const { isMobile } = useResponsive();
 const baseDataStore = useBaseDataStore();
+const authStore = useAuthStore();
 const sse = useSSE();
 
 // Initialize Composables
@@ -107,6 +135,19 @@ const showCompleteDialog = ref(false);
 const completeSubmitting = ref(false);
 const completingWorkOrder = ref<WorkOrder | null>(null);
 const collaboratorIds = ref<string[]>([]);
+const sameRegionEngineerIds = ref<string[]>([]);
+const repairFee = ref<number | undefined>(undefined);
+
+// 获取同区域工程师列表
+const sameRegionEngineers = computed(() => {
+  const currentRegionId = completingWorkOrder.value?.regionId;
+  if (!currentRegionId) return [];
+  return baseDataStore.users.filter(
+    u => u.role?.code === 'engineer' && 
+         u.regionId === currentRegionId && 
+         u.id !== authStore.user?.id
+  );
+});
 
 function handleCreate() {
   openCreate();
@@ -147,9 +188,11 @@ async function handleTransfer(wo: WorkOrder) {
   }
 }
 
-async function handleComplete(wo: WorkOrder, collaborators: string[] = []) {
+async function handleComplete(wo: WorkOrder, collaborators: string[] = [], fee?: number) {
   completingWorkOrder.value = wo;
   collaboratorIds.value = collaborators;
+  repairFee.value = fee;
+  sameRegionEngineerIds.value = [];
   
   if (isMobile.value) {
     // Mobile: 直接完成，因为气泡弹窗已经收集了协作人信息
@@ -157,6 +200,7 @@ async function handleComplete(wo: WorkOrder, collaborators: string[] = []) {
     try {
       await workOrdersApi.complete(wo.id, {
         collaboratorIds: collaborators,
+        repairFee: fee,
       });
       ElMessage.success('完成成功');
       fetchData(true);
@@ -175,13 +219,20 @@ async function handleComplete(wo: WorkOrder, collaborators: string[] = []) {
 async function confirmComplete() {
   if (!completingWorkOrder.value) return;
   
+  // 合并同区域工程师和手动选择的协作人
+  const allCollaboratorIds = [...new Set([...sameRegionEngineerIds.value, ...collaboratorIds.value])];
+  
   completeSubmitting.value = true;
   try {
     await workOrdersApi.complete(completingWorkOrder.value.id, {
-      collaboratorIds: collaboratorIds.value,
+      collaboratorIds: allCollaboratorIds,
+      repairFee: repairFee.value,
     });
     ElMessage.success('完成成功');
     showCompleteDialog.value = false;
+    sameRegionEngineerIds.value = [];
+    collaboratorIds.value = [];
+    repairFee.value = undefined;
     fetchData(true);
     fetchStats();
   } catch {

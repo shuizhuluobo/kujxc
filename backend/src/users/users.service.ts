@@ -196,11 +196,56 @@ export class UsersService {
   }
 
   async getStats(userId: string) {
-    const [completed, received, created] = await Promise.all([
+    // 获取当月的起始和结束日期
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const [
+      completed,
+      received,
+      created,
+      totalRepairFeeResult,
+      monthlyCompleted,
+      monthlyReceived,
+      monthlyCreated,
+      monthlyRepairFeeResult,
+    ] = await Promise.all([
       this.prisma.workOrder.count({ where: { completerId: userId } }),
       this.prisma.workOrder.count({ where: { receiverId: userId } }),
       this.prisma.workOrder.count({ where: { creatorId: userId } }),
+      this.prisma.workOrder.aggregate({
+        where: { completerId: userId, repairFee: { not: null } },
+        _sum: { repairFee: true },
+      }),
+      this.prisma.workOrder.count({
+        where: { completerId: userId, completedAt: { gte: startOfMonth, lte: endOfMonth } },
+      }),
+      this.prisma.workOrder.count({
+        where: { receiverId: userId, receivedAt: { gte: startOfMonth, lte: endOfMonth } },
+      }),
+      this.prisma.workOrder.count({
+        where: { creatorId: userId, createdAt: { gte: startOfMonth, lte: endOfMonth } },
+      }),
+      this.prisma.workOrder.aggregate({
+        where: {
+          completerId: userId,
+          repairFee: { not: null },
+          completedAt: { gte: startOfMonth, lte: endOfMonth },
+        },
+        _sum: { repairFee: true },
+      }),
     ]);
-    return { completed, received, created };
+
+    return {
+      completed,
+      received,
+      created,
+      totalRepairFee: totalRepairFeeResult._sum.repairFee || 0,
+      monthlyCompleted,
+      monthlyReceived,
+      monthlyCreated,
+      monthlyRepairFee: monthlyRepairFeeResult._sum.repairFee || 0,
+    };
   }
 }

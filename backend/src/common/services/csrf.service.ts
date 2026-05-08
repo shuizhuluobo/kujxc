@@ -76,11 +76,7 @@ export class CsrfService {
 
   consumeToken(token: string): boolean {
     const isValid = this.validateToken(token);
-    if (isValid) {
-      const parts = token.split(':');
-      const id = parts[0];
-      this.tokenStore.delete(id);
-    }
+    // 不删除token，允许在有效期内重复使用
     return isValid;
   }
 

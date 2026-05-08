@@ -51,13 +51,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
-}
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @ApiProperty({ description: '是否启用', required: false })
+  @ApiProperty({ description: '是否启用', required: false, default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {
 }
 
 export class UpdateProfileDto {

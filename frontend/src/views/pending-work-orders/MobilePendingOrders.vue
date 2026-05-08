@@ -170,7 +170,7 @@
               :work-order="wo"
               :show-actions="true"
               @receive="emit('receive', wo)"
-              @complete="emit('complete', wo)"
+              @complete="(wo, collaborators, fee) => emit('complete', wo, collaborators, fee)"
               @edit="emit('edit', wo)"
               @delete="emit('delete', wo)"
               @cancel-receive="emit('cancelReceive', wo)"

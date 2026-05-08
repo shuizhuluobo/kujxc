@@ -13,7 +13,6 @@
       :show-avatar-dialog="showAvatarDialog"
       :active-tab="activeTab"
       :stats="stats"
-      :notifications-enabled="notificationsEnabled"
       :preset-avatars="presetAvatars"
       :selected-preset="selectedPreset"
       :temp-image-url="tempImageUrl"
@@ -27,7 +26,6 @@
       @save-avatar="handleSaveAvatar"
       @trigger-file-input="triggerFileInput"
       @file-change="onFileChange"
-      @toggle-notifications="toggleNotifications"
       @logout="handleLogout"
       @update:show-password-dialog="showPasswordDialog = $event"
       @update:show-avatar-dialog="showAvatarDialog = $event"
@@ -41,8 +39,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, defineAsyncComponent } from 'vue';
+import { onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { useProfile } from './profile/composables/useProfile';
+import { useSSE } from '@/composables/useSSE';
 
 const MobileProfile = defineAsyncComponent(() => import('./profile/MobileProfile.vue'));
 const DesktopProfile = defineAsyncComponent(() => import('./profile/DesktopProfile.vue'));
@@ -77,8 +76,22 @@ const {
   setFileInput,
 } = useProfile();
 
+const sse = useSSE();
+let unsubscribe: (() => void) | null = null;
+
 onMounted(() => {
   fetchStats();
+  
+  // 监听工单状态变化事件，实时更新统计
+  unsubscribe = sse.on('work-order.updated', () => {
+    fetchStats();
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 

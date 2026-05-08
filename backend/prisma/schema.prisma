@@ -99,6 +99,7 @@ model WorkOrder {
   completerId   String?
   completedAt   DateTime?
   updatedAt     DateTime                @updatedAt
+  repairFee     Float?
   completer     User?                   @relation("CompleterWorkOrders", fields: [completerId], references: [id])
   creator       User                    @relation("CreatorWorkOrders", fields: [creatorId], references: [id])
   customer      Customer                @relation(fields: [customerId], references: [id])

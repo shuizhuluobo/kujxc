@@ -55,6 +55,10 @@ export class CompleteWorkOrderDto {
   @IsArray()
   @IsUUID('4', { each: true })
   collaboratorIds?: string[];
+
+  @ApiProperty({ description: '维修费', required: false })
+  @IsOptional()
+  repairFee?: number;
 }
 
 export class WorkOrderFilterDto {

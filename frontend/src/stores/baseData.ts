@@ -131,9 +131,11 @@ export const useBaseDataStore = defineStore('baseData', () => {
 
     async function fetchUsers(forceRefresh = false) {
         const authStore = useAuthStore();
+        // 管理员和工程师都可以获取用户列表（工程师用于选择协作人）
         if (!authStore.user?.role?.permissions?.includes('*') &&
             !authStore.user?.role?.permissions?.includes('system:user_view') &&
-            !authStore.user?.role?.permissions?.includes('system:*')) {
+            !authStore.user?.role?.permissions?.includes('system:*') &&
+            authStore.user?.role?.code !== 'engineer') {
             return;
         }
 
