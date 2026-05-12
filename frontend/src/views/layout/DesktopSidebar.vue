@@ -28,7 +28,7 @@
       
       <el-menu-item index="/fee-calculator" v-if="canAccessFeeCalculator">
         <el-icon><Wallet /></el-icon>
-        <span>费用计算器</span>
+        <span>项目台账</span>
       </el-menu-item>
       
       <el-sub-menu index="admin" v-if="canAccessAnyAdmin">

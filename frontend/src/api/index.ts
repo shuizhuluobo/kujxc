@@ -22,6 +22,14 @@ import type {
     PaginationParams,
     WikiArticleFilterParams,
     CreateWikiArticleDto,
+    Project,
+    WorkRecord,
+    PerformanceResult,
+    MyPerformanceStats,
+    CreateProjectDto,
+    UpdateProjectDto,
+    CreateWorkRecordDto,
+    UpdateWorkRecordDto,
 } from '@/types';
 
 // ==================== 认证 ====================
@@ -148,7 +156,7 @@ export const wikiApi = {
     toggleLike: (id: string) => api.post<{ isLiked: boolean }>(`/wiki/articles/${id}/like`),
 };
 
-// ==================== 费用计算器 ====================
+// ==================== 项目台账-费用计算 ====================
 export interface FeeItem {
     category: string;
     item: string;
@@ -193,4 +201,43 @@ export const feeApi = {
         api.post<FeeRecord>('/fee/records', data),
     getRecords: (limit?: number, offset?: number) => api.get<FeeRecord[]>('/fee/records', { params: { limit, offset } }),
     initSettings: () => api.post('/fee/settings/init'),
+};
+
+// ==================== 绩效统计 ====================
+export const performanceApi = {
+    getProjects: () => api.get<Project[]>('/performance/projects'),
+    getProject: (id: string) => api.get<Project>(`/performance/projects/${id}`),
+    createProject: (data: CreateProjectDto) => api.post<Project>('/performance/projects', data),
+    updateProject: (id: string, data: UpdateProjectDto) => api.patch<Project>(`/performance/projects/${id}`, data),
+    deleteProject: (id: string) => api.delete(`/performance/projects/${id}`),
+
+    getRecords: (projectId: string) => api.get<WorkRecord[]>(`/performance/projects/${projectId}/records`),
+    createRecord: (projectId: string, data: CreateWorkRecordDto) =>
+        api.post<WorkRecord>(`/performance/projects/${projectId}/records`, data),
+    updateRecord: (projectId: string, recordId: string, data: UpdateWorkRecordDto) =>
+        api.patch<WorkRecord>(`/performance/projects/${projectId}/records/${recordId}`, data),
+    deleteRecord: (projectId: string, recordId: string) =>
+        api.delete(`/performance/projects/${projectId}/records/${recordId}`),
+
+    getDevices: (projectId: string) => api.get<CustomerDevice[]>(`/performance/projects/${projectId}/devices`),
+    createDevice: (projectId: string, data: { customerId: string; deviceName: string; expectedQuantity: number; remark?: string }) =>
+        api.post<CustomerDevice>(`/performance/projects/${projectId}/devices`, data),
+    updateDevice: (deviceId: string, data: { customerId?: string; deviceName?: string; expectedQuantity?: number; remark?: string }) =>
+        api.patch<CustomerDevice>(`/performance/devices/${deviceId}`, data),
+    deleteDevice: (deviceId: string) => api.delete(`/performance/devices/${deviceId}`),
+    recordDelivery: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+        api.post<CustomerDevice>(`/performance/devices/${deviceId}/delivery`, data),
+    recordInstall: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+        api.post<CustomerDevice>(`/performance/devices/${deviceId}/install`, data),
+    recordDebug: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+        api.post<CustomerDevice>(`/performance/devices/${deviceId}/debug`, data),
+
+    getStats: (projectId: string) => api.get<PerformanceResult[]>(`/performance/projects/${projectId}/stats`),
+    getMyStats: (projectId: string) => api.get<MyPerformanceStats>(`/performance/projects/${projectId}/stats/me`),
+
+    exportProject: (projectId: string) => api.get(`/performance/projects/${projectId}/export`, { responseType: 'blob' }),
+    exportProjects: (projectIds?: string[]) => api.get('/performance/projects/export', { 
+        params: projectIds?.length ? { ids: projectIds.join(',') } : {},
+        responseType: 'blob' 
+    }),
 };

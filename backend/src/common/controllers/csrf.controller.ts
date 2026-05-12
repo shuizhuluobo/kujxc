@@ -1,7 +1,7 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CsrfService } from '../services/csrf.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../decorators/public.decorator';
 
 @ApiTags('安全')
 @Controller('security')
@@ -9,11 +9,11 @@ export class CsrfController {
   constructor(private readonly csrfService: CsrfService) {}
 
   @Get('csrf-token')
-  @UseGuards(JwtAuthGuard)
+  @Public()
   @ApiOperation({ summary: '获取CSRF Token' })
   @ApiResponse({ status: 200, description: '返回CSRF Token' })
-  getCsrfToken() {
-    const token = this.csrfService.generateToken();
+  async getCsrfToken() {
+    const token = await this.csrfService.generateToken();
     return { token };
   }
 }

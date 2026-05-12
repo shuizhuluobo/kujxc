@@ -12,6 +12,9 @@ const eventSource = ref<EventSource | null>(null);
 const isConnected = ref(false);
 const lastEvent = ref<SSEEvent | null>(null);
 
+// 连接锁，防止并发调用 connect() 导致重复连接
+let isConnecting = false;
+
 // 重连相关状态
 let retryCount = 0;
 const MAX_RETRY_COUNT = 10;
@@ -54,11 +57,14 @@ export function useSSE() {
     async function connect() {
         if (eventSource.value?.readyState === EventSource.OPEN) return;
         if (!authStore.token) return;
-
-        // 关闭旧连接
-        disconnect(false);
+        // 防止重复并发连接
+        if (isConnecting) return;
+        isConnecting = true;
 
         try {
+            // 关闭旧连接
+            disconnect(false);
+
             // 获取SSE专用token（60秒有效期）
             const response = await api.get('/events/token');
             const sseToken = response.data.token;
@@ -75,13 +81,22 @@ export function useSSE() {
             };
 
             es.onerror = () => {
-                if (es.readyState === EventSource.CLOSED) {
-                    isConnected.value = false;
-                    eventSource.value = null;
-                    // 自动重连
-                    scheduleReconnect();
+                // EventSource 遇到错误时，浏览器会自动用原 URL 重连
+                // 但如果 token 过期会导致无限 401 循环
+                // 因此我们需要：关闭旧连接 -> 用新 token 重新连接
+                isConnected.value = false;
+                
+                // 保存引用后清空全局变量，防止 scheduleReconnect 时重复关闭
+                const currentEs = es;
+                eventSource.value = null;
+                
+                // 立即关闭，阻止浏览器自动重连（使用过期token）
+                if (currentEs.readyState !== EventSource.CLOSED) {
+                    currentEs.close();
                 }
-                // CONNECTING 状态下 EventSource 会自动重试，无需手动处理
+                
+                // 用新的 token 重连
+                scheduleReconnect();
             };
 
             // 监听通用消息
@@ -105,6 +120,8 @@ export function useSSE() {
             console.error('[SSE] Failed to connect:', error);
             // 连接失败也尝试重连
             scheduleReconnect();
+        } finally {
+            isConnecting = false;
         }
     }
 

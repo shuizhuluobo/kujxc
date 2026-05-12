@@ -22,6 +22,7 @@ import {
   ThrottleStrict,
   ThrottleRelaxed,
 } from '../common/decorators/throttle.decorator';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('认证')
 @Controller('auth')
@@ -29,6 +30,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Public()
   @UseGuards(ThrottleGuard)
   @ThrottleStrict()
   @HttpCode(HttpStatus.OK)
@@ -41,6 +43,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @UseGuards(ThrottleGuard)
   @ThrottleRelaxed()
   @HttpCode(HttpStatus.OK)

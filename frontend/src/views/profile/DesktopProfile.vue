@@ -368,15 +368,44 @@ defineExpose({ formRef });
 
 .stats-tabs :deep(.el-tabs__header) {
   margin: 0;
+  border-bottom: none;
+}
+
+.stats-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
 }
 
 .stats-tabs :deep(.el-tabs__nav) {
   gap: 8px;
+  border: none;
 }
 
-.stats-tabs :deep(.el-tab__button) {
+.stats-tabs :deep(.el-tabs__item) {
   padding: 4px 12px;
   font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  height: auto;
+  line-height: 1.5;
+}
+
+.stats-tabs :deep(.el-tabs__item:hover) {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.stats-tabs :deep(.el-tabs__item.is-active) {
+  color: #fff;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.stats-tabs :deep(.el-tabs__active-bar) {
+  display: none;
 }
 
 .stats-grid {

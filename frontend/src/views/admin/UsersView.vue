@@ -353,27 +353,28 @@ async function handleDelete(row: User) {
 }
 
 async function handleSubmit() {
-  if (!formRef.value) return;
-  const valid = await formRef.value.validate().catch(() => false);
-  if (!valid) return;
-  
-  submitting.value = true;
-  try {
-    if (editing.value) {
-      await usersApi.update(editing.value.id, { name: form.name, roleId: form.roleId, regionId: form.regionId || undefined, isActive: form.isActive });
-    } else {
-      await usersApi.create(form);
+    if (!formRef.value) return;
+    const valid = await formRef.value.validate().catch(() => false);
+    if (!valid) return;
+    
+    submitting.value = true;
+    try {
+      const regionIdValue = form.regionId || null;
+      if (editing.value) {
+        await usersApi.update(editing.value.id, { name: form.name, roleId: form.roleId, regionId: regionIdValue, isActive: form.isActive });
+      } else {
+        await usersApi.create({ ...form, regionId: regionIdValue });
+      }
+      ElMessage.success(editing.value ? '更新成功' : '创建成功');
+      dialogVisible.value = false;
+      fetchData(); 
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      ElMessage.error(err.response?.data?.message || '操作失败');
+    } finally {
+      submitting.value = false;
     }
-    ElMessage.success(editing.value ? '更新成功' : '创建成功');
-    dialogVisible.value = false;
-    fetchData(); 
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string } } };
-    ElMessage.error(err.response?.data?.message || '操作失败');
-  } finally {
-    submitting.value = false;
   }
-}
 
 async function handleResetSubmit() {
   if (!resetFormRef.value) return;

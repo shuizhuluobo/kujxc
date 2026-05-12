@@ -392,6 +392,31 @@ watch(localActiveTab, v => emit('update:activeTab', v));
 .mobile-stats-tabs {
   --van-tabs-bottom-bar-color: var(--primary-color);
   --van-tab-active-color: var(--primary-color);
+  --van-tab-font-size: 13px;
+}
+
+.mobile-stats-tabs :deep(.van-tabs__nav) {
+  background: var(--card-bg);
+}
+
+.mobile-stats-tabs :deep(.van-tab) {
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 4px 16px;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+  flex: none;
+}
+
+.mobile-stats-tabs :deep(.van-tab--active) {
+  color: #fff;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.mobile-stats-tabs :deep(.van-tabs__line) {
+  display: none;
 }
 
 .mobile-stats-grid {

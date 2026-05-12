@@ -19,6 +19,6 @@ export class RefreshTokenDto {
   @ApiProperty({ description: '刷新令牌' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(500)
+  @MaxLength(2048)
   refreshToken: string;
 }

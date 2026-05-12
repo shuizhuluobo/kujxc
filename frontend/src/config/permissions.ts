@@ -89,13 +89,13 @@ export const PermissionModules = {
         ],
     },
 
-    // 费用计算器
+    // 项目台账
     FEE: {
         key: 'fee',
-        name: '费用计算器',
+        name: '项目台账',
         icon: 'Wallet',
         pages: [
-            { key: 'list', name: '费用计算器', path: '/fee-calculator' },
+            { key: 'list', name: '项目台账', path: '/fee-calculator' },
         ],
         actions: [
             { key: 'calculate', name: '计算费用', description: '允许使用费用计算器' },

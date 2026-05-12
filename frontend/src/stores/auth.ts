@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginDto, LoginResponse } from '@/types';
+import { RoleCode } from '@/types';
 import { authApi, usersApi } from '@/api';
 import { getCsrfToken } from '@/api/csrf';
 
@@ -24,9 +25,23 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Getters
     const isAuthenticated = computed(() => !!token.value && !!user.value);
-    const isAdmin = computed(() => user.value?.role?.code === 'admin');
-    const isEngineer = computed(() => user.value?.role?.code === 'engineer');
+    const isAdmin = computed(() => user.value?.role?.code === RoleCode.ADMIN);
+    const isEngineer = computed(() => user.value?.role?.code === RoleCode.ENGINEER);
+    const isProjectManager = computed(() => user.value?.role?.code === RoleCode.PROJECT_MANAGER);
+    const isFinance = computed(() => user.value?.role?.code === RoleCode.FINANCE);
     const roleCode = computed(() => user.value?.role?.code);
+
+    const canManageProject = computed(() =>
+        isAdmin.value || isProjectManager.value
+    );
+
+    const canViewPerformance = computed(() =>
+        isAdmin.value || isProjectManager.value || isFinance.value
+    );
+
+    const canViewFee = computed(() =>
+        isAdmin.value || isProjectManager.value || isFinance.value
+    );
 
     // Actions
     async function login(credentials: LoginDto) {
@@ -77,8 +92,12 @@ export const useAuthStore = defineStore('auth', () => {
                 localStorage.setItem('token', accessToken);
                 localStorage.setItem('refreshToken', newRefreshToken);
 
-                // 刷新token后重新获取 CSRF token
-                await getCsrfToken();
+                // 刷新token后重新获取 CSRF token（失败不影响登录状态）
+                getCsrfToken().catch(err => console.warn('[Auth] CSRF refresh failed after token refresh:', err));
+            } catch (error) {
+                // 刷新失败，登出（拦截器会处理跳转）
+                logout();
+                throw error;
             } finally {
                 refreshPromise = null;
             }
@@ -94,8 +113,13 @@ export const useAuthStore = defineStore('auth', () => {
             const response = await usersApi.getProfile();
             user.value = response.data;
             localStorage.setItem('user', JSON.stringify(response.data));
-        } catch {
-            logout();
+        } catch (error: unknown) {
+            // 401 由响应拦截器统一处理（尝试 refresh token 并重试）
+            // 这里只处理非认证类错误，避免重复登出
+            const err = error as { response?: { status?: number } };
+            if (err.response?.status !== 401) {
+                console.warn('[Auth] Failed to fetch profile, but not logging out:', error);
+            }
         }
     }
 
@@ -121,7 +145,12 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated,
         isAdmin,
         isEngineer,
+        isProjectManager,
+        isFinance,
         roleCode,
+        canManageProject,
+        canViewPerformance,
+        canViewFee,
         mustChangePassword,
         login,
         refreshToken,

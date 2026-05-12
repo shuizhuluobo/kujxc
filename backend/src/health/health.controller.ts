@@ -1,6 +1,7 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../common/decorators/public.decorator';
 import * as os from 'os';
 import * as fs from 'fs';
 
@@ -45,6 +46,7 @@ export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get system health status' })
   async getHealth(): Promise<HealthStatus> {
     const checks = await Promise.all([

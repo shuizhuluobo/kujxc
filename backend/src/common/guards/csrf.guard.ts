@@ -20,7 +20,7 @@ export class CsrfGuard implements CanActivate {
     private csrfService: CsrfService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requireCsrf = this.reflector.getAllAndOverride<boolean>(
       CSRF_TOKEN_KEY,
       [context.getHandler(), context.getClass()],
@@ -53,7 +53,7 @@ export class CsrfGuard implements CanActivate {
     }
 
     // Validate and consume the token
-    if (!this.csrfService.consumeToken(csrfToken)) {
+    if (!(await this.csrfService.consumeToken(csrfToken))) {
       throw new ForbiddenException('CSRF token无效或已过期');
     }
 

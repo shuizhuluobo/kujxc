@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth';
-import { getCsrfToken } from './csrf';
+import { getCsrfToken, clearToken } from './csrf';
 
 // 获取 API 基础地址
 export function getBaseURL(): string {
@@ -35,6 +35,7 @@ if (import.meta.env.DEV) {
 const api: AxiosInstance = axios.create({
     baseURL,
     timeout: 30000, // 增加超时时间到 30 秒
+    withCredentials: true, // 启用跨域凭证传递，关键：HTTPS环境下必须设置
     headers: {
         'Content-Type': 'application/json',
     },
@@ -61,6 +62,12 @@ const CSRF_EXCLUDED_PATHS = [
   '/security/csrf-token',
 ];
 
+// 不需要 Authorization 的接口（匿名接口）
+const AUTH_EXCLUDED_PATHS = [
+  '/auth/login',
+  '/auth/refresh',
+];
+
 function shouldAddCsrf(config: InternalAxiosRequestConfig): boolean {
     const method = config.method?.toUpperCase();
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
@@ -70,11 +77,17 @@ function shouldAddCsrf(config: InternalAxiosRequestConfig): boolean {
     return !CSRF_EXCLUDED_PATHS.some(path => url.includes(path));
 }
 
+function shouldAddAuth(config: InternalAxiosRequestConfig): boolean {
+    const url = config.url || '';
+    return !AUTH_EXCLUDED_PATHS.some(path => url.includes(path));
+}
+
 // 请求拦截器 - 添加 token 和 CSRF token
 api.interceptors.request.use(
     async (config) => {
         const authStore = useAuthStore();
-        if (authStore.token) {
+        // 只对非匿名接口添加 Authorization
+        if (authStore.token && shouldAddAuth(config)) {
             config.headers.Authorization = `Bearer ${authStore.token}`;
         }
 
@@ -121,6 +134,25 @@ api.interceptors.response.use(
 
         const authStore = useAuthStore();
         const config = error.config;
+
+        // 如果是 403 错误且是 CSRF token 问题，刷新 CSRF token 并重试
+        if (error.response?.status === 403 && config && 
+            (error.response.data as any)?.message?.includes('CSRF')) {
+            if (import.meta.env.DEV) {
+                console.log('[API] CSRF token invalid, refreshing and retrying...');
+            }
+            try {
+                clearToken();
+                const token = await getCsrfToken();
+                config.headers['X-CSRF-Token'] = token;
+                return api.request(config);
+            } catch (err) {
+                if (import.meta.env.DEV) {
+                    console.error('[API] Failed to refresh CSRF token:', err);
+                }
+                return Promise.reject(err);
+            }
+        }
 
         // 如果是 401 错误，且不是登录或刷新 Token 接口
         if (error.response?.status === 401 && config && !config.url?.includes('/auth/login') && !config.url?.includes('/auth/refresh')) {

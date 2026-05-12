@@ -1,7 +1,7 @@
 <template>
   <div class="mobile-calculator">
     <div class="header">
-      <h2>公务仓费用计算器</h2>
+      <h2>公务仓费用计算</h2>
       <el-button type="primary" size="small" :icon="Setting" @click="showSettings = true">设置</el-button>
     </div>
 

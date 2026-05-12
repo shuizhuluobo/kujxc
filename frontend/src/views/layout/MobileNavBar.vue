@@ -34,7 +34,7 @@
       v-if="canAccessFeeCalculator"
     >
       <el-icon><Wallet /></el-icon>
-      <span>费用</span>
+      <span>台账</span>
     </div>
     <div 
       class="nav-item" 

@@ -95,7 +95,30 @@
         
         <!-- 右侧：操作按钮 -->
         <div class="action-buttons">
-          <template v-if="canEdit">
+          <!-- 取消接收按钮：已接收且是当前接收人 -->
+          <template v-if="workOrder.status === 'RECEIVED' && canComplete">
+            <el-button 
+              type="warning" 
+              size="small" 
+              @click.stop="showCancelReceiveConfirm = true"
+            >
+              取消接收
+            </el-button>
+          </template>
+          
+          <!-- 转接按钮：已接收但不是当前接收人，且有接收权限 -->
+          <template v-else-if="workOrder.status === 'RECEIVED' && !canComplete && hasPermission('workOrder:receive')">
+            <el-button
+              type="warning"
+              size="small"
+              @click.stop="$emit('receive', workOrder)"
+            >
+              转接
+            </el-button>
+          </template>
+          
+          <!-- 编辑删除按钮：待接收状态且是创建者/管理员 -->
+          <template v-if="workOrder.status === 'PENDING' && canEdit">
             <el-button 
               size="small" 
               @click.stop="$emit('edit', workOrder)"
@@ -108,27 +131,6 @@
               @click.stop="showDeleteConfirm = true"
             >
               删除
-            </el-button>
-          </template>
-          
-          <template v-else-if="workOrder.status === 'RECEIVED'">
-            <!-- 取消接收按钮 (本人已接收的任务) -->
-            <el-button 
-              v-if="canComplete"
-              type="warning" 
-              size="small" 
-              @click.stop="showCancelReceiveConfirm = true"
-            >
-              取消接收
-            </el-button>
-            <!-- 转接按钮 (Mobile) -->
-            <el-button
-              v-else-if="hasPermission('workOrder:receive')"
-              type="warning"
-              size="small"
-              @click.stop="$emit('receive', workOrder)"
-            >
-              转接
             </el-button>
           </template>
         </div>
@@ -340,18 +342,9 @@ async function handleDelete() {
   actionLoading.value = false;
 }
 
-async function handleCancelReceive() {
-  if (actionLoading.value) return;
-  actionLoading.value = true;
-  try {
-    await workOrdersApi.cancelReceive(props.workOrder.id);
-    ElMessage.success('已取消接收');
-    emit('cancel-receive', props.workOrder);
-  } catch (error) {
-    ElMessage.error('取消接收失败');
-  }
+function handleCancelReceive() {
+  emit('cancel-receive', props.workOrder);
   showCancelReceiveConfirm.value = false;
-  actionLoading.value = false;
 }
 
 const customerDisplayName = computed(() => getCustomerDisplayName(props.workOrder.customer));
@@ -703,5 +696,7 @@ const hasSecondaryActions = computed(() => {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 </style>

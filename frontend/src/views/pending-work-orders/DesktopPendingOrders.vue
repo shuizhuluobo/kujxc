@@ -116,7 +116,7 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column label="操作" width="230" fixed="right">
         <template #default="{ row }">
           <div class="action-buttons">
             <el-button 
@@ -278,8 +278,6 @@ async function handleCancelReceive(row: WorkOrder) {
       '确认取消接收',
       { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' }
     );
-    await workOrdersApi.cancelReceive(row.id);
-    ElMessage.success('已取消接收');
     emit('cancelReceive', row);
   } catch {
     // cancelled
@@ -318,11 +316,10 @@ function tableRowClassName({ row }: { row: WorkOrder }) {
 async function handleDialogSubmit() {
   if (!workOrderFormRef.value) return;
   
-  await workOrderFormRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      await props.formState.submit();
-    }
-  });
+  const valid = await workOrderFormRef.value.validate().catch(() => false);
+  if (valid) {
+    await props.formState.submit();
+  }
 }
 
 // Draggable Headers Logic
@@ -429,7 +426,7 @@ onMounted(() => {
 
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 2px;
   flex-wrap: nowrap;
 }
 

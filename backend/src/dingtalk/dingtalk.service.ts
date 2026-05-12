@@ -175,6 +175,22 @@ export class DingtalkService {
   }
 
   /**
+   * 校验 webhook URL 必须是钉钉官方域名，防止 SSRF
+   */
+  private validateWebhookUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      return (
+        parsed.protocol === 'https:' &&
+        (parsed.hostname === 'oapi.dingtalk.com' ||
+          parsed.hostname.endsWith('.dingtalk.com'))
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * 发送 Markdown 消息
    */
   private async sendMarkdownMessage(
@@ -182,6 +198,11 @@ export class DingtalkService {
     secret: string | null | undefined,
     message: { title: string; text: string },
   ): Promise<void> {
+    if (!this.validateWebhookUrl(webhook)) {
+      this.logger.warn(`[DingTalk] 拒绝发送：非法 webhook URL: ${webhook}`);
+      return;
+    }
+
     const timestamp = Date.now();
     const sign = secret ? this.generateSign(timestamp, secret) : undefined;
 

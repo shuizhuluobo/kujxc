@@ -129,30 +129,29 @@ const rules: FormRules = {
 async function handleSubmit() {
   if (!formRef.value) return;
   
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      if (form.oldPassword === form.newPassword) {
-        ElMessage.warning('新密码不能与旧密码相同');
-        return;
-      }
-      
-      loading.value = true;
-      try {
-        await usersApi.changePassword({
-          oldPassword: form.oldPassword,
-          newPassword: form.newPassword,
-        });
-        
-        ElMessage.success('密码修改成功，请尽情使用');
-        emit('success');
-        visible.value = false;
-      } catch {
-        // Error handled by global interceptor
-      } finally {
-        loading.value = false;
-      }
-    }
-  });
+  const valid = await formRef.value.validate().catch(() => false);
+  if (!valid) return;
+
+  if (form.oldPassword === form.newPassword) {
+    ElMessage.warning('新密码不能与旧密码相同');
+    return;
+  }
+  
+  loading.value = true;
+  try {
+    await usersApi.changePassword({
+      oldPassword: form.oldPassword,
+      newPassword: form.newPassword,
+    });
+    
+    ElMessage.success('密码修改成功，请尽情使用');
+    emit('success');
+    visible.value = false;
+  } catch {
+    // Error handled by global interceptor
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 

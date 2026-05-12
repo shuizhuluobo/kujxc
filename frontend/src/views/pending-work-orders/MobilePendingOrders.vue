@@ -302,11 +302,10 @@ function getRegionName(id: string): string {
 async function handleDrawerSubmit() {
   if (!workOrderFormRef.value) return;
   
-  await workOrderFormRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      await props.formState.submit();
-    }
-  });
+  const valid = await workOrderFormRef.value.validate().catch(() => false);
+  if (valid) {
+    await props.formState.submit();
+  }
 }
 
 const refreshing = ref(false);

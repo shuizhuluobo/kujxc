@@ -17,6 +17,20 @@ import './style.css';
 import './styles/element-overrides.css';
 import './styles/vant-overrides.css';
 
+// 抑制 Element Plus 内部字段验证产生的控制台警告
+// Element Plus 在字段验证失败时通过 console.warn 输出 {fieldName: [error]} 对象
+// 这是 Element Plus 的已知行为，参考: https://github.com/element-plus/element-plus/issues/13785
+const _originalWarn = console.warn;
+console.warn = (...args: unknown[]) => {
+    if (args.length === 1 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+        const values = Object.values(args[0] as Record<string, unknown>);
+        if (values.length > 0 && values.every(v => Array.isArray(v))) {
+            return; // 过滤 Element Plus 表单验证警告
+        }
+    }
+    _originalWarn.apply(console, args);
+};
+
 const app = createApp(App);
 
 // 注册 Element Plus 图标

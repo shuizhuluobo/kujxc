@@ -85,8 +85,8 @@ export function useProfile() {
         try {
             const response = await usersApi.getStats();
             stats.value = response.data;
-        } catch {
-            // 静默失败
+        } catch (error) {
+            console.error('[Profile] Failed to fetch stats:', error);
         } finally {
             loading.value = false;
         }

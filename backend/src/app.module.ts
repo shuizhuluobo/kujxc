@@ -18,9 +18,11 @@ import { UploadsModule } from './uploads/uploads.module';
 import { HealthModule } from './health/health.module';
 import { DingtalkModule } from './dingtalk/dingtalk.module';
 import { FeeModule } from './fee/fee.module';
+import { PerformanceModule } from './performance/performance.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CsrfGuard } from './common/guards/csrf.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -54,8 +56,13 @@ import { CsrfGuard } from './common/guards/csrf.guard';
     HealthModule,
     DingtalkModule,
     FeeModule,
+    PerformanceModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: CsrfGuard,

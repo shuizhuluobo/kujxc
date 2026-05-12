@@ -3,9 +3,9 @@
     <!-- 筛选栏 -->
     <div class="filter-bar card-premium">
       <el-checkbox-group v-model="filter.statuses" size="default" class="status-checkbox-group">
-        <el-checkbox-button label="PENDING">待接收</el-checkbox-button>
-        <el-checkbox-button label="RECEIVED">已接收</el-checkbox-button>
-        <el-checkbox-button label="COMPLETED">已完成</el-checkbox-button>
+        <el-checkbox-button value="PENDING">待接收</el-checkbox-button>
+        <el-checkbox-button value="RECEIVED">已接收</el-checkbox-button>
+        <el-checkbox-button value="COMPLETED">已完成</el-checkbox-button>
       </el-checkbox-group>
       <el-select v-model="filter.regionId" placeholder="区域" clearable size="default" style="width: 120px">
         <el-option 

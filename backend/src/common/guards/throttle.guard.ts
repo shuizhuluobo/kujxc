@@ -2,7 +2,8 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  BadRequestException,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -106,7 +107,7 @@ export class ThrottleGuard implements CanActivate {
 
     if (record && record.resetTime > now) {
       if (record.count >= options.limit) {
-        throw new BadRequestException('请求过于频繁，请稍后再试');
+        throw new HttpException('请求过于频繁，请稍后再试', HttpStatus.TOO_MANY_REQUESTS);
       }
       record.count++;
     } else {

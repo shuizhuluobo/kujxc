@@ -242,9 +242,15 @@ async function confirmComplete() {
   }
 }
 
-function handleCancelReceive() {
-  fetchData(true);
-  fetchStats();
+async function handleCancelReceive(wo: WorkOrder) {
+  try {
+    await workOrdersApi.cancelReceive(wo.id);
+    ElMessage.success('已取消接收');
+    fetchData(true);
+    fetchStats();
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '取消接收失败');
+  }
 }
 
 function handleDelete() {
@@ -269,7 +275,7 @@ onMounted(() => {
   baseDataStore.fetchRegions();
   
   sse.connect();
-  sse.on('workOrder:update', () => {
+  sse.on('work-order.updated', () => {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       fetchData(true); // silent update

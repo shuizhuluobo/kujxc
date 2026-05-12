@@ -136,12 +136,16 @@ export class UsersService {
   }
 
   async remove(id: string) {
-    const user = await this.findOne(id); // 检查用户是否存在
-    if (user.avatar) {
-      await this.filesService.deleteFileIfUnused(user.avatar);
-    }
-    await this.prisma.user.delete({ where: { id } });
-    return { message: '删除成功' };
+    await this.findOne(id); // 检查用户是否存在
+    // 不实际删除，改为禁用用户（避免外键约束问题）
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+      include: { role: true, region: true },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...result } = user;
+    return result;
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
@@ -201,51 +205,74 @@ export class UsersService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    const [
-      completed,
-      received,
-      created,
-      totalRepairFeeResult,
-      monthlyCompleted,
-      monthlyReceived,
-      monthlyCreated,
-      monthlyRepairFeeResult,
-    ] = await Promise.all([
+    // 基础统计查询（不依赖新增字段，数据库 schema 漂移时也能正常工作）
+    const [completed, received, created] = await Promise.all([
       this.prisma.workOrder.count({ where: { completerId: userId } }),
       this.prisma.workOrder.count({ where: { receiverId: userId } }),
       this.prisma.workOrder.count({ where: { creatorId: userId } }),
-      this.prisma.workOrder.aggregate({
-        where: { completerId: userId, repairFee: { not: null } },
-        _sum: { repairFee: true },
-      }),
-      this.prisma.workOrder.count({
-        where: { completerId: userId, completedAt: { gte: startOfMonth, lte: endOfMonth } },
-      }),
-      this.prisma.workOrder.count({
-        where: { receiverId: userId, receivedAt: { gte: startOfMonth, lte: endOfMonth } },
-      }),
-      this.prisma.workOrder.count({
-        where: { creatorId: userId, createdAt: { gte: startOfMonth, lte: endOfMonth } },
-      }),
-      this.prisma.workOrder.aggregate({
-        where: {
-          completerId: userId,
-          repairFee: { not: null },
-          completedAt: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: { repairFee: true },
-      }),
     ]);
+
+    // 月度统计（依赖 completedAt/receivedAt/createdAt 等核心字段，通常可靠）
+    let monthlyCompleted = 0;
+    let monthlyReceived = 0;
+    let monthlyCreated = 0;
+
+    try {
+      const [monthlyCompletedResult, monthlyReceivedResult, monthlyCreatedResult] =
+        await Promise.all([
+          this.prisma.workOrder.count({
+            where: { completerId: userId, completedAt: { gte: startOfMonth, lte: endOfMonth } },
+          }),
+          this.prisma.workOrder.count({
+            where: { receiverId: userId, receivedAt: { gte: startOfMonth, lte: endOfMonth } },
+          }),
+          this.prisma.workOrder.count({
+            where: { creatorId: userId, createdAt: { gte: startOfMonth, lte: endOfMonth } },
+          }),
+        ]);
+
+      monthlyCompleted = monthlyCompletedResult;
+      monthlyReceived = monthlyReceivedResult;
+      monthlyCreated = monthlyCreatedResult;
+    } catch (error) {
+      console.error('[UsersService] getStats monthly count queries failed:', error);
+    }
+
+    // 维修费统计（依赖 repairFee 字段，可能因 schema 漂移而失败）
+    let totalRepairFee = 0;
+    let monthlyRepairFee = 0;
+
+    try {
+      const [totalRepairFeeResult, monthlyRepairFeeResult] = await Promise.all([
+        this.prisma.workOrder.aggregate({
+          where: { completerId: userId, repairFee: { not: null } },
+          _sum: { repairFee: true },
+        }),
+        this.prisma.workOrder.aggregate({
+          where: {
+            completerId: userId,
+            repairFee: { not: null },
+            completedAt: { gte: startOfMonth, lte: endOfMonth },
+          },
+          _sum: { repairFee: true },
+        }),
+      ]);
+
+      totalRepairFee = totalRepairFeeResult._sum.repairFee || 0;
+      monthlyRepairFee = monthlyRepairFeeResult._sum.repairFee || 0;
+    } catch (error) {
+      console.error('[UsersService] getStats repairFee aggregate queries failed:', error);
+    }
 
     return {
       completed,
       received,
       created,
-      totalRepairFee: totalRepairFeeResult._sum.repairFee || 0,
+      totalRepairFee,
       monthlyCompleted,
       monthlyReceived,
       monthlyCreated,
-      monthlyRepairFee: monthlyRepairFeeResult._sum.repairFee || 0,
+      monthlyRepairFee,
     };
   }
 }

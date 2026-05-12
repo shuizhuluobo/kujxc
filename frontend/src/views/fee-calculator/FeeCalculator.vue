@@ -3,106 +3,117 @@
     <div class="calculator-card">
       <div class="card-header">
         <div class="header-title">
-          <h2>公务仓费用计算器</h2>
-          <p class="header-subtitle">快速计算公务仓各项服务费用</p>
+          <h2>{{ activeTab === 'fee' ? '公务仓项目' : '常规项目' }}</h2>
+          <p class="header-subtitle">
+            {{ activeTab === 'fee' ? '快速计算公务仓各项服务费用' : '记录项目的工作量' }}
+          </p>
         </div>
         <div class="header-actions">
-          <el-button v-if="canSettings && !isMobile" type="primary" :icon="Setting" @click="showSettings = true">费用设置</el-button>
+          <el-button v-if="activeTab === 'fee' && canSettings && !isMobile" type="primary" :icon="Setting" @click="showSettings = true">费用设置</el-button>
         </div>
       </div>
 
-      <template v-if="!isMobile">
-        <div class="calculator-layout">
-          <div class="service-section">
-            <ComputerServices
-              :computer-count="computerCount"
-              :computer-service-map="computerServiceMap"
-              :additional-fee-enabled="additionalFeeEnabled"
-              :additional-fee-amount="additionalFeeAmount"
-              :additional-fee-remark="additionalFeeRemark"
-              @update:computer-count="computerCount = $event"
-              @update:additional-fee-enabled="additionalFeeEnabled = $event"
-              @update:additional-fee-amount="additionalFeeAmount = $event"
-              @update:additional-fee-remark="additionalFeeRemark = $event"
-              @computer-service-change="onComputerServiceChange"
-              @item-change="onItemChange"
-            />
+      <div class="tabs-wrapper">
+        <el-tabs v-model="activeTab" type="card" class="tabs">
+          <el-tab-pane label="公务仓项目" name="fee">
+            <template v-if="!isMobile">
+              <div class="calculator-layout">
+                <div class="service-section">
+                  <ComputerServices
+                    :computer-count="computerCount"
+                    :computer-service-map="computerServiceMap"
+                    :additional-fee-enabled="additionalFeeEnabled"
+                    :additional-fee-amount="additionalFeeAmount"
+                    :additional-fee-remark="additionalFeeRemark"
+                    @update:computer-count="computerCount = $event"
+                    @update:additional-fee-enabled="additionalFeeEnabled = $event"
+                    @update:additional-fee-amount="additionalFeeAmount = $event"
+                    @update:additional-fee-remark="additionalFeeRemark = $event"
+                    @computer-service-change="onComputerServiceChange"
+                    @item-change="onItemChange"
+                  />
 
-            <PeripheralServices
-              :peripheral-install-services="peripheralInstallServices"
-              :peripheral-recycle-services="peripheralRecycleServices"
-              :peripheral-delivery-services="peripheralDeliveryServices"
-              :max-peripheral-rows="maxPeripheralRows"
-              @peripheral-change="onPeripheralChange"
-              @item-change="onItemChange"
-            />
+                  <PeripheralServices
+                    :peripheral-install-services="peripheralInstallServices"
+                    :peripheral-recycle-services="peripheralRecycleServices"
+                    :peripheral-delivery-services="peripheralDeliveryServices"
+                    :max-peripheral-rows="maxPeripheralRows"
+                    @peripheral-change="onPeripheralChange"
+                    @item-change="onItemChange"
+                  />
 
-            <ServiceOptions
-              :response-services="responseServices"
-              :time-slot-services="timeSlotServices"
-              :transport-services="transportServices"
-              :selected-response="selectedResponse"
-              :selected-time-slot="selectedTimeSlot"
-              @select-response="selectResponse"
-              @select-time-slot="selectTimeSlot"
-              @item-change="onItemChange"
-            />
-          </div>
+                  <ServiceOptions
+                    :response-services="responseServices"
+                    :time-slot-services="timeSlotServices"
+                    :transport-services="transportServices"
+                    :selected-response="selectedResponse"
+                    :selected-time-slot="selectedTimeSlot"
+                    @select-response="selectResponse"
+                    @select-time-slot="selectTimeSlot"
+                    @item-change="onItemChange"
+                  />
+                </div>
 
-          <FeeResult
-            :selected-items="selectedItems"
-            :subtotal="subtotal"
-            :discount="discount"
-            :actual-amount="actualAmount"
-            :remark="remark"
-            :can-save="canSaveRecords"
-            @update:discount="discount = $event"
-            @update:actual-amount="actualAmount = $event"
-            @update:remark="remark = $event"
-            @save="saveRecord"
-            @print="handlePrintCurrent"
-            @reset="resetCalculator"
-          />
-        </div>
-      </template>
+                <FeeResult
+                  :selected-items="selectedItems"
+                  :subtotal="subtotal"
+                  :discount="discount"
+                  :actual-amount="actualAmount"
+                  :remark="remark"
+                  :can-save="canSaveRecords"
+                  @update:discount="discount = $event"
+                  @update:actual-amount="actualAmount = $event"
+                  @update:remark="remark = $event"
+                  @save="saveRecord"
+                  @print="handlePrintCurrent"
+                  @reset="resetCalculator"
+                />
+              </div>
+            </template>
 
-      <template v-else>
-        <MobilePanel />
-      </template>
+            <template v-else>
+              <MobilePanel />
+            </template>
 
-      <div class="history-section">
-        <h3>历史记录</h3>
-        <el-table :data="records" stripe size="small" :max-height="isMobile ? 200 : 300" empty-text="暂无费用记录">
-          <el-table-column :label="isMobile ? '时间' : '时间'" :width="isMobile ? 100 : 160">
-            <template #default="{ row }">
-              {{ formatDate(row.createdAt) }}
-            </template>
-          </el-table-column>
-          <el-table-column :label="isMobile ? '项目' : '项目'" :min-width="isMobile ? 100 : 250">
-            <template #default="{ row }">
-              <span v-for="(item, idx) in row.items" :key="idx">
-                {{ item.item }}×{{ item.quantity }};
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column :label="isMobile ? '实收' : '实收'" :width="isMobile ? 60 : 100">
-            <template #default="{ row }">
-              {{ row.actualAmount }}元
-            </template>
-          </el-table-column>
-          <el-table-column v-if="!isMobile" prop="remark" label="备注" min-width="150" />
-          <el-table-column v-if="!isMobile" label="操作人" width="100">
-            <template #default="{ row }">
-              {{ row.creator?.name || row.creatorId || '无' }}
-            </template>
-          </el-table-column>
-          <el-table-column v-if="!isMobile" label="操作" :width="canDeleteRecords ? 120 : 70">
-            <template #default="{ row }">
-              <el-button type="primary" size="small" link @click="handlePrintRecord(row)">打印</el-button>
-              <el-button v-if="canDeleteRecords" type="danger" size="small" link @click="handleDeleteRecord(row.id)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+            <div class="history-section">
+              <h3>历史记录</h3>
+              <el-table :data="records" stripe size="small" :max-height="isMobile ? 200 : 300" empty-text="暂无费用记录">
+                <el-table-column :label="isMobile ? '时间' : '时间'" :width="isMobile ? 100 : 160">
+                  <template #default="{ row }">
+                    {{ formatDate(row.createdAt) }}
+                  </template>
+                </el-table-column>
+                <el-table-column :label="isMobile ? '项目' : '项目'" :min-width="isMobile ? 100 : 250">
+                  <template #default="{ row }">
+                    <span v-for="(item, idx) in row.items" :key="idx">
+                      {{ item.item }}×{{ item.quantity }};
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column :label="isMobile ? '实收' : '实收'" :width="isMobile ? 60 : 100">
+                  <template #default="{ row }">
+                    {{ row.actualAmount }}元
+                  </template>
+                </el-table-column>
+                <el-table-column v-if="!isMobile" prop="remark" label="备注" min-width="150" />
+                <el-table-column v-if="!isMobile" label="操作人" width="100">
+                  <template #default="{ row }">
+                    {{ row.creator?.name || row.creatorId || '无' }}
+                  </template>
+                </el-table-column>
+                <el-table-column v-if="!isMobile" label="操作" :width="canDeleteRecords ? 120 : 70">
+                  <template #default="{ row }">
+                    <el-button type="primary" size="small" link @click="handlePrintRecord(row)">打印</el-button>
+                    <el-button v-if="canDeleteRecords" type="danger" size="small" link @click="handleDeleteRecord(row.id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="常规项目" name="performance">
+            <PerformanceStats />
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
 
@@ -137,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, computed, ref } from 'vue';
+import { defineAsyncComponent, computed, ref, onMounted } from 'vue';
 import { Setting, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import { useResponsive } from '@/composables';
@@ -148,6 +159,7 @@ import PeripheralServices from './components/PeripheralServices.vue';
 import ServiceOptions from './components/ServiceOptions.vue';
 import FeeResult from './components/FeeResult.vue';
 import PrintPreview from './components/PrintPreview.vue';
+import PerformanceStats from './PerformanceStats.vue';
 import { useFeeCalculator } from './composables/useFeeCalculator';
 import { generateDocumentNo, formatPrintDate, recordToPrintData, type PrintData } from './composables/usePrint';
 import type { FeeRecord, FeeSetting } from '@/api';
@@ -164,6 +176,8 @@ const canViewRecords = computed(() => hasPermission(userPermissions.value, 'fee:
 const canSaveRecords = computed(() => hasPermission(userPermissions.value, 'fee:save_records') || isAdmin.value);
 const canSettings = computed(() => hasPermission(userPermissions.value, 'fee:settings') || isAdmin.value);
 const canDeleteRecords = computed(() => hasPermission(userPermissions.value, 'fee:delete_records') || isAdmin.value);
+
+const activeTab = ref('fee');
 
 const {
   computerCount,
@@ -203,13 +217,13 @@ const {
   init,
 } = useFeeCalculator();
 
-init();
+onMounted(() => {
+  init();
+});
 
-// 打印功能
 const printPreviewRef = ref<InstanceType<typeof PrintPreview>>();
 const currentPrintData = ref<PrintData | null>(null);
 
-// 费用设置按类别分组
 const activeSettingsCategories = ref<string>('');
 
 const settingsByCategory = computed(() => {
@@ -312,6 +326,23 @@ const handleDeleteRecord = async (id: string) => {
   color: var(--text-secondary);
 }
 
+.tabs-wrapper {
+  width: 100%;
+}
+
+.tabs {
+  margin-bottom: 0;
+}
+
+:deep(.el-tabs__header) {
+  margin-bottom: 16px;
+}
+
+:deep(.el-tabs__item) {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .calculator-layout {
   display: flex;
   gap: 20px;
@@ -360,7 +391,6 @@ const handleDeleteRecord = async (id: string) => {
   padding-bottom: 8px;
 }
 
-/* Mobile Styles */
 .fee-calculator.is-mobile {
   padding: 12px;
 }

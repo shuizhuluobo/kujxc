@@ -20,6 +20,8 @@ export enum RoleCode {
     ADMIN = 'admin',
     BUSINESS = 'business',
     ENGINEER = 'engineer',
+    PROJECT_MANAGER = 'project_manager',
+    FINANCE = 'finance',
 }
 
 // ==================== 实体类型 ====================
@@ -297,3 +299,29 @@ export interface CreateWikiArticleDto {
 }
 
 export interface UpdateWikiArticleDto extends Partial<CreateWikiArticleDto> { }
+
+// ==================== 绩效统计类型 ====================
+export {
+    CalculationType,
+    CALCULATION_TYPE_LABELS,
+    RecordType,
+    RECORD_TYPE_LABELS,
+    QUANTITY_RECORD_TYPES,
+    DAILY_RECORD_TYPES,
+    WorkUnit,
+    WORK_UNIT_LABELS,
+    HOURS_PER_DAY,
+    formatWorkHours,
+    convertToHours,
+} from './performance';
+
+export type {
+    Project,
+    WorkRecord,
+    PerformanceResult,
+    MyPerformanceStats,
+    CreateProjectDto,
+    UpdateProjectDto,
+    CreateWorkRecordDto,
+    UpdateWorkRecordDto,
+} from './performance';

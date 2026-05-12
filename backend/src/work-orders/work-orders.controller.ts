@@ -41,7 +41,7 @@ export class WorkOrdersController {
   constructor(private readonly workOrdersService: WorkOrdersService) {}
 
   @Post()
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:create')
   @ApiOperation({ summary: '创建工单' })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -105,7 +105,7 @@ export class WorkOrdersController {
   }
 
   @Patch(':id')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:update')
   @ApiOperation({ summary: '更新工单' })
   update(
@@ -117,7 +117,7 @@ export class WorkOrdersController {
   }
 
   @Delete(':id')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:delete')
   @ApiOperation({ summary: '删除工单' })
   remove(
@@ -128,7 +128,7 @@ export class WorkOrdersController {
   }
 
   @Post(':id/receive')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:receive')
   @ApiOperation({ summary: '接收工单' })
   receive(
@@ -139,7 +139,7 @@ export class WorkOrdersController {
   }
 
   @Patch(':id/cancel-receive')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:receive')
   @ApiOperation({ summary: '取消接收工单' })
   cancelReceive(
@@ -150,7 +150,7 @@ export class WorkOrdersController {
   }
 
   @Post(':id/complete')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('workOrder:complete')
   @ApiOperation({ summary: '完成工单' })
   complete(

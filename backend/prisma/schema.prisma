@@ -1,10 +1,11 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Role {
@@ -28,7 +29,11 @@ model User {
   isActive            Boolean                 @default(true)
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
+  createdDevices      CustomerDevice[]
+  feeRecords          FeeRecord[]
   notifications       Notification[]
+  createdProjects     PerformanceProject[]
+  createdRecords      PerformanceRecord[]
   region              Region?                 @relation(fields: [regionId], references: [id])
   role                Role                    @relation(fields: [roleId], references: [id])
   wikiArticles        WikiArticle[]
@@ -37,24 +42,25 @@ model User {
   createdWorkOrders   WorkOrder[]             @relation("CreatorWorkOrders")
   receivedWorkOrders  WorkOrder[]             @relation("ReceiverWorkOrders")
   collaborations      WorkOrderCollaborator[]
-  feeRecords          FeeRecord[]
 
   @@index([roleId])
   @@index([regionId])
 }
 
 model Customer {
-  id         String      @id @default(uuid())
-  name       String
-  shortName  String?
-  namePinyin String?
-  nameInitials String?
-  contact    String?
-  phone      String?
-  address    String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  workOrders WorkOrder[]
+  id                 String              @id @default(uuid())
+  name               String
+  shortName          String?
+  namePinyin         String?
+  nameInitials       String?
+  contact            String?
+  phone              String?
+  address            String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  devices            CustomerDevice[]
+  performanceRecords PerformanceRecord[]
+  workOrders         WorkOrder[]
 
   @@index([shortName])
 }
@@ -179,8 +185,8 @@ model WikiArticle {
   author        User              @relation(fields: [authorId], references: [id])
   category      WikiCategory      @relation(fields: [categoryId], references: [id])
   likes         WikiArticleLike[]
-  tags          WikiTag[]         @relation("ArticleToTag")
   attachments   WikiAttachment[]
+  tags          WikiTag[]         @relation("ArticleToTag")
 }
 
 model WikiAttachment {
@@ -207,18 +213,6 @@ model WikiArticleLike {
   @@unique([userId, articleId])
 }
 
-enum WorkOrderStatus {
-  PENDING
-  RECEIVED
-  COMPLETED
-}
-
-enum ScoreLevel {
-  SIMPLE
-  NORMAL
-  COMPLEX
-}
-
 model FeeSetting {
   id          String   @id @default(uuid())
   category    String
@@ -236,17 +230,126 @@ model FeeSetting {
   @@index([category])
 }
 
+model PerformanceProject {
+  id                String              @id @default(uuid())
+  projectName       String
+  calculationType   CalculationType
+  totalQuantity     Int?
+  remark            String?
+  createdAt         DateTime            @default(now())
+  creatorId         String
+  deliveryUnitPrice Float               @default(0)
+  installUnitPrice  Float               @default(0)
+  debugUnitPrice    Float               @default(0)
+  dailyPrice        Float               @default(0)
+  deviceList        CustomerDevice[]
+  creator           User                @relation(fields: [creatorId], references: [id])
+  records           PerformanceRecord[]
+
+  @@index([creatorId])
+}
+
+model PerformanceRecord {
+  id              String             @id @default(uuid())
+  projectId       String
+  recordType      RecordType?
+  quantity        Int?
+  customerId      String?
+  workHours       Float?
+  description     String?
+  date            String
+  collaboratorIds String[]
+  includeRecorder Boolean            @default(true)
+  remark          String?
+  createdAt       DateTime           @default(now())
+  creatorId       String
+  deviceId        String?
+  creator         User               @relation(fields: [creatorId], references: [id])
+  customer        Customer?          @relation(fields: [customerId], references: [id])
+  device          CustomerDevice?    @relation(fields: [deviceId], references: [id])
+  project         PerformanceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([creatorId])
+}
+
+model CustomerDevice {
+  id               String              @id @default(uuid())
+  projectId        String
+  customerId       String
+  deviceName       String
+  expectedQuantity Int                 @default(0)
+  
+  // 送货阶段
+  deliveryQuantity Int                 @default(0)
+  deliveryBy       String?
+  deliveryAt       DateTime?
+  deliveryCollaborators String[]
+  
+  // 安装阶段
+  installQuantity  Int                 @default(0)
+  installBy        String?
+  installAt        DateTime?
+  installCollaborators String[]
+  
+  // 调试阶段
+  debugQuantity    Int                 @default(0)
+  debugBy          String?
+  debugAt          DateTime?
+  debugCollaborators String[]
+  
+  // 完成状态
+  isCompleted      Boolean             @default(false)
+  completedAt      DateTime?
+  
+  remark           String?
+  createdAt        DateTime            @default(now())
+  creatorId        String
+  creator          User                @relation(fields: [creatorId], references: [id])
+  customer         Customer            @relation(fields: [customerId], references: [id])
+  project          PerformanceProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records          PerformanceRecord[]
+
+  @@index([projectId])
+  @@index([customerId])
+  @@index([creatorId])
+}
+
 model FeeRecord {
-  id          String   @id @default(uuid())
-  items       Json
-  subtotal    Float
-  discount    Float    @default(0)
+  id           String   @id @default(uuid())
+  items        Json
+  subtotal     Float
+  discount     Float    @default(0)
   actualAmount Float
-  remark      String?
-  createdAt   DateTime @default(now())
-  creatorId   String?
-  creator     User?    @relation(fields: [creatorId], references: [id])
+  remark       String?
+  createdAt    DateTime @default(now())
+  creatorId    String?
+  creator      User?    @relation(fields: [creatorId], references: [id])
 
   @@index([createdAt])
   @@index([creatorId])
+}
+
+enum WorkOrderStatus {
+  PENDING
+  RECEIVED
+  COMPLETED
+}
+
+enum ScoreLevel {
+  SIMPLE
+  NORMAL
+  COMPLEX
+}
+
+enum CalculationType {
+  QUANTITY
+  DAILY
+}
+
+enum RecordType {
+  DELIVERY
+  INSTALL
+  DEBUG
+  CONSTRUCTION
 }

@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   UseGuards,
   Get,
+  SetMetadata,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -14,6 +15,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+
+// SSE端点使用query参数中的token自行验证，需跳过全局JwtAuthGuard和CsrfGuard
+const IS_PUBLIC_KEY = 'isPublic';
+const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 // SSE专用payload（短时效）
 @ApiTags('Events')
@@ -57,6 +62,7 @@ export class EventsController {
   }
 
   @Sse('sse')
+  @Public()
   @ApiOperation({ summary: 'Subscribe to server-sent events' })
   async sse(@Query('token') token: string): Promise<Observable<MessageEvent>> {
     // 严格验证 Token
