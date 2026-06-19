@@ -9,7 +9,7 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="filteredRegions" v-loading="loading" stripe class="card-premium" empty-text="暂无区域数据">
+    <el-table v-if="!isMobile" :data="filteredRegions" v-loading="loading" class="card-premium" empty-text="暂无区域数据">
       <el-table-column prop="name" label="区域名称" show-overflow-tooltip />
       <el-table-column prop="sortOrder" label="排序" width="80" />
       <el-table-column label="钉钉通知" width="100">
@@ -67,11 +67,6 @@
       </van-list>
       
       <el-empty v-else description="暂无区域" />
-
-      <!-- Floating Action Button -->
-      <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="var(--card-bg)" />
-      </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑区域' : '新增区域'" :width="isMobile ? '90%' : '450px'">
@@ -201,7 +196,7 @@ onMounted(fetchData);
 <style scoped>
 /* Mobile Optimizations */
 .admin-mobile-container {
-  padding-bottom: 80px; /* Space for FAB */
+  padding-bottom: 80px; /* 底部导航安全间距 */
   background: var(--bg-color);
   min-height: 100vh;
 }
@@ -227,26 +222,5 @@ onMounted(fetchData);
   background: var(--el-color-primary-light-9);
   border-radius: 8px;
   margin-right: 12px;
-}
-
-/* Floating Action Button */
-.fab-wrapper {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: var(--el-color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
-  z-index: 100;
-  transition: transform 0.2s;
-}
-
-.fab-wrapper:active {
-  transform: scale(0.95);
 }
 </style>

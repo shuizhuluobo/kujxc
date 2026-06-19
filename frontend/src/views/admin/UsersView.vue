@@ -9,7 +9,7 @@
     </div>
     
     <!-- Desktop Table -->
-    <el-table v-if="!isMobile" :data="paginatedUsers" v-loading="loading" stripe class="card-premium" empty-text="暂无用户数据">
+    <el-table v-if="!isMobile" :data="paginatedUsers" v-loading="loading" class="card-premium" empty-text="暂无用户数据">
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="name" label="姓名" width="120" />
       <el-table-column label="角色" width="100">
@@ -39,7 +39,7 @@
       </el-table-column>
     </el-table>
 
-    <div class="pagination-wrapper" v-if="!isMobile && total > 0">
+    <div class="pagination-container" v-if="!isMobile && total > 0">
       <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
@@ -117,11 +117,6 @@
               force-ellipses
            />
        </div>
-
-      <!-- Floating Action Button -->
-      <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="var(--card-bg)" />
-      </div>
     </div>
     
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑用户' : '新增用户'" :width="isMobile ? '90%' : '500px'">
@@ -418,7 +413,7 @@ onMounted(fetchData);
   }
 }
 
-.pagination-wrapper {
+.pagination-container {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
@@ -436,7 +431,7 @@ onMounted(fetchData);
 <style scoped>
 /* Mobile Optimizations */
 .admin-mobile-container {
-  padding-bottom: 80px; /* Space for FAB */
+  padding-bottom: 80px; /* 底部导航安全间距 */
   background: var(--bg-color);
   min-height: 100vh;
 }
@@ -500,7 +495,7 @@ onMounted(fetchData);
 
 .separator {
     margin: 0 8px;
-    color: var(--border-color-light);
+    color: var(--border-color-lighter);
 }
 
 .swipe-actions {
@@ -515,26 +510,5 @@ onMounted(fetchData);
     padding: 16px;
     display: flex;
     justify-content: center;
-}
-
-/* Floating Action Button */
-.fab-wrapper {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: var(--el-color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
-  z-index: 100;
-  transition: transform 0.2s;
-}
-
-.fab-wrapper:active {
-  transform: scale(0.95);
 }
 </style>

@@ -465,7 +465,7 @@ watch(localActiveTab, v => emit('update:activeTab', v));
   justify-content: center;
   align-items: center;
   position: relative;
-  border-bottom: 1px solid var(--border-color-light);
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 
 .mobile-popup-header h3 {
@@ -482,7 +482,7 @@ watch(localActiveTab, v => emit('update:activeTab', v));
 
 .mobile-popup-footer {
   padding: 16px;
-  border-top: 1px solid var(--border-color-light);
+  border-top: 1px solid var(--border-color-lighter);
 }
 
 /* 预设头像网格 */

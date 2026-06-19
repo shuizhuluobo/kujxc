@@ -1,7 +1,7 @@
 <template>
   <div class="history-work-orders-mobile">
     <!-- 页面标题和操作栏 -->
-    <div class="page-header" v-if="!hideTitle">
+    <div class="m-page-header" v-if="!hideTitle">
       <div class="header-content">
         <div class="header-left">
           <div class="header-row-top">
@@ -186,37 +186,37 @@
     <!-- 筛选状态显示 -->
     <div v-if="hasActiveFilters" class="filter-status">
       <div class="filter-status-content">
-        <div v-if="filter.statuses && filter.statuses.length > 0" class="filter-tag">
+        <div v-if="filter.statuses && filter.statuses.length > 0" class="filter-status-tag">
           {{ getStatusLabel(filter.statuses[0]) }}
-          <span class="filter-tag-close" @click="filter.statuses = []">×</span>
+          <van-icon name="cross" size="14" @click="filter.statuses = []" />
         </div>
-        <div v-if="filter.serviceTypeId" class="filter-tag">
+        <div v-if="filter.serviceTypeId" class="filter-status-tag">
           {{ getServiceTypeName(filter.serviceTypeId) }}
-          <span class="filter-tag-close" @click="filter.serviceTypeId = undefined">×</span>
+          <van-icon name="cross" size="14" @click="filter.serviceTypeId = undefined" />
         </div>
-        <div v-if="filter.regionId" class="filter-tag">
+        <div v-if="filter.regionId" class="filter-status-tag">
           {{ getRegionName(filter.regionId) }}
-          <span class="filter-tag-close" @click="filter.regionId = undefined">×</span>
+          <van-icon name="cross" size="14" @click="filter.regionId = undefined" />
         </div>
-        <div v-if="filter.keyword" class="filter-tag">
-          关键字:{{ filter.keyword }}
-          <span class="filter-tag-close" @click="filter.keyword = undefined">×</span>
+        <div v-if="filter.keyword" class="filter-status-tag">
+          关键词:{{ filter.keyword }}
+          <van-icon name="cross" size="14" @click="filter.keyword = undefined" />
         </div>
-        <div v-if="filter.completerId && !isMyOrders" class="filter-tag">
+        <div v-if="filter.completerId && !isMyOrders" class="filter-status-tag">
           {{ getCompleterName(filter.completerId) }}
-          <span class="filter-tag-close" @click="filter.completerId = undefined">×</span>
+          <van-icon name="cross" size="14" @click="filter.completerId = undefined" />
         </div>
-        <div v-if="isMyOrders" class="filter-tag">
+        <div v-if="isMyOrders" class="filter-status-tag">
           我的工单
-          <span class="filter-tag-close" @click="$emit('toggleMyOrders')">×</span>
+          <van-icon name="cross" size="14" @click="$emit('toggleMyOrders')" />
         </div>
-        <div v-if="localDateRange" class="filter-tag">
+        <div v-if="localDateRange" class="filter-status-tag">
           {{ localDateRange[0] }} ~ {{ localDateRange[1] }}
-          <span class="filter-tag-close" @click="localDateRange = null">×</span>
+          <van-icon name="cross" size="14" @click="localDateRange = null" />
         </div>
-      </div>
-      <div class="filter-status-reset" @click="$emit('resetFilters')">
-        清除筛选
+        <div class="filter-status-tag clear-all" @click="$emit('resetFilters')">
+          清除全部
+        </div>
       </div>
     </div>
 
@@ -225,30 +225,32 @@
       <el-skeleton :rows="6" animated />
     </div>
 
-    <!-- 卡片列表 -->
-    <div v-else class="card-list">
-      <WorkOrderCard
-        v-for="wo in workOrders"
-        :key="wo.id"
-        :work-order="wo"
-        :show-actions="false"
-      />
-      <el-empty v-if="workOrders.length === 0" description="暂无历史工单" />
-      
-      <!-- 加载更多 -->
-      <div v-if="hasMore" class="load-more">
-        <el-button text :loading="loadingMore" @click="$emit('loadMore')">
-          加载更多
-        </el-button>
-      </div>
-    </div>
+    <!-- 卡片列表：下拉刷新 + 无限滚动 -->
+    <van-pull-refresh v-else v-model="refreshing" @refresh="onRefresh" class="pull-refresh-container">
+      <van-list
+        v-model:loading="listLoading"
+        :finished="!hasMore"
+        :finished-text="workOrders.length === 0 ? '' : '没有更多了'"
+        @load="onLoad"
+      >
+        <div class="card-list">
+          <WorkOrderCard
+            v-for="wo in workOrders"
+            :key="wo.id"
+            :work-order="wo"
+            :show-actions="false"
+          />
+          <el-empty v-if="workOrders.length === 0 && !listLoading" description="暂无历史工单" />
+        </div>
+      </van-list>
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { Filter } from '@element-plus/icons-vue';
-import { Button as VanButton, Icon as VanIcon, Search as VanSearch } from 'vant';
+import { Button as VanButton, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder, WorkOrderFilterParams, User as UserType } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
@@ -281,6 +283,7 @@ const emit = defineEmits<{
   resetFilters: [];
   loadMore: [];
   fetchData: [];
+  refresh: [];
   'update:dateRange': [val: [string, string] | null];
 }>();
 
@@ -347,6 +350,25 @@ const localDateRange = ref(props.dateRange);
 watch(() => props.dateRange, v => localDateRange.value = v);
 watch(localDateRange, v => emit('update:dateRange', v));
 
+// 下拉刷新 + 无限滚动（复用父级 loadMore 逻辑）
+const refreshing = ref(false);
+const listLoading = ref(false);
+
+function onRefresh() {
+  emit('refresh');
+  refreshing.value = false;
+}
+
+function onLoad() {
+  if (props.hasMore) {
+    listLoading.value = true;
+    emit('loadMore');
+    setTimeout(() => {
+      listLoading.value = false;
+    }, 100);
+  }
+}
+
 // Expose showFilterDrawer for parent to open
 defineExpose({ showFilterDrawer });
 </script>
@@ -356,7 +378,7 @@ defineExpose({ showFilterDrawer });
   padding-bottom: 20px;
 }
 
-.page-header {
+.m-page-header {
   padding: 0 16px;
   padding-top: var(--safe-area-top);
   position: relative;
@@ -552,49 +574,9 @@ defineExpose({ showFilterDrawer });
   border-top: 1px solid var(--border-color-lighter);
 }
 
-/* 筛选状态显示 */
+/* 筛选状态显示（使用全局 .filter-status / .filter-status-tag） */
 .filter-status {
-  padding: 0 16px 8px;
-}
-
-.filter-status-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.filter-tag {
-  background: var(--bg-color-page);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.filter-tag-close {
-  color: var(--text-tertiary);
-  font-size: 14px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.filter-tag-close:hover {
-  color: var(--text-secondary);
-}
-
-.filter-status-reset {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--primary-color);
-  cursor: pointer;
-  text-align: center;
-}
-
-.filter-status-reset:hover {
-  text-decoration: underline;
+  padding: 0 16px 12px;
 }
 
 .loading-container {
@@ -604,11 +586,6 @@ defineExpose({ showFilterDrawer });
 }
 
 .card-list {
-  padding-bottom: 20px;
-}
-
-.load-more {
-  text-align: center;
-  padding: 12px;
+  padding: 0 16px 20px;
 }
 </style>

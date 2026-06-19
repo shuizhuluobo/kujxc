@@ -1,46 +1,7 @@
 <template>
   <div class="warehouse-project-panel">
-    <!-- 项目列表 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-title">公物仓项目</span>
-        <div class="sidebar-actions">
-          <el-button v-if="canCreateProject" type="primary" size="small" @click="$emit('createProject')">新增</el-button>
-        </div>
-      </div>
-      <div class="project-list">
-        <div
-          v-for="project in projects"
-          :key="project.id"
-          class="project-card"
-          :class="{ active: selectedProject?.id === project.id }"
-          @click="$emit('selectProject', project)"
-        >
-          <div class="card-row card-row-top">
-            <span class="card-name">{{ project.projectName }}</span>
-            <div class="card-actions" @click.stop v-if="canManageProject">
-              <el-button size="small" text type="primary" @click="(e) => { e.stopPropagation(); $emit('editProject', project); }">
-                <el-icon><EditPen /></el-icon>
-              </el-button>
-              <el-popconfirm title="确定删除该项目？" @confirm="$emit('deleteProject', project)" confirm-button-text="确定" cancel-button-text="取消">
-                <template #reference>
-                  <el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button>
-                </template>
-              </el-popconfirm>
-            </div>
-          </div>
-          <div class="card-row card-row-bottom">
-            <span class="card-date">{{ formatDate(project.createdAt) }}</span>
-          </div>
-        </div>
-        <div v-if="projects.length === 0" class="empty-hint">
-          <p>暂无公物仓项目</p>
-        </div>
-      </div>
-    </aside>
-
-    <!-- 主内容区 -->
-    <main class="main-content" v-if="selectedProject">
+    <!-- 主内容区：直接显示费用计算器 + 历史记录 -->
+    <main class="main-content">
       <!-- 费用计算 -->
       <section class="panel">
         <div class="panel-header">
@@ -237,38 +198,26 @@
       <!-- 打印预览 -->
       <PrintPreview ref="printPreviewRef" :data="printData" />
     </main>
-
-    <!-- 空状态 -->
-    <main class="main-content empty" v-else>
-      <div class="empty-placeholder">
-        <p>← 从左侧选择一个公物仓项目</p>
-      </div>
-    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { EditPen, Delete } from '@element-plus/icons-vue';
 import ComputerServices from './ComputerServices.vue';
 import PeripheralServices from './PeripheralServices.vue';
 import ServiceOptions from './ServiceOptions.vue';
 import FeeResult from './FeeResult.vue';
 import PrintPreview from './PrintPreview.vue';
 import { generateDocumentNo, formatPrintDate, type PrintData } from '../composables/usePrint';
-import type { Project, User, Customer } from '@/types';
+import type { User, Customer } from '@/types';
 import type { FeeSetting, FeeRecord } from '@/api';
 
 const props = defineProps<{
-  projects: Project[];
-  selectedProject: Project | null;
   feeRecords: FeeRecord[];
   users: User[];
   customers: Customer[];
-  canCreateProject: boolean;
   canManageProject: boolean;
-  canViewPerformance: boolean;
   feeComputerCount: number;
   feeComputerServiceMap: Record<string, any>;
   feeAdditionalFeeEnabled: boolean;
@@ -296,10 +245,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  selectProject: [project: Project];
-  createProject: [];
-  editProject: [project: Project];
-  deleteProject: [project: Project];
   'update:feeComputerCount': [value: number];
   'update:feeAdditionalFeeEnabled': [value: boolean];
   'update:feeAdditionalFeeAmount': [value: number];
@@ -408,60 +353,10 @@ const formatFeeDate = (dateStr: string) => {
 
 <style scoped>
 .warehouse-project-panel {
-  display: flex;
-  height: calc(100vh - 120px);
-  gap: 0;
   background: #f5f7fa;
 }
 
-.sidebar {
-  width: 280px;
-  flex-shrink: 0;
-  background: #fff;
-  border-right: 1px solid #e8ecf0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f2f5;
-  background: #fafbfc;
-}
-
-.sidebar-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
-.sidebar-actions { display: flex; gap: 8px; }
-.project-list { flex: 1; overflow-y: auto; padding: 12px; }
-
-.project-card {
-  padding: 10px 14px;
-  margin-bottom: 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1.5px solid transparent;
-  background: #fff;
-}
-
-.project-card:hover { background: #f8fafc; border-color: #e2e8f0; }
-.project-card.active { background: linear-gradient(135deg, #eff6ff, #f0fdf4); border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08); }
-
-.card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card-row-top { margin-bottom: 6px; }
-.card-row-bottom { font-size: 12px; }
-.card-name { font-size: 14px; font-weight: 500; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.card-date { font-size: 12px; color: #94a3b8; }
-.card-actions { opacity: 0; transition: opacity 0.2s; flex-shrink: 0; display: flex; gap: 2px; }
-.project-card:hover .card-actions { opacity: 1; }
-.empty-hint { text-align: center; padding: 48px 20px; color: #94a3b8; font-size: 13px; }
-
-.main-content { flex: 1; overflow-y: auto; padding: 24px 28px; background: #f5f7fa; }
-.main-content.empty { display: flex; align-items: center; justify-content: center; color: #94a3b8; background: transparent; }
-.empty-placeholder p { font-size: 15px; }
+.main-content { padding: 24px 28px; background: #f5f7fa; }
 
 .panel { background: #fff; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); overflow: hidden; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }

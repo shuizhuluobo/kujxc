@@ -214,7 +214,7 @@
       </div>
       <div class="result-right">
         <el-button size="default" @click="showDetailDrawer = true">明细</el-button>
-        <el-button type="primary" size="default" @click="saveRecord" :disabled="selectedItems.length === 0">保存</el-button>
+        <el-button type="primary" size="default" @click="handleSave" :disabled="selectedItems.length === 0">保存</el-button>
       </div>
     </div>
 
@@ -245,7 +245,7 @@
         <el-input v-model="remark" type="textarea" :rows="2" placeholder="备注（可选）" style="margin-top: 12px;" />
         <div class="detail-actions">
           <el-button @click="resetCalculator" style="flex: 1;">重置</el-button>
-          <el-button type="primary" @click="saveRecord" :disabled="selectedItems.length === 0" style="flex: 1;">保存记录</el-button>
+          <el-button type="primary" @click="handleSave" :disabled="selectedItems.length === 0" style="flex: 1;">保存记录</el-button>
         </div>
       </div>
     </el-drawer>
@@ -262,6 +262,10 @@ import type { Customer } from '@/types';
 const props = defineProps<{
   projectId?: string;
   customers?: Customer[];
+}>();
+
+const emit = defineEmits<{
+  saved: [];
 }>();
 
 const showDetailDrawer = ref(false);
@@ -298,6 +302,12 @@ const {
   resetCalculator,
   init,
 } = useFeeCalculator();
+
+// 包装保存：成功后通知父组件刷新费用记录列表
+const handleSave = async () => {
+  const ok = await saveRecord();
+  if (ok) emit('saved');
+};
 
 // 折叠状态
 const expandedSections = reactive<Record<string, boolean>>({

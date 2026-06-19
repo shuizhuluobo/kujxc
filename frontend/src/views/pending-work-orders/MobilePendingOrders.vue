@@ -1,7 +1,7 @@
 <template>
   <div class="pending-work-orders-mobile">
     <!-- 页面标题和操作栏 -->
-    <div class="page-header">
+    <div class="m-page-header">
       <div class="header-content">
         <div class="header-left">
           <div class="header-row-top">
@@ -349,7 +349,7 @@ function onRefresh() {
   padding-bottom: 20px;
 }
 
-.page-header {
+.m-page-header {
   padding: 0 16px;
   padding-top: var(--safe-area-top);
   position: relative;

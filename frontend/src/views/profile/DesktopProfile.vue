@@ -1,5 +1,12 @@
 <template>
   <div>
+    <!-- 页面标题栏 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2>个人中心</h2>
+      </div>
+    </div>
+
     <div class="profile-cards">
       <!-- 用户信息卡片 -->
       <div class="card profile-card">

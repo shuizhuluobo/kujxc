@@ -487,17 +487,17 @@ export function useFeeCalculator() {
     }
   };
 
-  const saveRecord = async () => {
+  const saveRecord = async (): Promise<boolean> => {
     if (selectedItems.value.length === 0) {
       ElMessage.closeAll();
       ElMessage.warning('请选择服务项目');
-      return;
+      return false;
     }
     // 公物仓项目场景下客户为必填
     if (currentProjectId.value && !selectedCustomerId.value) {
       ElMessage.closeAll();
       ElMessage.warning('请选择客户');
-      return;
+      return false;
     }
     try {
       const items = selectedItems.value.map(s => ({
@@ -518,15 +518,17 @@ export function useFeeCalculator() {
       if (currentProjectId.value) {
         await performanceApi.saveFeeRecord(currentProjectId.value, payload);
       } else {
-        await api.post('/fee/records', payload);
+        await performanceApi.saveWarehouseFeeRecord(payload);
       }
       ElMessage.closeAll();
       ElMessage.success('记录已保存');
       loadRecords();
       resetCalculator();
+      return true;
     } catch (e: any) {
       ElMessage.closeAll();
       ElMessage.error(e?.response?.data?.message || '保存失败');
+      return false;
     }
   };
 
@@ -574,10 +576,8 @@ export function useFeeCalculator() {
         records.value = Array.isArray(data) ? data : data.data;
         return;
       }
-      const res = await api.get('/fee/records');
-      const result = res.data as FeeRecordsResult | FeeRecord[];
-      // 兼容新旧接口格式
-      records.value = Array.isArray(result) ? result : (result as FeeRecordsResult).data;
+      const res = await performanceApi.getWarehouseFeeRecords();
+      records.value = Array.isArray(res.data) ? res.data : [];
     } catch (e: any) {
       console.error('Load records error:', e);
     }

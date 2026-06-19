@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <el-table v-if="!isMobile" :data="roles" v-loading="loading" stripe class="card-premium" empty-text="暂无角色数据">
+    <el-table v-if="!isMobile" :data="roles" v-loading="loading" class="card-premium" empty-text="暂无角色数据">
       <el-table-column prop="name" label="角色名称" width="150" show-overflow-tooltip />
       <el-table-column prop="code" label="角色代码" width="120" show-overflow-tooltip />
       <el-table-column label="权限数量" width="100">
@@ -76,11 +76,6 @@
       </van-list>
       
       <el-empty v-else description="暂无角色" />
-
-      <!-- Floating Action Button -->
-      <div class="fab-wrapper" @click="handleCreate">
-        <van-icon name="plus" size="24" color="var(--card-bg)" />
-      </div>
     </div>
 
     <el-dialog
@@ -462,8 +457,10 @@ onMounted(fetchData);
 }
 
 .page-header h2 {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
 }
 
 .permission-matrix-section {
@@ -594,7 +591,7 @@ onMounted(fetchData);
 <style scoped>
 /* Mobile Optimizations */
 .admin-mobile-container {
-  padding-bottom: 80px; /* Space for FAB */
+  padding-bottom: 80px; /* 底部导航安全间距 */
   background: var(--bg-color);
   min-height: 100vh;
 }
@@ -602,12 +599,13 @@ onMounted(fetchData);
 .mobile-header {
   background: var(--card-bg);
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color-light);
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 .mobile-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .admin-list {
@@ -646,26 +644,5 @@ onMounted(fetchData);
 
 .swipe-btn {
   height: 100%;
-}
-
-/* Floating Action Button */
-.fab-wrapper {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: var(--el-color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
-  z-index: 100;
-  transition: transform 0.2s;
-}
-
-.fab-wrapper:active {
-  transform: scale(0.95);
 }
 </style>

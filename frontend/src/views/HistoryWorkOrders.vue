@@ -38,6 +38,7 @@
       @toggle-my-orders="toggleMyOrders"
       @reset-filters="resetFilters"
       @load-more="loadMore"
+      @refresh="fetchData"
       @fetch-data="fetchData"
       @update:date-range="dateRange = $event"
     />
@@ -126,8 +127,10 @@ onUnmounted(() => {
 }
 
 .page-header h2 {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
 }
 
 .header-actions {

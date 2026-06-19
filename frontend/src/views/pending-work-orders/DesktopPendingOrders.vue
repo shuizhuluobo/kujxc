@@ -391,25 +391,7 @@ onMounted(() => {
 }
 
 .status-tag {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-tag.pending {
-  background-color: var(--el-color-warning-light-9);
-  color: var(--el-color-warning);
-}
-
-.status-tag.received {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-}
-
-.status-tag.completed {
-  background-color: var(--el-color-success-light-9);
-  color: var(--el-color-success);
+  /* 使用全局 .status-tag（定义于 style.css），此处保留 class 绑定兼容 */
 }
 
 .cell-info {
@@ -443,19 +425,5 @@ onMounted(() => {
 .empty-state {
   padding: 60px 20px;
   text-align: center;
-}
-
-/* Card Premium Effect */
-.card-premium {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-color-light);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card-premium:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  border-color: var(--el-color-primary-light-5);
 }
 </style>

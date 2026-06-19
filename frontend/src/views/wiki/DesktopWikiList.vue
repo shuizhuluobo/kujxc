@@ -1,14 +1,15 @@
 <template>
   <div class="wiki-desktop">
-    <!-- 头部区域 -->
-    <div class="wiki-hero">
-      <div class="hero-content">
-        <h1 class="hero-title">
-          <el-icon><Reading /></el-icon>
-          <span>知识库</span>
-        </h1>
-        <p class="hero-subtitle">分享技术经验，沉淀团队知识</p>
+    <!-- 页面标题栏 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2>知识库</h2>
+        <span class="header-subtitle">分享技术经验，沉淀团队知识</span>
       </div>
+      <el-button type="primary" @click="$emit('create')" class="create-btn">
+        <el-icon><Edit /></el-icon>
+        <span class="btn-text">写文章</span>
+      </el-button>
     </div>
 
     <div class="wiki-layout">
@@ -67,7 +68,7 @@
 
       <!-- 右侧内容 -->
       <div class="wiki-main">
-        <!-- 操作栏 -->
+        <!-- 操作信息栏 -->
         <div class="action-bar">
           <div class="action-info">
             <div class="current-category">
@@ -82,10 +83,6 @@
             </div>
             <span class="total-count">共 {{ total }} 篇</span>
           </div>
-          <el-button type="primary" @click="$emit('create')" class="create-btn">
-            <el-icon><Edit /></el-icon>
-            <span class="btn-text">写文章</span>
-          </el-button>
         </div>
 
         <!-- 加载骨架屏 -->
@@ -151,7 +148,7 @@
         </div>
 
         <!-- 分页 -->
-        <div class="pagination-wrapper" v-if="total > pagination.pageSize">
+        <div class="pagination-container" v-if="total > pagination.pageSize">
           <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.pageSize"
@@ -212,35 +209,15 @@ function getSummary(content: string) {
   padding-bottom: 80px;
 }
 
-/* Hero 头部 */
-.wiki-hero {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #667eea 100%);
-  padding: 48px 24px;
-  text-align: center;
-  margin-bottom: 32px;
-  border-radius: 0 0 24px 24px;
+/* 页面标题栏副标题 */
+.page-header .header-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
-.hero-content {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.hero-title {
-  margin: 0 0 12px;
-  font-size: 36px;
-  font-weight: 700;
-  color: var(--card-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.hero-subtitle {
-  margin: 0;
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.85);
+.page-header .create-btn .btn-text {
+  margin-left: 4px;
 }
 
 /* 布局 */
@@ -393,12 +370,12 @@ function getSummary(content: string) {
 .card-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, hsl(239, 74%, 60%) 0%, hsl(280, 40%, 48%) 100%);
+  background: rgba(var(--primary-rgb), 0.1);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--card-bg);
+  color: var(--primary-color);
   font-size: 24px;
   flex-shrink: 0;
 }
@@ -512,12 +489,9 @@ function getSummary(content: string) {
   min-height: 300px;
 }
 
-/* 分页 */
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
+/* 分页（使用全局 .pagination-container 右对齐） */
+.pagination-container {
   margin-top: 32px;
-  padding-top: 24px;
 }
 
 /* 响应式设计 */
@@ -529,20 +503,6 @@ function getSummary(content: string) {
 
   .wiki-sidebar {
     display: none;
-  }
-
-  .wiki-hero {
-    padding: 32px 16px;
-    margin-bottom: 20px;
-    border-radius: 0 0 16px 16px;
-  }
-
-  .hero-title {
-    font-size: 28px;
-  }
-
-  .hero-subtitle {
-    font-size: 14px;
   }
 
   .action-bar {
@@ -628,27 +588,12 @@ function getSummary(content: string) {
     gap: 14px;
   }
 
-  .pagination-wrapper {
+  .pagination-container {
     margin-top: 24px;
-    padding-top: 16px;
-  }
-
-  .empty-state {
-    min-height: 250px;
-    padding: 24px;
   }
 }
 
 @media (max-width: 480px) {
-  .hero-title {
-    font-size: 24px;
-    gap: 8px;
-  }
-
-  .hero-subtitle {
-    font-size: 13px;
-  }
-
   .article-card {
     padding: 14px;
     gap: 12px;

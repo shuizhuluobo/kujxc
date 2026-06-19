@@ -50,18 +50,21 @@
         size="default"
         style="width: 240px"
       />
-      <el-input 
-        v-model="filter.keyword" 
+      <el-input
+        v-model="filter.keyword"
         placeholder="搜索"
         :prefix-icon="Search"
         clearable
         size="default"
         style="width: 180px"
       />
+      <div class="filter-actions">
+        <el-button @click="$emit('resetFilters')">重置</el-button>
+      </div>
     </div>
 
     <!-- 表格 -->
-    <el-table :data="workOrders" class="card-premium">
+    <el-table v-if="workOrders.length > 0" :data="workOrders" class="work-order-table card-premium" empty-text="暂无历史工单">
       <el-table-column label="客户" width="140">
         <template #default="{ row }">
           <span style="font-size: 16px; font-weight: 600">{{ getCustomerDisplayName(row.customer) }}</span>
@@ -116,9 +119,14 @@
         </template>
       </el-table-column>
     </el-table>
-    
+
+    <!-- 空状态 -->
+    <div v-else-if="!loading" class="empty-state card-premium">
+      <el-empty description="暂无历史工单" />
+    </div>
+
     <!-- 分页 -->
-    <div class="pagination-wrapper">
+    <div class="pagination-container" v-if="total > 0">
       <el-pagination
         v-model:current-page="filter.page"
         v-model:page-size="filter.pageSize"
@@ -165,6 +173,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   fetchData: [];
+  resetFilters: [];
   'update:dateRange': [val: [string, string] | null];
 }>();
 
@@ -196,10 +205,8 @@ watch(localDateRange, v => emit('update:dateRange', v));
   min-height: 32px !important;
 }
 
-.pagination-wrapper {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
+.filter-bar .filter-actions {
+  margin-left: auto;
 }
 
 .cell-info {
@@ -209,7 +216,8 @@ watch(localDateRange, v => emit('update:dateRange', v));
 
 .cell-info .time {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .text-muted {
@@ -229,7 +237,7 @@ watch(localDateRange, v => emit('update:dateRange', v));
 
 .collaborator-tag {
   padding: 2px 8px;
-  background: var(--bg-secondary);
+  background: var(--bg-color-page);
   border-radius: 4px;
   font-size: 12px;
   color: var(--text-secondary);

@@ -1,17 +1,27 @@
 <template>
-  <div class="mobile-projects">
+  <div class="mobile-projects m-page-root">
     <!-- 项目列表 -->
-    <div class="project-list" v-if="!selectedProject">
-      <div class="list-header">
-        <div class="title-group">
-          <h2>项目列表</h2>
-          <el-button
-            size="small"
-            :type="warehouseOnly ? 'warning' : 'default'"
-            @click="warehouseOnly = !warehouseOnly"
-          >公物仓</el-button>
+    <div class="project-list" v-if="!selectedProject && !warehouseMode">
+      <div class="m-page-header">
+        <div class="header-content">
+          <div class="header-left">
+            <div class="header-row-top">
+              <h2>项目</h2>
+              <div class="stats-tag">
+                <el-button
+                  size="small"
+                  type="warning"
+                  @click="enterWarehouseMode"
+                >公物仓</el-button>
+              </div>
+              <div class="header-right" v-if="canCreateProject">
+                <el-button type="primary" size="small" circle @click="openCreateProjectDrawer">
+                  <el-icon><Plus /></el-icon>
+                </el-button>
+              </div>
+            </div>
+          </div>
         </div>
-        <el-button v-if="canCreateProject" type="primary" size="small" @click="openCreateProjectDrawer">新增</el-button>
       </div>
 
       <div class="search-bar" v-if="projects.length > 5">
@@ -62,42 +72,30 @@
       </div>
     </div>
 
-    <!-- 项目详情 -->
-    <div class="project-detail" v-else>
+    <!-- 公物仓费用计算（独立视图，不依赖项目选择） -->
+    <div class="project-detail" v-else-if="warehouseMode">
       <div class="detail-header">
-        <el-button text @click="handleDeselectProject" class="back-btn">
+        <el-button text @click="exitWarehouseMode" class="back-btn">
           <el-icon><ArrowLeft /></el-icon> 返回
         </el-button>
-        <div class="header-actions" v-if="canManageProject || canCreateProject">
-          <el-button v-if="canManageProject" size="small" text type="primary" @click="openEditProjectDrawer(selectedProject)">
-            <el-icon><EditPen /></el-icon>
+        <div class="header-actions" v-if="canManageProject">
+          <el-button size="small" text type="primary" @click="showFeeSettings = true">
+            <el-icon><Setting /></el-icon>
           </el-button>
-          <el-popconfirm v-if="canManageProject" title="确定删除该项目？" @confirm="handleDeleteProject(selectedProject)" confirm-button-text="确定" cancel-button-text="取消">
-            <template #reference>
-              <el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button>
-            </template>
-          </el-popconfirm>
         </div>
       </div>
 
       <div class="detail-title">
-        <h2>{{ selectedProject.projectName }}</h2>
-        <el-tag size="small" :type="getCalcTagType(selectedProject.calculationType)">
-          {{ CALCULATION_TYPE_LABELS[selectedProject.calculationType] }}
-        </el-tag>
+        <h2>公物仓费用计算</h2>
       </div>
 
-      <!-- 公物仓费用计算 -->
-      <div class="section" v-if="selectedProject.calculationType === CalculationType.WAREHOUSE">
-        <div class="section-header">
-          <h3>费用计算</h3>
-          <el-button v-if="canManageProject" size="small" @click="showFeeSettings = true">设置</el-button>
-        </div>
-        <MobileFeeCalculator :project-id="selectedProject.id" :customers="customers" />
+      <!-- 费用计算器 -->
+      <div class="section">
+        <MobileFeeCalculator project-id="" :customers="customers" @saved="loadGlobalFeeRecords" />
       </div>
 
-      <!-- 公物仓历史记录 -->
-      <div class="section" v-if="selectedProject.calculationType === CalculationType.WAREHOUSE && feeRecords.length > 0">
+      <!-- 费用记录 -->
+      <div class="section" v-if="feeRecords.length > 0">
         <div class="section-header">
           <h3>费用记录</h3>
         </div>
@@ -125,6 +123,32 @@
             <span>加载更多（{{ feeRecords.length - feeDisplayCount }} 条）</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 项目详情 -->
+    <div class="project-detail" v-else>
+      <div class="detail-header">
+        <el-button text @click="handleDeselectProject" class="back-btn">
+          <el-icon><ArrowLeft /></el-icon> 返回
+        </el-button>
+        <div class="header-actions" v-if="canManageProject || canCreateProject">
+          <el-button v-if="canManageProject" size="small" text type="primary" @click="openEditProjectDrawer(selectedProject)">
+            <el-icon><EditPen /></el-icon>
+          </el-button>
+          <el-popconfirm v-if="canManageProject" title="确定删除该项目？" @confirm="handleDeleteProject(selectedProject)" confirm-button-text="确定" cancel-button-text="取消">
+            <template #reference>
+              <el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button>
+            </template>
+          </el-popconfirm>
+        </div>
+      </div>
+
+      <div class="detail-title">
+        <h2>{{ selectedProject.projectName }}</h2>
+        <el-tag size="small" :type="getCalcTagType(selectedProject.calculationType)">
+          {{ CALCULATION_TYPE_LABELS[selectedProject.calculationType] }}
+        </el-tag>
       </div>
 
       <!-- 设备清单（按量）- 默认折叠 -->
@@ -497,7 +521,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { ArrowLeft, ArrowRight, EditPen, Delete, Minus, Plus } from '@element-plus/icons-vue';
+import { ArrowLeft, ArrowRight, EditPen, Delete, Minus, Plus, Setting } from '@element-plus/icons-vue';
 import { useProjects } from './composables/useProjects';
 import { useWorkRecords } from './composables/useWorkRecords';
 import { useDevices } from './composables/useDevices';
@@ -577,13 +601,13 @@ const {
 
 const {
   feeRecords,
-  loadProjectFeeRecords,
+  loadGlobalFeeRecords,
   formatFeeDate,
 } = useFeeRecords();
 
 // ============ 本地状态 ============
 const searchText = ref('');
-const warehouseOnly = ref(false);
+const warehouseMode = ref(false);
 const deviceExpanded = ref(false);
 const expandedRecordIds = ref<Set<string>>(new Set());
 const showProjectDrawer = ref(false);
@@ -598,9 +622,6 @@ const activeSettingsCategory = ref<string>('');
 // ============ 列表过滤 ============
 const filteredProjects = computed(() => {
   let list = projects.value;
-  if (warehouseOnly.value) {
-    list = list.filter(p => p.calculationType === CalculationType.WAREHOUSE);
-  }
   if (!searchText.value) return list;
   const kw = searchText.value.toLowerCase();
   return list.filter(p => p.projectName.toLowerCase().includes(kw));
@@ -711,20 +732,27 @@ const toggleRecordExpand = (id: string) => {
 // ============ 项目操作 ============
 const handleSelectProject = async (project: Project) => {
   selectProject(project);
-  if (project.calculationType === CalculationType.WAREHOUSE) {
-    await loadProjectFeeRecords(project.id);
-  } else {
-    await Promise.all([
-      loadRecords(project.id),
-      loadStats(project.id),
-      loadMyStats(project.id),
-      loadDevices(project.id),
-    ]);
-  }
+  await Promise.all([
+    loadRecords(project.id),
+    loadStats(project.id),
+    loadMyStats(project.id),
+    loadDevices(project.id),
+  ]);
 };
 
 const handleDeselectProject = () => {
   deselectProject();
+};
+
+// ============ 公物仓模式（独立视图，不依赖项目） ============
+const enterWarehouseMode = async () => {
+  warehouseMode.value = true;
+  feeDisplayCount.value = FEE_PAGE;
+  await loadGlobalFeeRecords();
+};
+
+const exitWarehouseMode = () => {
+  warehouseMode.value = false;
 };
 
 const openCreateProjectDrawer = () => {
@@ -847,26 +875,21 @@ onMounted(async () => {
   padding-bottom: 16px;
 }
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 4px;
-  margin-bottom: 12px;
+/* 页头使用全局 .m-page-header */
+.m-page-header .header-row-top {
+  padding: 8px 0 4px;
 }
 
-.list-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
-.title-group { display: flex; align-items: center; gap: 8px; }
-.search-bar { margin-bottom: 12px; }
-.cards { display: flex; flex-direction: column; gap: 10px; }
+.search-bar { margin: 0 16px 12px; }
+.cards { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
 
 .project-card {
   background: var(--card-bg, #fff);
   border-radius: 12px;
   padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.2s var(--ease-out, ease), box-shadow 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
   border: 1px solid var(--border-color-lighter, #f0f0f0);
 }
 

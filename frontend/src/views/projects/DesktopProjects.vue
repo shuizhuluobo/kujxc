@@ -1,5 +1,12 @@
 <template>
   <div class="desktop-projects">
+    <!-- 页面标题栏 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2>项目</h2>
+      </div>
+    </div>
+
     <el-tabs v-model="activeTab" type="card" class="tabs">
       <!-- 常规项目 -->
       <el-tab-pane label="常规项目" name="performance">
@@ -73,14 +80,10 @@
       <!-- 公物仓项目 -->
       <el-tab-pane label="公物仓" name="warehouse">
         <WarehouseProjectPanel
-          :projects="warehouseProjects"
-          :selected-project="selectedProject"
           :fee-records="feeRecords"
           :users="users"
           :customers="customers"
-          :can-create-project="canCreateProject"
           :can-manage-project="canManageProject"
-          :can-view-performance="canViewPerformance"
           :fee-computer-count="feeComputerCount"
           :fee-computer-service-map="feeComputerServiceMap"
           :fee-additional-fee-enabled="feeAdditionalFeeEnabled"
@@ -105,10 +108,6 @@
           :show-fee-settings="showFeeSettings"
           :settings-by-category="settingsByCategory"
           :active-settings-categories="activeSettingsCategories"
-          @select-project="handleSelectProject"
-          @create-project="openCreateProjectModal"
-          @edit-project="openEditProjectModal"
-          @delete-project="handleDeleteProject"
           @update:fee-computer-count="feeComputerCount = $event"
           @update:fee-additional-fee-enabled="feeAdditionalFeeEnabled = $event"
           @update:fee-additional-fee-amount="feeAdditionalFeeAmount = $event"
@@ -238,7 +237,6 @@ const {
   additionalFeeEnabled: feeAdditionalFeeEnabled,
   additionalFeeAmount: feeAdditionalFeeAmount,
   additionalFeeRemark: feeAdditionalFeeRemark,
-  currentProjectId: feeCurrentProjectId,
   selectedCustomerId: feeSelectedCustomerId,
   peripheralInstallServices: feePeripheralInstallServices,
   peripheralRecycleServices: feePeripheralRecycleServices,
@@ -266,9 +264,9 @@ const {
   collaboratorIds: feeCollaboratorIds,
   settingsByCategory,
   activeSettingsCategories,
-  loadProjectFeeRecords,
-  saveProjectFeeRecord,
-  deleteProjectFeeRecord,
+  loadGlobalFeeRecords,
+  saveGlobalFeeRecord,
+  deleteGlobalFeeRecord,
   formatFeeDate,
 } = useFeeRecords();
 
@@ -283,26 +281,17 @@ const showImportModal = ref(false);
 const filteredProjects = computed(() =>
   projects.value.filter(p => p.calculationType !== CalculationType.WAREHOUSE),
 );
-const warehouseProjects = computed(() =>
-  projects.value.filter(p => p.calculationType === CalculationType.WAREHOUSE),
-);
 
 // ============ 项目操作 ============
 const handleSelectProject = async (project: Project) => {
   selectProject(project);
-  feeCurrentProjectId.value = project.id;
-  feeSelectedCustomerId.value = '';
   currentPage.value = 1;
-  if (project.calculationType === CalculationType.WAREHOUSE) {
-    await loadProjectFeeRecords(project.id);
-  } else {
-    await Promise.all([
-      loadRecords(project.id),
-      loadStats(project.id),
-      loadMyStats(project.id),
-      loadDevices(project.id),
-    ]);
-  }
+  await Promise.all([
+    loadRecords(project.id),
+    loadStats(project.id),
+    loadMyStats(project.id),
+    loadDevices(project.id),
+  ]);
 };
 
 const openCreateProjectModal = () => {
@@ -438,9 +427,8 @@ const handleConfirmImport = async () => {
   if (ok) showImportModal.value = false;
 };
 
-// ============ 公物仓费用记录操作 ============
+// ============ 公物仓费用记录操作（全局，不依赖项目） ============
 const handleSaveFeeRecord = async () => {
-  if (!selectedProject.value) return;
   if (feeSelectedItems.value.length === 0) return;
   if (!feeSelectedCustomerId.value) return;
   const items = feeSelectedItems.value.map(s => ({
@@ -450,7 +438,7 @@ const handleSaveFeeRecord = async () => {
     unitPrice: s.quantity > 0 ? s.total / s.quantity : s.total,
     total: s.total,
   }));
-  const ok = await saveProjectFeeRecord(selectedProject.value.id, {
+  const ok = await saveGlobalFeeRecord({
     items,
     subtotal: feeSubtotal.value,
     discount: feeDiscount.value,
@@ -465,8 +453,7 @@ const handleSaveFeeRecord = async () => {
 };
 
 const handleDeleteFeeRecord = async (recordId: string) => {
-  if (!selectedProject.value) return;
-  await deleteProjectFeeRecord(selectedProject.value.id, recordId);
+  await deleteGlobalFeeRecord(recordId);
 };
 
 const handleFeeReset = () => {
@@ -479,13 +466,16 @@ const handleFeeReset = () => {
 
 // ============ 生命周期 ============
 onMounted(async () => {
-  await Promise.all([loadProjects(), loadUsersAndCustomers(), feeInit()]);
+  await Promise.all([loadProjects(), loadUsersAndCustomers(), feeInit(), loadGlobalFeeRecords()]);
 });
 
 // 切换 tab 时如果切回项目页且没有数据，重新加载
 watch(activeTab, async (val) => {
   if (val === 'performance' && projects.value.length === 0) {
     await loadProjects();
+  }
+  if (val === 'warehouse' && feeRecords.value.length === 0) {
+    await loadGlobalFeeRecords();
   }
 });
 </script>

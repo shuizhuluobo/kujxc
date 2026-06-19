@@ -16,6 +16,7 @@ import router from './router';
 import './style.css';
 import './styles/element-overrides.css';
 import './styles/vant-overrides.css';
+import './styles/shared-modules.css';
 
 // 抑制 Element Plus 内部字段验证产生的控制台警告
 // Element Plus 在字段验证失败时通过 console.warn 输出 {fieldName: [error]} 对象
