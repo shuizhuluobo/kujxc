@@ -10,9 +10,12 @@ import {
   Max,
   MaxLength,
   ValidateNested,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+
+// ==================== 费用设置 DTO ====================
 
 export class CreateFeeSettingDto {
   @ApiProperty({ description: '分类' })
@@ -50,6 +53,12 @@ export class CreateFeeSettingDto {
   @IsNumber()
   @Min(0)
   threshold?: number;
+
+  @ApiProperty({ description: '排序', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
 }
 
 export class UpdateFeeSettingDto {
@@ -76,7 +85,15 @@ export class UpdateFeeSettingDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({ description: '排序', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
 }
+
+// ==================== 费用计算 DTO ====================
 
 export class FeeCalculateItemDto {
   @ApiProperty({ description: '分类' })
@@ -93,15 +110,9 @@ export class FeeCalculateItemDto {
 
   @ApiProperty({ description: '数量' })
   @IsNumber()
-  @Min(0)
+  @Min(1)
   @Max(99999)
   quantity: number;
-
-  @ApiProperty({ description: '单价' })
-  @IsNumber()
-  @Min(0)
-  @Max(999999)
-  unitPrice: number;
 }
 
 export class CalculateFeeDto {
@@ -111,6 +122,8 @@ export class CalculateFeeDto {
   @Type(() => FeeCalculateItemDto)
   items: FeeCalculateItemDto[];
 }
+
+// ==================== 费用记录 DTO ====================
 
 export class FeeRecordItemDto {
   @ApiProperty({ description: '分类' })
@@ -137,12 +150,6 @@ export class FeeRecordItemDto {
   @IsNumber()
   @Min(0)
   total: number;
-
-  @ApiProperty({ description: '小计', required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  subtotal?: number;
 }
 
 export class SaveFeeRecordDto {
@@ -173,11 +180,17 @@ export class SaveFeeRecordDto {
   @MaxLength(500)
   remark?: string;
 
-  @ApiProperty({ description: '创建人ID', required: false })
+  @ApiProperty({ description: '项目ID', required: false })
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  creatorId?: string;
+  projectId?: string;
+
+  @ApiProperty({ description: '客户ID', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  customerId?: string;
 }
 
 export class FeeRecordsQueryDto {
@@ -196,4 +209,41 @@ export class FeeRecordsQueryDto {
   @Max(100000)
   @Type(() => Number)
   offset?: number = 0;
+
+  @ApiProperty({ description: '开始日期', required: false })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiProperty({ description: '结束日期', required: false })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiProperty({ description: '创建人ID', required: false })
+  @IsOptional()
+  @IsString()
+  creatorId?: string;
+
+  @ApiProperty({ description: '项目ID', required: false })
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @ApiProperty({ description: '客户ID', required: false })
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+}
+
+export class FeeStatsQueryDto {
+  @ApiProperty({ description: '开始日期', required: false })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiProperty({ description: '结束日期', required: false })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 }

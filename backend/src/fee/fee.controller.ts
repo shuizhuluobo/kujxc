@@ -24,6 +24,7 @@ import {
   CalculateFeeDto,
   SaveFeeRecordDto,
   FeeRecordsQueryDto,
+  FeeStatsQueryDto,
 } from './dto/fee.dto';
 
 @ApiTags('费用管理')
@@ -34,11 +35,31 @@ import {
 export class FeeController {
   constructor(private readonly feeService: FeeService) {}
 
+  // ==================== 费用设置 ====================
+
   @Get('settings')
   @UseGuards(PermissionsGuard)
   @Permissions('fee:calculate')
-  async getSettings(@Query('category') category?: string) {
-    return this.feeService.getSettings(category);
+  async getSettings(
+    @Query('category') category?: string,
+    @Query('isActive') isActive?: string,
+  ) {
+    const isActiveBool = isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+    return this.feeService.getSettings(category, isActiveBool);
+  }
+
+  @Get('settings/:id')
+  @UseGuards(PermissionsGuard)
+  @Permissions('fee:settings')
+  async getSetting(@Param('id', ParseUUIDPipe) id: string) {
+    return this.feeService.getSetting(id);
+  }
+
+  @Post('settings')
+  @UseGuards(PermissionsGuard)
+  @Permissions('fee:settings')
+  async createSetting(@Body() data: CreateFeeSettingDto) {
+    return this.feeService.createSetting(data);
   }
 
   @Put('settings/:id')
@@ -51,19 +72,22 @@ export class FeeController {
     return this.feeService.updateSetting(id, data);
   }
 
-  @Post('settings')
-  @UseGuards(PermissionsGuard)
-  @Permissions('fee:settings')
-  async createSetting(@Body() data: CreateFeeSettingDto) {
-    return this.feeService.createSetting(data);
-  }
-
   @Delete('settings/:id')
   @UseGuards(PermissionsGuard)
   @Permissions('fee:settings')
   async deleteSetting(@Param('id', ParseUUIDPipe) id: string) {
     return this.feeService.deleteSetting(id);
   }
+
+  @Post('settings/init')
+  @UseGuards(PermissionsGuard)
+  @Permissions('fee:settings')
+  async initDefaultSettings() {
+    await this.feeService.initDefaultSettings();
+    return { success: true };
+  }
+
+  // ==================== 费用计算 ====================
 
   @Post('calculate')
   @UseGuards(PermissionsGuard)
@@ -72,6 +96,8 @@ export class FeeController {
     return this.feeService.calculate(body.items);
   }
 
+  // ==================== 费用记录 ====================
+
   @Post('records')
   @UseGuards(PermissionsGuard)
   @Permissions('fee:save_records')
@@ -79,30 +105,53 @@ export class FeeController {
     @Body() data: SaveFeeRecordDto,
     @CurrentUser() user: CurrentUserData,
   ) {
-    // creatorId 从 JWT 取，忽略请求体中的值
-    return this.feeService.saveRecord({ ...data, creatorId: user.id });
-  }
-
-  @Delete('records/:id')
-  @UseGuards(PermissionsGuard)
-  @Permissions('fee:delete_records')
-  async deleteRecord(@Param('id', ParseUUIDPipe) id: string) {
-    return this.feeService.deleteRecord(id);
+    return this.feeService.saveRecord({
+      items: data.items,
+      subtotal: data.subtotal,
+      discount: data.discount,
+      actualAmount: data.actualAmount,
+      remark: data.remark,
+      projectId: data.projectId,
+      customerId: data.customerId,
+      creatorId: user.id,
+    });
   }
 
   @Get('records')
   @UseGuards(PermissionsGuard)
   @Permissions('fee:view_records')
   async getRecords(@Query() query: FeeRecordsQueryDto) {
-    return this.feeService.getRecords(query.limit, query.offset);
+    return this.feeService.getRecords({
+      limit: query.limit,
+      offset: query.offset,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      creatorId: query.creatorId,
+      projectId: query.projectId,
+      customerId: query.customerId,
+    });
   }
 
-  // 仅管理员可初始化默认设置
-  @Post('settings/init')
+  @Delete('records/:id')
   @UseGuards(PermissionsGuard)
-  @Permissions('fee:settings')
-  async initDefaultSettings() {
-    await this.feeService.initDefaultSettings();
-    return { success: true };
+  @Permissions('fee:delete_records')
+  async deleteRecord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    const isAdmin = user.roleCode === 'admin';
+    return this.feeService.deleteRecord(id, user.id, isAdmin);
+  }
+
+  // ==================== 费用统计 ====================
+
+  @Get('stats')
+  @UseGuards(PermissionsGuard)
+  @Permissions('fee:view_records')
+  async getStats(@Query() query: FeeStatsQueryDto) {
+    return this.feeService.getStats({
+      startDate: query.startDate,
+      endDate: query.endDate,
+    });
   }
 }

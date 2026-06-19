@@ -26,9 +26,9 @@
         <span>知识库</span>
       </el-menu-item>
       
-      <el-menu-item index="/fee-calculator" v-if="canAccessFeeCalculator">
+      <el-menu-item index="/projects" v-if="canAccessProjects">
         <el-icon><Wallet /></el-icon>
-        <span>项目台账</span>
+        <span>项目与绩效</span>
       </el-menu-item>
       
       <el-sub-menu index="admin" v-if="canAccessAnyAdmin">
@@ -60,7 +60,7 @@ defineProps<{
   canAccessWorkOrder: boolean;
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
-  canAccessFeeCalculator: boolean;
+  canAccessProjects: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
   canAccessUserManage: boolean;

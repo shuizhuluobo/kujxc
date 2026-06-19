@@ -89,9 +89,19 @@ onMounted(() => {
   fetchData();
   
   // 监听工单状态变化事件，实时更新历史工单列表
-  unsubscribe = sse.on('work-order.updated', () => {
+  const handleHistoryChange = () => {
     fetchData();
-  });
+  };
+  sse.on('work-order.created', handleHistoryChange);
+  sse.on('work-order.updated', handleHistoryChange);
+  sse.on('work-order.deleted', handleHistoryChange);
+  sse.on('work-order.change', handleHistoryChange);
+  unsubscribe = () => {
+    sse.off('work-order.created', handleHistoryChange);
+    sse.off('work-order.updated', handleHistoryChange);
+    sse.off('work-order.deleted', handleHistoryChange);
+    sse.off('work-order.change', handleHistoryChange);
+  };
 });
 
 onUnmounted(() => {

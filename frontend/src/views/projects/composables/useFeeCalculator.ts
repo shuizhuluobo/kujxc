@@ -1,8 +1,8 @@
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import api from '@/api/client';
-import { useAuthStore } from '@/stores/auth';
-import type { FeeSetting, FeeRecord } from '@/api';
+import { performanceApi } from '@/api';
+import type { FeeSetting, FeeRecord, FeeRecordsResult } from '@/api';
 
 export interface ServiceItem {
   id: string;
@@ -37,8 +37,6 @@ const serviceInclusionMap: Record<string, string[]> = {
 };
 
 export function useFeeCalculator() {
-  const authStore = useAuthStore();
-
   // 基础状态
   const computerCount = ref(0);
   const discount = ref(0);
@@ -49,6 +47,9 @@ export function useFeeCalculator() {
   const showSettings = ref(false);
   const selectedResponse = ref<string>('');
   const selectedTimeSlot = ref<string>('');
+  // 当前所属项目与客户（公物仓计费场景必填）
+  const currentProjectId = ref<string>('');
+  const selectedCustomerId = ref<string>('');
 
   // 附加费用
   const additionalFeeEnabled = ref(false);
@@ -149,13 +150,13 @@ export function useFeeCalculator() {
     const items: SelectedItem[] = [];
     
     const currentMap = computerServiceMap.value;
-    // 计算机服务名称到显示文本的映射
+    // 计算机服务名称到显示文本的映射（更明确的服务描述）
     const computerDisplayNames: Record<string, string> = {
-      '出库送货': '计算机出库',
-      '安装就位': '计算机安装',
-      '回收转运': '计算机回收',
+      '出库送货': '计算机出库送货',
+      '安装就位': '计算机安装就位',
+      '回收转运': '计算机回收转运',
       '脱密入库': '计算机脱密入库',
-      '出库到就位': '计算机出库到就位',
+      '出库到就位': '计算机出库送货安装',
       '回收到入库': '计算机回收到入库',
       '全流程服务': '计算机全流程服务',
     };
@@ -191,15 +192,15 @@ export function useFeeCalculator() {
       // 根据设备类型生成显示名称（安装含送货）
       let displayName = s.item;
       if (s.item.includes('复印机')) {
-        displayName = '复印机安装（含送货）';
+        displayName = '复印机出库送货安装';
       } else if (s.item.includes('打印机')) {
-        displayName = '打印机安装（含送货）';
+        displayName = '打印机出库送货安装';
       } else if (s.item.includes('扫描仪')) {
-        displayName = '扫描仪安装（含送货）';
+        displayName = '扫描仪出库送货安装';
       } else if (s.item.includes('碎纸机')) {
-        displayName = '碎纸机安装';
+        displayName = '碎纸机出库送货安装';
       } else if (s.item.includes('投影机')) {
-        displayName = '投影机安装';
+        displayName = '投影机出库送货安装';
       }
       
       items.push({
@@ -226,11 +227,27 @@ export function useFeeCalculator() {
       // 跳过全流程服务项，这些在下面单独处理
       if (s.item.includes('全流程')) return;
       
+      // 为单项回收服务生成更明确的显示名称
+      let displayName = s.item;
+      if (s.item.includes('复印机') && !s.item.includes('全流程')) {
+        displayName = '复印机回收转运';
+      } else if (s.item.includes('打印机') && !s.item.includes('全流程')) {
+        displayName = '打印机回收转运';
+      } else if (s.item.includes('扫描仪') && !s.item.includes('全流程')) {
+        displayName = '扫描仪回收转运';
+      } else if (s.item.includes('碎纸机') && !s.item.includes('全流程')) {
+        displayName = '碎纸机回收转运';
+      } else if (s.item.includes('投影机') && !s.item.includes('全流程')) {
+        displayName = '投影机回收转运';
+      } else if (s.item.includes('其他外设')) {
+        displayName = '其他外设回收转运';
+      }
+      
       items.push({
         id: s.id,
-        displayText: s.item,
+        displayText: displayName,
         total: s.price * s.quantity,
-        item: s.item,
+        item: displayName,
         quantity: s.quantity,
       });
     });
@@ -252,11 +269,25 @@ export function useFeeCalculator() {
         terminalFee = (terminalCount - 3) * 10 * s.quantity;
       }
       
+      // 为全流程服务生成显示名称（设备名称+全流程服务）
+      let displayName = s.item;
+      if (s.item.includes('复印机')) {
+        displayName = '复印机全流程服务';
+      } else if (s.item.includes('打印机')) {
+        displayName = '打印机全流程服务';
+      } else if (s.item.includes('扫描仪')) {
+        displayName = '扫描仪全流程服务';
+      } else if (s.item.includes('碎纸机')) {
+        displayName = '碎纸机全流程服务';
+      } else if (s.item.includes('投影机')) {
+        displayName = '投影机全流程服务';
+      }
+      
       items.push({
         id: s.id,
-        displayText: s.item,
+        displayText: displayName,
         total: basePrice + terminalFee,
-        item: s.item,
+        item: displayName,
         quantity: s.quantity,
       });
       
@@ -462,10 +493,10 @@ export function useFeeCalculator() {
       ElMessage.warning('请选择服务项目');
       return;
     }
-    const creatorId = authStore.user?.id;
-    if (!creatorId) {
+    // 公物仓项目场景下客户为必填
+    if (currentProjectId.value && !selectedCustomerId.value) {
       ElMessage.closeAll();
-      ElMessage.warning('无法获取用户信息，请重新登录');
+      ElMessage.warning('请选择客户');
       return;
     }
     try {
@@ -476,21 +507,26 @@ export function useFeeCalculator() {
         unitPrice: s.quantity > 0 ? s.total / s.quantity : s.total,
         total: s.total,
       }));
-      await api.post('/fee/records', {
+      const payload = {
         items,
         subtotal: subtotal.value,
         discount: discount.value,
         actualAmount: actualAmount.value,
         remark: remark.value,
-        creatorId,
-      });
+        customerId: currentProjectId.value ? selectedCustomerId.value : undefined,
+      };
+      if (currentProjectId.value) {
+        await performanceApi.saveFeeRecord(currentProjectId.value, payload);
+      } else {
+        await api.post('/fee/records', payload);
+      }
       ElMessage.closeAll();
       ElMessage.success('记录已保存');
       loadRecords();
       resetCalculator();
     } catch (e: any) {
       ElMessage.closeAll();
-      ElMessage.error('保存失败');
+      ElMessage.error(e?.response?.data?.message || '保存失败');
     }
   };
 
@@ -526,26 +562,24 @@ export function useFeeCalculator() {
     additionalFeeEnabled.value = false;
     additionalFeeAmount.value = 0;
     additionalFeeRemark.value = '';
+    selectedCustomerId.value = '';
   };
 
   const loadRecords = async () => {
     try {
+      // 公物仓项目场景按项目拉取，否则拉取全局
+      if (currentProjectId.value) {
+        const res = await performanceApi.getFeeRecords(currentProjectId.value);
+        const data = res.data as FeeRecord[] | FeeRecordsResult;
+        records.value = Array.isArray(data) ? data : data.data;
+        return;
+      }
       const res = await api.get('/fee/records');
-      records.value = res.data as FeeRecord[];
+      const result = res.data as FeeRecordsResult | FeeRecord[];
+      // 兼容新旧接口格式
+      records.value = Array.isArray(result) ? result : (result as FeeRecordsResult).data;
     } catch (e: any) {
       console.error('Load records error:', e);
-    }
-  };
-
-  const deleteRecord = async (id: string) => {
-    try {
-      await api.delete(`/fee/records/${id}`);
-      ElMessage.closeAll();
-      ElMessage.success('记录已删除');
-      loadRecords();
-    } catch (e: any) {
-      ElMessage.closeAll();
-      ElMessage.error('删除失败');
     }
   };
 
@@ -930,6 +964,8 @@ export function useFeeCalculator() {
     additionalFeeEnabled,
     additionalFeeAmount,
     additionalFeeRemark,
+    currentProjectId,
+    selectedCustomerId,
     // 服务数据
     computerServices,
     peripheralInstallServices,
@@ -954,7 +990,6 @@ export function useFeeCalculator() {
     selectTimeSlot,
     updateSetting,
     saveRecord,
-    deleteRecord,
     resetCalculator,
     loadRecords,
     formatDate,

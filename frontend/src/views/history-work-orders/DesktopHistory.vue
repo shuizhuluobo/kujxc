@@ -99,6 +99,22 @@
           <span v-else class="text-muted">--</span>
         </template>
       </el-table-column>
+      <el-table-column label="协作人" width="150">
+        <template #default="{ row }">
+          <template v-if="row.collaborators?.length">
+            <div class="collaborator-list">
+              <span 
+                v-for="(collaborator, index) in row.collaborators" 
+                :key="collaborator.id"
+                class="collaborator-tag"
+              >
+                {{ collaborator.user?.name }}
+              </span>
+            </div>
+          </template>
+          <span v-else class="text-muted">--</span>
+        </template>
+      </el-table-column>
     </el-table>
     
     <!-- 分页 -->
@@ -203,5 +219,19 @@ watch(localDateRange, v => emit('update:dateRange', v));
 .fee-value {
   color: var(--danger-color);
   font-weight: 600;
+}
+
+.collaborator-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.collaborator-tag {
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 </style>

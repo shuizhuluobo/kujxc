@@ -7,7 +7,7 @@
       :can-access-work-order="canAccessWorkOrder"
       :can-access-work-order-history="canAccessWorkOrderHistory"
       :can-access-wiki="canAccessWiki"
-      :can-access-fee-calculator="canAccessFeeCalculator"
+      :can-access-projects="canAccessProjects"
       :can-access-profile="canAccessProfile"
       :can-access-any-admin="canAccessAnyAdmin"
       :can-access-user-manage="canAccessUserManage"
@@ -70,7 +70,7 @@
       :can-access-work-order="canAccessWorkOrder"
       :can-access-work-order-history="canAccessWorkOrderHistory"
       :can-access-wiki="canAccessWiki"
-      :can-access-fee-calculator="canAccessFeeCalculator"
+      :can-access-projects="canAccessProjects"
       :can-access-profile="canAccessProfile"
       :can-access-any-admin="canAccessAnyAdmin"
       @navigate="router.push($event)"
@@ -113,7 +113,7 @@ const {
   canAccessWorkOrder,
   canAccessWorkOrderHistory,
   canAccessWiki,
-  canAccessFeeCalculator,
+  canAccessProjects,
   canAccessProfile,
   canAccessUserManage,
   canAccessRoleManage,

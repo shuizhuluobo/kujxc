@@ -4,7 +4,7 @@
       <div class="card-header" @click="expanded = !expanded">
         <div class="main-info">
           <div class="customer-name" :class="{ expanded }">{{ customerDisplayName }}</div>
-          <div class="detail-preview" :class="{ expanded }">{{ workOrder.detail }}</div>
+          <div class="detail-preview" :class="{ expanded }" v-html="linkifiedDetail" @click="onDetailClick"></div>
         </div>
         
         <div class="header-right">
@@ -264,6 +264,7 @@ import { useAuthStore } from '@/stores/auth';
 import { usePermission } from '@/composables';
 import { useBaseDataStore } from '@/stores/baseData';
 import { getCustomerDisplayName } from '@/utils/customer';
+import { linkifyPhoneNumbers } from '@/utils/string';
 import { workOrdersApi } from '@/api';
 import { ElMessage } from 'element-plus';
 
@@ -348,6 +349,15 @@ function handleCancelReceive() {
 }
 
 const customerDisplayName = computed(() => getCustomerDisplayName(props.workOrder.customer));
+
+const linkifiedDetail = computed(() => linkifyPhoneNumbers(props.workOrder.detail));
+
+function onDetailClick(e: Event) {
+  const target = e.target as HTMLElement;
+  if (target.closest('.phone-link')) {
+    e.stopPropagation();
+  }
+}
 
 const statusClass = computed(() => ({
   pending: props.workOrder.status === WorkOrderStatus.PENDING,
@@ -604,6 +614,18 @@ const hasSecondaryActions = computed(() => {
   display: block;
   -webkit-line-clamp: unset;
   overflow: visible;
+}
+
+.detail-preview :deep(.phone-link) {
+  color: var(--primary-color);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--primary-color);
+  transition: opacity 0.2s ease;
+}
+
+.detail-preview :deep(.phone-link:active) {
+  opacity: 0.7;
 }
 
 .customer-name {

@@ -34,6 +34,7 @@ model User {
   notifications       Notification[]
   createdProjects     PerformanceProject[]
   createdRecords      PerformanceRecord[]
+  projectMemberships  ProjectMember[]
   region              Region?                 @relation(fields: [regionId], references: [id])
   role                Role                    @relation(fields: [roleId], references: [id])
   wikiArticles        WikiArticle[]
@@ -61,6 +62,7 @@ model Customer {
   devices            CustomerDevice[]
   performanceRecords PerformanceRecord[]
   workOrders         WorkOrder[]
+  feeRecords         FeeRecord[]
 
   @@index([shortName])
 }
@@ -245,8 +247,24 @@ model PerformanceProject {
   deviceList        CustomerDevice[]
   creator           User                @relation(fields: [creatorId], references: [id])
   records           PerformanceRecord[]
+  members           ProjectMember[]
+  feeRecords        FeeRecord[]
 
   @@index([creatorId])
+}
+
+model ProjectMember {
+  id        String             @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole  @default(MEMBER)
+  joinedAt  DateTime           @default(now())
+  project   PerformanceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
 }
 
 model PerformanceRecord {
@@ -274,41 +292,32 @@ model PerformanceRecord {
 }
 
 model CustomerDevice {
-  id               String              @id @default(uuid())
-  projectId        String
-  customerId       String
-  deviceName       String
-  expectedQuantity Int                 @default(0)
-  
-  // 送货阶段
-  deliveryQuantity Int                 @default(0)
-  deliveryBy       String?
-  deliveryAt       DateTime?
+  id                    String              @id @default(uuid())
+  projectId             String
+  customerId            String
+  deviceName            String
+  expectedQuantity      Int                 @default(0)
+  deliveryQuantity      Int                 @default(0)
+  deliveryBy            String?
+  deliveryAt            DateTime?
   deliveryCollaborators String[]
-  
-  // 安装阶段
-  installQuantity  Int                 @default(0)
-  installBy        String?
-  installAt        DateTime?
-  installCollaborators String[]
-  
-  // 调试阶段
-  debugQuantity    Int                 @default(0)
-  debugBy          String?
-  debugAt          DateTime?
-  debugCollaborators String[]
-  
-  // 完成状态
-  isCompleted      Boolean             @default(false)
-  completedAt      DateTime?
-  
-  remark           String?
-  createdAt        DateTime            @default(now())
-  creatorId        String
-  creator          User                @relation(fields: [creatorId], references: [id])
-  customer         Customer            @relation(fields: [customerId], references: [id])
-  project          PerformanceProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  records          PerformanceRecord[]
+  installQuantity       Int                 @default(0)
+  installBy             String?
+  installAt             DateTime?
+  installCollaborators  String[]
+  debugQuantity         Int                 @default(0)
+  debugBy               String?
+  debugAt               DateTime?
+  debugCollaborators    String[]
+  isCompleted           Boolean             @default(false)
+  completedAt           DateTime?
+  remark                String?
+  createdAt             DateTime            @default(now())
+  creatorId             String
+  creator               User                @relation(fields: [creatorId], references: [id])
+  customer              Customer            @relation(fields: [customerId], references: [id])
+  project               PerformanceProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records               PerformanceRecord[]
 
   @@index([projectId])
   @@index([customerId])
@@ -316,18 +325,25 @@ model CustomerDevice {
 }
 
 model FeeRecord {
-  id           String   @id @default(uuid())
-  items        Json
-  subtotal     Float
-  discount     Float    @default(0)
-  actualAmount Float
-  remark       String?
-  createdAt    DateTime @default(now())
-  creatorId    String?
-  creator      User?    @relation(fields: [creatorId], references: [id])
+  id              String              @id @default(uuid())
+  projectId       String?
+  customerId      String?
+  items           Json
+  subtotal        Float
+  discount        Float               @default(0)
+  actualAmount    Float
+  remark          String?
+  collaboratorIds String[]            @default([])
+  createdAt       DateTime            @default(now())
+  creatorId       String?
+  creator         User?               @relation(fields: [creatorId], references: [id])
+  project         PerformanceProject? @relation(fields: [projectId], references: [id])
+  customer        Customer?           @relation(fields: [customerId], references: [id])
 
   @@index([createdAt])
   @@index([creatorId])
+  @@index([projectId])
+  @@index([customerId])
 }
 
 enum WorkOrderStatus {
@@ -345,6 +361,7 @@ enum ScoreLevel {
 enum CalculationType {
   QUANTITY
   DAILY
+  WAREHOUSE
 }
 
 enum RecordType {
@@ -352,4 +369,9 @@ enum RecordType {
   INSTALL
   DEBUG
   CONSTRUCTION
+}
+
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
 }

@@ -30,6 +30,7 @@
     <div class="remark-section">
       <el-input :model-value="remark" @update:model-value="$emit('update:remark', $event)" type="textarea" :rows="2" placeholder="备注说明" />
     </div>
+    <slot name="extra-actions" />
     <div class="action-buttons">
       <el-button v-if="canSave !== false" type="primary" @click="emit('save')" :disabled="selectedItems.length === 0">保存记录</el-button>
       <el-button @click="emit('print')" :disabled="selectedItems.length === 0">打印</el-button>

@@ -1,11 +1,13 @@
 export enum CalculationType {
     QUANTITY = 'QUANTITY',
     DAILY = 'DAILY',
+    WAREHOUSE = 'WAREHOUSE',
 }
 
 export const CALCULATION_TYPE_LABELS: Record<CalculationType, string> = {
     [CalculationType.QUANTITY]: '按量计算',
     [CalculationType.DAILY]: '按天计算',
+    [CalculationType.WAREHOUSE]: '公物仓',
 };
 
 export enum RecordType {
@@ -58,6 +60,16 @@ export interface Project {
     debugUnitPrice: number;
     dailyPrice: number;
     records?: WorkRecord[];
+    members?: ProjectMember[];
+}
+
+export interface ProjectMember {
+    id: string;
+    projectId: string;
+    userId: string;
+    role: 'OWNER' | 'MEMBER';
+    joinedAt: string;
+    user?: { id: string; name: string };
 }
 
 export interface WorkRecord {
@@ -126,11 +138,27 @@ export interface PerformanceResult {
     totalAmount: number;
 }
 
+export interface GlobalPerformanceResult {
+    userId: string;
+    userName: string;
+    projectCount: number;
+    deliveryCount: number;
+    deliveryAmount: number;
+    installCount: number;
+    installAmount: number;
+    debugCount: number;
+    debugAmount: number;
+    totalWorkDays: number;
+    workDaysAmount: number;
+    totalAmount: number;
+}
+
 export interface MyPerformanceStats {
     deliveryCount: number;
     installCount: number;
     debugCount: number;
     totalWorkDays: number;
+    totalAmount: number;
 }
 
 export interface CreateProjectDto {
@@ -142,6 +170,7 @@ export interface CreateProjectDto {
     installUnitPrice?: number;
     debugUnitPrice?: number;
     dailyPrice?: number;
+    memberIds?: string[];
 }
 
 export interface UpdateProjectDto {
@@ -152,12 +181,14 @@ export interface UpdateProjectDto {
     installUnitPrice?: number;
     debugUnitPrice?: number;
     dailyPrice?: number;
+    memberIds?: string[];
 }
 
 export interface CreateWorkRecordDto {
     recordType?: RecordType;
     quantity?: number;
     customerId?: string;
+    deviceId?: string;
     workHours?: number;
     description?: string;
     date: string;
@@ -170,6 +201,7 @@ export interface UpdateWorkRecordDto {
     recordType?: RecordType;
     quantity?: number;
     customerId?: string;
+    deviceId?: string;
     workHours?: number;
     description?: string;
     date?: string;

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Observable, fromEvent, map } from 'rxjs';
+import { Observable, fromEvent, map, merge, interval } from 'rxjs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -96,8 +96,15 @@ export class EventsController {
       throw new UnauthorizedException('User not found or disabled');
     }
 
-    // 监听内部事件并转发为 SSE（根据用户区域过滤）
-    return fromEvent(this.eventEmitter, 'app.event').pipe(
+    // 创建心跳流：每15秒发送一次心跳
+    const heartbeat$ = interval(15000).pipe(
+      map(() => ({
+        data: { type: 'heartbeat', payload: {} },
+      })),
+    );
+
+    // 创建事件流
+    const events$ = fromEvent(this.eventEmitter, 'app.event').pipe(
       map((data: { type: string; payload: unknown }) => {
         // 如果事件包含区域信息，则检查用户是否有权限接收
         const eventPayload = data.payload as {
@@ -111,14 +118,22 @@ export class EventsController {
         if (data.type.startsWith('work-order.') && eventPayload?.regionId) {
           // 如果用户没有区域，或事件区域与用户区域不匹配，则不发送
           if (userRegionId && eventPayload.regionId !== userRegionId) {
-            // 返回空数据，客户端忽略
-            return { data: { type: 'heartbeat', payload: {} } };
+            return null;
           }
         }
 
         return {
           data: { type: data.type, payload: data.payload },
         };
+      }),
+    );
+
+    // 合并心跳流和事件流，过滤掉 null
+    return merge(heartbeat$, events$).pipe(
+      map((event) => {
+        if (event) return event;
+        // 返回心跳作为占位符，避免发送 null
+        return { data: { type: 'heartbeat', payload: {} } };
       }),
     );
   }

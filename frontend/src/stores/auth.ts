@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import type { User, LoginDto, LoginResponse } from '@/types';
 import { RoleCode } from '@/types';
 import { authApi, usersApi } from '@/api';
+import { hasPermission } from '@/config/permissions';
 import { getCsrfToken } from '@/api/csrf';
 
 // 安全地从localStorage解析JSON
@@ -32,15 +33,15 @@ export const useAuthStore = defineStore('auth', () => {
     const roleCode = computed(() => user.value?.role?.code);
 
     const canManageProject = computed(() =>
-        isAdmin.value || isProjectManager.value
+        hasPermission(user.value?.role?.permissions || [], 'fee:manage_project') || isAdmin.value
     );
 
     const canViewPerformance = computed(() =>
-        isAdmin.value || isProjectManager.value || isFinance.value
+        hasPermission(user.value?.role?.permissions || [], 'fee:view_stats') || isAdmin.value
     );
 
     const canViewFee = computed(() =>
-        isAdmin.value || isProjectManager.value || isFinance.value
+        hasPermission(user.value?.role?.permissions || [], 'fee:view_records') || isAdmin.value
     );
 
     // Actions

@@ -59,9 +59,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0', // Enable LAN access
-    allowedHosts: [
-      'your-api-domain.com'
-    ],
+    allowedHosts: true, // 允许局域网 IP 访问（开发环境）
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3000',

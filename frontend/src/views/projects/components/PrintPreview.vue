@@ -38,6 +38,15 @@
             <el-form-item label="联系电话">
               <el-input v-model="formData.contactPhone" placeholder="输入联系电话" />
             </el-form-item>
+            <el-form-item label="开单日期">
+              <el-date-picker 
+                v-model="formData.date" 
+                type="date" 
+                placeholder="选择日期"
+                value-format="YYYY-MM-DD"
+                :default-value="new Date()"
+              />
+            </el-form-item>
           </el-form>
         </div>
 
@@ -69,7 +78,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { Printer } from '@element-plus/icons-vue';
 import PrintTemplateTriplicate from './PrintTemplateTriplicate.vue';
 import PrintTemplateA4 from './PrintTemplateA4.vue';
-import { usePrint, type PrintData, type PrintTemplateType } from '../composables/usePrint';
+import { usePrint, formatPrintDate, type PrintData, type PrintTemplateType } from '../composables/usePrint';
 
 const props = defineProps<{
   data: PrintData | null;
@@ -87,10 +96,11 @@ const formData = reactive({
   clientName: '',
   contactPerson: '',
   contactPhone: '',
+  date: '',
 });
 
-const printData = computed<PrintData>(() => ({
-  ...(props.data || {
+const printData = computed<PrintData>(() => {
+  const baseData = props.data || {
     documentNo: '',
     date: '',
     clientName: '',
@@ -102,11 +112,24 @@ const printData = computed<PrintData>(() => ({
     actualAmount: 0,
     remark: '',
     creatorName: '',
-  }),
-  clientName: formData.clientName,
-  contactPerson: formData.contactPerson,
-  contactPhone: formData.contactPhone,
-}));
+  };
+  
+  // 日期处理：优先用户选择，否则使用原始日期，最后默认当日
+  let date = baseData.date;
+  if (formData.date) {
+    date = formatPrintDate(formData.date);
+  } else if (!baseData.date) {
+    date = formatPrintDate();
+  }
+  
+  return {
+    ...baseData,
+    date,
+    clientName: formData.clientName,
+    contactPerson: formData.contactPerson,
+    contactPhone: formData.contactPhone,
+  };
+});
 
 const scaleStyle = computed(() => {
   return { transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%' };
@@ -117,6 +140,9 @@ const open = () => {
     formData.clientName = props.data.clientName || '';
     formData.contactPerson = props.data.contactPerson || '';
     formData.contactPhone = props.data.contactPhone || '';
+    // 如果原始数据有日期，不自动填充日期选择器（保持原始日期）
+    // 如果没有日期，默认选择当日
+    formData.date = '';
   }
   visible.value = true;
 };
@@ -129,6 +155,7 @@ const onClosed = () => {
   formData.clientName = '';
   formData.contactPerson = '';
   formData.contactPhone = '';
+  formData.date = '';
 };
 
 defineExpose({ open });

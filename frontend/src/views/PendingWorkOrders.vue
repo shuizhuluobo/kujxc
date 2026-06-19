@@ -270,22 +270,25 @@ async function handleRefresh(done: () => void) {
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
-  fetchData();
-  fetchStats();
-  baseDataStore.fetchRegions();
-  
-  sse.connect();
-  sse.on('work-order.updated', () => {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      fetchData(true); // silent update
-      fetchStats();
-    }, 1000);
-  });
+    fetchData();
+    fetchStats();
+    baseDataStore.fetchRegions();
+    
+    const handleWorkOrderChange = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetchData(true); // silent update
+            fetchStats();
+        }, 500);
+    };
+    
+    sse.on('work-order.created', handleWorkOrderChange);
+    sse.on('work-order.updated', handleWorkOrderChange);
+    sse.on('work-order.deleted', handleWorkOrderChange);
+    sse.on('work-order.change', handleWorkOrderChange);
 });
 
 onUnmounted(() => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  sse.disconnect();
+    if (debounceTimer) clearTimeout(debounceTimer);
 });
 </script>

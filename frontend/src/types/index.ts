@@ -318,8 +318,11 @@ export {
 export type {
     Project,
     WorkRecord,
+    CustomerDevice,
     PerformanceResult,
+    GlobalPerformanceResult,
     MyPerformanceStats,
+    ProjectMember,
     CreateProjectDto,
     UpdateProjectDto,
     CreateWorkRecordDto,

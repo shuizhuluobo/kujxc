@@ -30,6 +30,9 @@ import type {
     UpdateProjectDto,
     CreateWorkRecordDto,
     UpdateWorkRecordDto,
+    CustomerDevice,
+    GlobalPerformanceResult,
+    ProjectMember,
 } from '@/types';
 
 // ==================== 认证 ====================
@@ -173,6 +176,7 @@ export interface FeeSetting {
     price: number;
     description?: string;
     threshold?: number;
+    sortOrder: number;
     isActive: boolean;
 }
 
@@ -183,23 +187,45 @@ export interface FeeRecord {
     discount: number;
     actualAmount: number;
     remark?: string;
+    projectId?: string;
+    customerId?: string;
+    customer?: { id: string; name: string };
+    collaboratorIds?: string[];
     createdAt: string;
     creatorId?: string;
-    creator?: { name: string };
+    creator?: { id?: string; name: string };
+}
+
+export interface FeeRecordsResult {
+    data: FeeRecord[];
+    total: number;
+}
+
+export interface FeeStatsResult {
+    totalRecords: number;
+    totalAmount: number;
+    totalDiscount: number;
+    totalActual: number;
+    byCategory: Record<string, { count: number; amount: number }>;
 }
 
 export const feeApi = {
-    getSettings: (category?: string) => api.get<FeeSetting[]>('/fee/settings', { params: { category } }),
-    updateSetting: (id: string, data: { price?: number; unit?: string; description?: string; isActive?: boolean }) =>
-        api.patch<FeeSetting>(`/fee/settings/${id}`, data),
-    createSetting: (data: { category: string; item: string; unit: string; price: number; description?: string }) =>
+    getSettings: (category?: string, isActive?: boolean) => api.get<FeeSetting[]>('/fee/settings', { params: { category, isActive } }),
+    getSetting: (id: string) => api.get<FeeSetting>(`/fee/settings/${id}`),
+    updateSetting: (id: string, data: { price?: number; unit?: string; description?: string; isActive?: boolean; sortOrder?: number }) =>
+        api.put<FeeSetting>(`/fee/settings/${id}`, data),
+    createSetting: (data: { category: string; item: string; unit: string; price: number; description?: string; threshold?: number; sortOrder?: number }) =>
         api.post<FeeSetting>('/fee/settings', data),
     deleteSetting: (id: string) => api.delete(`/fee/settings/${id}`),
-    calculate: (items: { category: string; item: string; quantity: number; unitPrice: number }[]) =>
-        api.post<{ items: FeeItem[]; subtotal: number; discount: number; actualAmount: number }>('/fee/calculate', items),
-    saveRecord: (data: { items: FeeItem[]; subtotal: number; discount: number; actualAmount: number; remark?: string }) =>
+    calculate: (items: { category: string; item: string; quantity: number }[]) =>
+        api.post<{ items: FeeItem[]; subtotal: number; discount: number; actualAmount: number }>('/fee/calculate', { items }),
+    saveRecord: (data: { items: FeeItem[]; subtotal: number; discount: number; actualAmount: number; remark?: string; projectId?: string; customerId?: string }) =>
         api.post<FeeRecord>('/fee/records', data),
-    getRecords: (limit?: number, offset?: number) => api.get<FeeRecord[]>('/fee/records', { params: { limit, offset } }),
+    getRecords: (params?: { limit?: number; offset?: number; startDate?: string; endDate?: string; creatorId?: string; projectId?: string; customerId?: string }) =>
+        api.get<FeeRecordsResult>('/fee/records', { params }),
+    deleteRecord: (id: string) => api.delete(`/fee/records/${id}`),
+    getStats: (params?: { startDate?: string; endDate?: string }) =>
+        api.get<FeeStatsResult>('/fee/stats', { params }),
     initSettings: () => api.post('/fee/settings/init'),
 };
 
@@ -225,19 +251,32 @@ export const performanceApi = {
     updateDevice: (deviceId: string, data: { customerId?: string; deviceName?: string; expectedQuantity?: number; remark?: string }) =>
         api.patch<CustomerDevice>(`/performance/devices/${deviceId}`, data),
     deleteDevice: (deviceId: string) => api.delete(`/performance/devices/${deviceId}`),
-    recordDelivery: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+    recordDelivery: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
         api.post<CustomerDevice>(`/performance/devices/${deviceId}/delivery`, data),
-    recordInstall: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+    recordInstall: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
         api.post<CustomerDevice>(`/performance/devices/${deviceId}/install`, data),
-    recordDebug: (deviceId: string, data: { quantity: number; collaboratorIds: string[] }) =>
+    recordDebug: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
         api.post<CustomerDevice>(`/performance/devices/${deviceId}/debug`, data),
 
     getStats: (projectId: string) => api.get<PerformanceResult[]>(`/performance/projects/${projectId}/stats`),
     getMyStats: (projectId: string) => api.get<MyPerformanceStats>(`/performance/projects/${projectId}/stats/me`),
+
+    getGlobalStats: (params?: { startDate?: string; endDate?: string; userId?: string }) =>
+        api.get<GlobalPerformanceResult[]>('/performance/global-stats', { params }),
 
     exportProject: (projectId: string) => api.get(`/performance/projects/${projectId}/export`, { responseType: 'blob' }),
     exportProjects: (projectIds?: string[]) => api.get('/performance/projects/export', { 
         params: projectIds?.length ? { ids: projectIds.join(',') } : {},
         responseType: 'blob' 
     }),
+
+    getFeeRecords: (projectId: string) => api.get<FeeRecord[]>(`/performance/projects/${projectId}/fee-records`),
+    saveFeeRecord: (projectId: string, data: { items: FeeItem[]; subtotal: number; discount: number; actualAmount: number; remark?: string; customerId?: string; collaboratorIds?: string[] }) =>
+        api.post<FeeRecord>(`/performance/projects/${projectId}/fee-records`, data),
+    deleteFeeRecord: (projectId: string, recordId: string) => api.delete(`/performance/projects/${projectId}/fee-records/${recordId}`),
+    // 公物仓独立费用记录（无项目关联）
+    getWarehouseFeeRecords: () => api.get<FeeRecord[]>(`/performance/warehouse/fee-records`),
+    saveWarehouseFeeRecord: (data: { items: FeeItem[]; subtotal: number; discount: number; actualAmount: number; remark?: string; customerId?: string; collaboratorIds?: string[] }) =>
+        api.post<FeeRecord>(`/performance/warehouse/fee-records`, data),
+    deleteWarehouseFeeRecord: (recordId: string) => api.delete(`/performance/warehouse/fee-records/${recordId}`),
 };

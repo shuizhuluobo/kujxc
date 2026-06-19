@@ -71,9 +71,9 @@ const router = createRouter({
                     meta: { permission: 'wiki:list' },
                 },
                 {
-                    path: 'fee-calculator',
-                    name: 'feeCalculator',
-                    component: () => import('@/views/fee-calculator/FeeCalculator.vue'),
+                    path: 'projects',
+                    name: 'projects',
+                    component: () => import('@/views/projects/ProjectsView.vue'),
                     meta: { permission: null },
                 },
                 {

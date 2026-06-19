@@ -89,20 +89,24 @@ export const PermissionModules = {
         ],
     },
 
-    // 项目台账
+    // 项目与绩效
     FEE: {
         key: 'fee',
-        name: '项目台账',
+        name: '项目与绩效',
         icon: 'Wallet',
         pages: [
-            { key: 'list', name: '项目台账', path: '/fee-calculator' },
+            { key: 'list', name: '项目与绩效', path: '/projects' },
         ],
         actions: [
+            { key: 'view_project', name: '查看项目', description: '允许查看项目列表和详情' },
+            { key: 'create_project', name: '创建项目', description: '允许创建新项目' },
             { key: 'calculate', name: '计算费用', description: '允许使用费用计算器' },
-            { key: 'save_records', name: '保存记录', description: '允许保存费用记录' },
-            { key: 'view_records', name: '查看记录', description: '允许查看历史记录' },
+            { key: 'save_records', name: '保存费用', description: '允许保存费用记录' },
+            { key: 'view_records', name: '查看记录', description: '允许查看费用记录' },
             { key: 'delete_records', name: '删除记录', description: '允许删除费用记录' },
             { key: 'settings', name: '费用设置', description: '允许修改费用设置' },
+            { key: 'view_stats', name: '查看绩效', description: '允许查看绩效总览' },
+            { key: 'export', name: '导出数据', description: '允许导出项目数据' },
         ],
     },
 
@@ -159,7 +163,9 @@ export const RolePermissionTemplates = {
             'customer:list', 'customer:view', 'customer:create', 'customer:edit',
             'region:list', 'region:view',
             'serviceType:list', 'serviceType:view',
+            'fee:view_project', 'fee:create_project',
             'fee:calculate', 'fee:save_records', 'fee:view_records',
+            'fee:view_stats',
             'system:user_view',
             'profile:profile', 'profile:view', 'profile:edit',
         ],
@@ -183,7 +189,9 @@ export const RolePermissionTemplates = {
             'region:list',
             'serviceType:view',
             'serviceType:list',
+            'fee:view_project',
             'fee:calculate', 'fee:save_records', 'fee:view_records',
+            'fee:view_stats',
             'wiki:list',
             'wiki:view',
             'wiki:create',

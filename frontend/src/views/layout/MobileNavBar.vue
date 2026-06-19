@@ -29,12 +29,12 @@
     </div>
     <div 
       class="nav-item" 
-      :class="{ active: currentPath === '/fee-calculator' }"
-      @click="$emit('navigate', '/fee-calculator')"
-      v-if="canAccessFeeCalculator"
+      :class="{ active: currentPath === '/projects' }"
+      @click="$emit('navigate', '/projects')"
+      v-if="canAccessProjects"
     >
       <el-icon><Wallet /></el-icon>
-      <span>台账</span>
+      <span>项目</span>
     </div>
     <div 
       class="nav-item" 
@@ -65,7 +65,7 @@ defineProps<{
   canAccessWorkOrder: boolean;
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
-  canAccessFeeCalculator: boolean;
+  canAccessProjects: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
 }>();
