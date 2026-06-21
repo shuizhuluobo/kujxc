@@ -130,7 +130,7 @@ const loadData = async () => {
 
 const loadUsers = async () => {
   try {
-    const response = await usersApi.getAll();
+    const response = await usersApi.getAll({ page: 1, pageSize: 10000 });
     users.value = response.data.data || [];
   } catch (error) {
     console.error('Failed to load users:', error);

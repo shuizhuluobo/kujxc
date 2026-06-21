@@ -193,8 +193,8 @@ export function useProjects() {
   const loadUsersAndCustomers = async () => {
     try {
       const [usersRes, customersRes] = await Promise.all([
-        usersApi.getAll(),
-        customersApi.getAll(),
+        usersApi.getAll({ page: 1, pageSize: 10000 }),
+        customersApi.getAll({ page: 1, pageSize: 10000 }),
       ]);
       users.value = (usersRes.data?.data || usersRes.data || []).filter((u: User) => u?.id);
       customers.value = (customersRes.data?.data || customersRes.data || []).filter((c: Customer) => c?.id);
