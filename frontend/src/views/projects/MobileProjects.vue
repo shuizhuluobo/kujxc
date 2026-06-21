@@ -288,7 +288,7 @@
         <el-form-item label="项目类型" required>
           <div class="type-chips">
             <div
-              v-for="(label, key) in CALCULATION_TYPE_LABELS"
+              v-for="(label, key) in projectTypeOptions"
               :key="key"
               class="type-chip"
               :class="{ active: projectForm.calculationType === key }"
@@ -666,6 +666,15 @@ const loadMoreWork = () => { workDisplayCount.value += WORK_PAGE; };
 watch(() => selectedProject.value?.id, () => {
   feeDisplayCount.value = FEE_PAGE;
   workDisplayCount.value = WORK_PAGE;
+});
+
+// ============ 项目类型选项（排除公物仓，公物仓为独立入口） ============
+const projectTypeOptions = computed(() => {
+  const result: Record<string, string> = {};
+  Object.entries(CALCULATION_TYPE_LABELS).forEach(([key, label]) => {
+    if (key !== CalculationType.WAREHOUSE) result[key] = label;
+  });
+  return result;
 });
 
 // ============ 设备汇总 ============

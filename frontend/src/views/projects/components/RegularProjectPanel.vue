@@ -102,14 +102,14 @@
 
       <!-- 设备清单（仅按量） -->
       <section class="panel" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-        <div class="panel-header">
-          <h3>客户设备清单</h3>
-          <div class="panel-actions">
+        <div class="panel-header collapsible" @click="devicePanelCollapsed = !devicePanelCollapsed">
+          <h3>客户设备清单 <el-icon class="collapse-icon" :class="{ collapsed: devicePanelCollapsed }"><ArrowRight /></el-icon></h3>
+          <div class="panel-actions" @click.stop>
             <el-button size="small" type="primary" @click="$emit('createDevice')">+ 新增</el-button>
             <el-button size="small" @click="$emit('importDevice')">导入</el-button>
           </div>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" v-show="!devicePanelCollapsed">
           <el-table
             v-if="devices.length > 0"
             :data="devices"
@@ -170,11 +170,13 @@
 
       <!-- 工作记录 -->
       <section class="panel">
-        <div class="panel-header">
-          <h3>工作记录</h3>
-          <el-button size="small" type="primary" @click="$emit('createRecord')">+ 新增记录</el-button>
+        <div class="panel-header collapsible" @click="recordPanelCollapsed = !recordPanelCollapsed">
+          <h3>工作记录 <el-icon class="collapse-icon" :class="{ collapsed: recordPanelCollapsed }"><ArrowRight /></el-icon></h3>
+          <div class="panel-actions" @click.stop>
+            <el-button size="small" type="primary" @click="$emit('createRecord')">+ 新增记录</el-button>
+          </div>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" v-show="!recordPanelCollapsed">
           <el-table class="records-table" :data="paginatedRecords" stripe size="small">
             <el-table-column width="105" sortable prop="date">
               <template #header>
@@ -268,11 +270,13 @@
 
       <!-- 工作量汇总 -->
       <section class="panel" v-if="canViewPerformance">
-        <div class="panel-header">
-          <h3>工作量汇总</h3>
-          <el-button size="small" @click="$emit('refreshStats')">刷新</el-button>
+        <div class="panel-header collapsible" @click="statsPanelCollapsed = !statsPanelCollapsed">
+          <h3>工作量汇总 <el-icon class="collapse-icon" :class="{ collapsed: statsPanelCollapsed }"><ArrowRight /></el-icon></h3>
+          <div class="panel-actions" @click.stop>
+            <el-button size="small" @click="$emit('refreshStats')">刷新</el-button>
+          </div>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" v-show="!statsPanelCollapsed">
           <StatsTable
             v-if="selectedProject"
             :data="stats"
@@ -607,7 +611,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Download, EditPen, Delete, UploadFilled } from '@element-plus/icons-vue';
+import { Download, EditPen, Delete, UploadFilled, ArrowRight } from '@element-plus/icons-vue';
 import StatsTable from './StatsTable.vue';
 import {
   CalculationType,
@@ -846,6 +850,11 @@ const recordFilter = ref<{ customerId: string; recordType: string }>({
   recordType: '',
 });
 
+// 面板折叠状态
+const devicePanelCollapsed = ref(false);
+const recordPanelCollapsed = ref(false);
+const statsPanelCollapsed = ref(false);
+
 const filteredRecords = computed(() => {
   return props.records.filter((r) => {
     // 客户筛选
@@ -1037,7 +1046,11 @@ const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
 
 .panel { background: #fff; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); overflow: hidden; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
-.panel-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: #1e293b; }
+.panel-header.collapsible { cursor: pointer; user-select: none; }
+.panel-header.collapsible:hover { background: #f1f5f9; }
+.panel-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+.collapse-icon { transition: transform 0.2s; font-size: 14px; color: #64748b; }
+.collapse-icon.collapsed { transform: rotate(-90deg); }
 .panel-actions { display: flex; gap: 8px; }
 .panel-body { padding: 16px 20px; }
 .empty-tip { text-align: center; padding: 32px 20px; color: #94a3b8; font-size: 13px; }
