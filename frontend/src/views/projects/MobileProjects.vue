@@ -173,9 +173,9 @@
             <el-table-column label="客户" min-width="80">
               <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="50" align="center">
+            <el-table-column label="状态" width="60" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完' : '行' }}</el-tag>
+                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完成' : '进行' }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="deviceName" label="设备" min-width="60" />
@@ -547,13 +547,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { ArrowLeft, ArrowRight, EditPen, Delete, Minus, Plus, Setting } from '@element-plus/icons-vue';
 import { useProjects } from './composables/useProjects';
 import { useWorkRecords } from './composables/useWorkRecords';
 import { useDevices } from './composables/useDevices';
 import { useFeeCalculator } from './composables/useFeeCalculator';
 import { useFeeRecords } from './composables/useFeeRecords';
+import { useSSE } from '@/composables/useSSE';
 import {
   CalculationType,
   CALCULATION_TYPE_LABELS,
@@ -964,9 +965,31 @@ const handleSubmitStage = async () => {
   }
 };
 
+// ============ SSE 实时刷新设备清单 ============
+const sse = useSSE();
+let deviceRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let unsubscribeDeviceChanged: (() => void) | null = null;
+
+const handleDeviceChanged = (payload: unknown) => {
+  const { projectId } = payload as { projectId: string };
+  // 只刷新当前正在查看的项目
+  if (!selectedProject.value || projectId !== selectedProject.value.id) return;
+  // 防抖：短时间内多次变动只刷新一次
+  if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
+  deviceRefreshTimer = setTimeout(() => {
+    loadDevices(projectId);
+  }, 300);
+};
+
 // ============ 生命周期 ============
 onMounted(async () => {
+  unsubscribeDeviceChanged = sse.on('performance.device.changed', handleDeviceChanged);
   await Promise.all([loadProjects(), loadUsersAndCustomers(), feeLoadSettings()]);
+});
+
+onUnmounted(() => {
+  if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
+  if (unsubscribeDeviceChanged) unsubscribeDeviceChanged();
 });
 </script>
 
@@ -1049,9 +1072,10 @@ onMounted(async () => {
 
 .stats-list { display: flex; flex-direction: column; gap: 6px; }
 .stat-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-color, #f5f7fa); border-radius: 6px; font-size: 13px; }
-.stat-name { font-weight: 600; min-width: 60px; }
-.stat-detail { flex: 1; display: flex; gap: 12px; color: var(--text-secondary, #999); }
-.stat-amount { font-weight: 600; color: var(--el-color-success); }
+.stat-name { font-weight: 600; width: 64px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-detail { flex: 1; display: flex; gap: 8px; color: var(--text-secondary, #999); }
+.stat-detail > span { width: 52px; flex-shrink: 0; text-align: left; }
+.stat-amount { width: 72px; flex-shrink: 0; text-align: right; font-weight: 600; color: var(--el-color-success); }
 .my-stats-mini { font-size: 12px; color: var(--text-secondary, #999); font-weight: 400; }
 
 .fee-record-list { display: flex; flex-direction: column; gap: 8px; }

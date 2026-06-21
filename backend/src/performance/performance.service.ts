@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CalculationType, RecordType, ProjectMemberRole, Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 
@@ -75,7 +76,10 @@ export interface MyPerformanceStats {
 
 @Injectable()
 export class PerformanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async getProjects(userId?: string, isAdmin?: boolean) {
     const where: any = {};
@@ -253,7 +257,7 @@ export class PerformanceService {
     await this.assertProjectMember(projectId, creatorId, roleCode);
     // 使用交互式事务：先校验设备数量上限，再创建记录并更新设备
     // 避免校验失败时记录已写入数据库（导致重复记录问题）
-    return this.prisma.$transaction(async (tx) => {
+    const record = await this.prisma.$transaction(async (tx) => {
       let device: any = null;
       let deviceUpdateData: any = {};
 
@@ -340,6 +344,11 @@ export class PerformanceService {
 
       return record;
     });
+    // 记录关联了设备时，通知前端刷新设备清单
+    if (record.deviceId) {
+      this.emitDeviceChanged(projectId, record.deviceId);
+    }
+    return record;
   }
 
   async updateRecord(projectId: string, recordId: string, data: UpdateRecordDto) {
@@ -357,7 +366,7 @@ export class PerformanceService {
     const deviceId = oldRecord.deviceId;
 
     if (deviceId && (qtyChanged || typeChanged)) {
-      return this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
         const [device] = await tx.$queryRaw<any[]>`
           SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
@@ -436,6 +445,9 @@ export class PerformanceService {
           },
         });
       });
+      // 设备数量已变动，通知前端刷新设备清单
+      this.emitDeviceChanged(projectId, deviceId);
+      return result;
     }
 
     return this.prisma.performanceRecord.update({
@@ -460,7 +472,7 @@ export class PerformanceService {
     // 如果记录关联了设备，需要在事务内回退设备数量
     if (record.deviceId) {
       const deviceId = record.deviceId;
-      return this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
         const [device] = await tx.$queryRaw<any[]>`
           SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
@@ -495,6 +507,9 @@ export class PerformanceService {
         });
         await tx.performanceRecord.delete({ where: { id: recordId } });
       });
+      // 设备数量已变动，通知前端刷新设备清单
+      this.emitDeviceChanged(projectId, deviceId);
+      return;
     }
 
     return this.prisma.performanceRecord.delete({
@@ -522,7 +537,7 @@ export class PerformanceService {
   }, creatorId: string, roleCode?: string) {
     // 校验：管理员或项目创建人可管理设备清单
     await this.assertProjectManager(projectId, creatorId, roleCode);
-    return this.prisma.customerDevice.create({
+    const device = await this.prisma.customerDevice.create({
       data: {
         ...data,
         projectId,
@@ -533,6 +548,8 @@ export class PerformanceService {
         customer: { select: { id: true, name: true } },
       },
     });
+    this.emitDeviceChanged(projectId, device.id);
+    return device;
   }
 
   async updateDevice(deviceId: string, data: {
@@ -542,16 +559,18 @@ export class PerformanceService {
     remark?: string;
   }, userId?: string, roleCode?: string) {
     // 校验：管理员或项目创建人可编辑设备
+    let projectId: string | undefined;
     if (userId) {
       const device = await this.prisma.customerDevice.findUnique({
         where: { id: deviceId },
         select: { projectId: true },
       });
       if (device) {
+        projectId = device.projectId;
         await this.assertProjectManager(device.projectId, userId, roleCode);
       }
     }
-    return this.prisma.customerDevice.update({
+    const result = await this.prisma.customerDevice.update({
       where: { id: deviceId },
       data,
       include: {
@@ -559,22 +578,28 @@ export class PerformanceService {
         customer: { select: { id: true, name: true } },
       },
     });
+    if (projectId) this.emitDeviceChanged(projectId, deviceId);
+    return result;
   }
 
   async deleteDevice(deviceId: string, userId?: string, roleCode?: string) {
     // 校验：管理员或项目创建人可删除设备
+    let projectId: string | undefined;
     if (userId) {
       const device = await this.prisma.customerDevice.findUnique({
         where: { id: deviceId },
         select: { projectId: true },
       });
       if (device) {
+        projectId = device.projectId;
         await this.assertProjectManager(device.projectId, userId, roleCode);
       }
     }
-    return this.prisma.customerDevice.delete({
+    const result = await this.prisma.customerDevice.delete({
       where: { id: deviceId },
     });
+    if (projectId) this.emitDeviceChanged(projectId, deviceId);
+    return result;
   }
 
   async recordDelivery(deviceId: string, data: {
@@ -584,7 +609,7 @@ export class PerformanceService {
     includeRecorder?: boolean;
     remark?: string;
   }, userId: string, roleCode?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const updatedDevice = await this.prisma.$transaction(async (tx) => {
       // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
       const [lockedDevice] = await tx.$queryRaw<any[]>`
         SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
@@ -641,6 +666,8 @@ export class PerformanceService {
       });
       return updatedDevice;
     });
+    this.emitDeviceChanged(updatedDevice.projectId, deviceId);
+    return updatedDevice;
   }
 
   async recordInstall(deviceId: string, data: {
@@ -650,7 +677,7 @@ export class PerformanceService {
     includeRecorder?: boolean;
     remark?: string;
   }, userId: string, roleCode?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const updatedDevice = await this.prisma.$transaction(async (tx) => {
       // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
       const [lockedDevice] = await tx.$queryRaw<any[]>`
         SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
@@ -707,6 +734,8 @@ export class PerformanceService {
       });
       return updatedDevice;
     });
+    this.emitDeviceChanged(updatedDevice.projectId, deviceId);
+    return updatedDevice;
   }
 
   async recordDebug(deviceId: string, data: {
@@ -716,7 +745,7 @@ export class PerformanceService {
     includeRecorder?: boolean;
     remark?: string;
   }, userId: string, roleCode?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const updatedDevice = await this.prisma.$transaction(async (tx) => {
       // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
       const [lockedDevice] = await tx.$queryRaw<any[]>`
         SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
@@ -772,6 +801,16 @@ export class PerformanceService {
         },
       });
       return updatedDevice;
+    });
+    this.emitDeviceChanged(updatedDevice.projectId, deviceId);
+    return updatedDevice;
+  }
+
+  // 触发设备变更 SSE 事件，通知前端实时刷新设备清单
+  private emitDeviceChanged(projectId: string, deviceId?: string) {
+    this.eventEmitter.emit('app.event', {
+      type: 'performance.device.changed',
+      payload: { projectId, deviceId },
     });
   }
 

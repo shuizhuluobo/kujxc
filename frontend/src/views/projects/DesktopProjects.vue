@@ -146,12 +146,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useProjects } from './composables/useProjects';
 import { useWorkRecords } from './composables/useWorkRecords';
 import { useDevices } from './composables/useDevices';
 import { useFeeCalculator } from './composables/useFeeCalculator';
 import { useFeeRecords } from './composables/useFeeRecords';
+import { useSSE } from '@/composables/useSSE';
 import { CalculationType } from '@/types';
 import type { Project, WorkRecord, CustomerDevice } from '@/types';
 import RegularProjectPanel from './components/RegularProjectPanel.vue';
@@ -476,9 +477,31 @@ const handleFeeReset = () => {
 // ============ 项目表单提交（由子组件触发） ============
 // 通过 v-model 双向绑定 projectForm，子组件直接修改后触发提交
 
+// ============ SSE 实时刷新设备清单 ============
+const sse = useSSE();
+let deviceRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let unsubscribeDeviceChanged: (() => void) | null = null;
+
+const handleDeviceChanged = (payload: unknown) => {
+  const { projectId } = payload as { projectId: string };
+  // 只刷新当前正在查看的项目
+  if (!selectedProject.value || projectId !== selectedProject.value.id) return;
+  // 防抖：短时间内多次变动只刷新一次
+  if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
+  deviceRefreshTimer = setTimeout(() => {
+    loadDevices(projectId);
+  }, 300);
+};
+
 // ============ 生命周期 ============
 onMounted(async () => {
+  unsubscribeDeviceChanged = sse.on('performance.device.changed', handleDeviceChanged);
   await Promise.all([loadProjects(), loadUsersAndCustomers(), feeInit(), loadGlobalFeeRecords()]);
+});
+
+onUnmounted(() => {
+  if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
+  if (unsubscribeDeviceChanged) unsubscribeDeviceChanged();
 });
 
 // 切换 tab 时如果切回项目页且没有数据，重新加载
