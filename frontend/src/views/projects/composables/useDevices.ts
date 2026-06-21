@@ -243,6 +243,51 @@ export function useDevices() {
   const importData = ref<Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>>([]);
   const uploadRef = ref();
 
+  // 导入客户匹配分析：customerName -> { matchedId: string | null, suggestions: Customer[] }
+  const importCustomerMap = ref<Record<string, { matchedId: string | null; suggestions: Customer[] }>>({});
+
+  // 模糊匹配：计算两个字符串的相似度（基于包含关系 + 编辑距离简化版）
+  const findSimilarCustomers = (name: string, customers: Customer[], limit = 3): Customer[] => {
+    const target = name.trim().toLowerCase();
+    if (!target) return [];
+    const scored = customers
+      .map(c => {
+        const source = (c.name || '').trim().toLowerCase();
+        let score = 0;
+        // 完全包含
+        if (source.includes(target) || target.includes(source)) score += 50;
+        // 首字符匹配
+        if (source[0] === target[0]) score += 10;
+        // 共同字符数
+        let common = 0;
+        for (const ch of target) {
+          if (source.includes(ch)) common++;
+        }
+        score += Math.min(common, source.length) * 2;
+        return { customer: c, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map(item => item.customer);
+  };
+
+  const analyzeImportCustomers = (customers: Customer[]) => {
+    const uniqueNames = [...new Set(importData.value.map(item => item.customerName))];
+    const map: Record<string, { matchedId: string | null; suggestions: Customer[] }> = {};
+    for (const name of uniqueNames) {
+      const exact = customers.find(c => c.name === name);
+      map[name] = {
+        matchedId: exact ? exact.id : null,
+        suggestions: exact ? [] : findSimilarCustomers(name, customers),
+      };
+    }
+    importCustomerMap.value = map;
+  };
+
+  const getUnmatchedCount = computed(() => {
+    return Object.values(importCustomerMap.value).filter(item => !item.matchedId).length;
+  });
+
   const downloadTemplate = async () => {
     const XLSX = await import('xlsx');
     const data = [
@@ -256,7 +301,7 @@ export function useDevices() {
     XLSX.writeFile(wb, '设备导入模板.xlsx');
   };
 
-  const handleFileChange = (file: any) => {
+  const handleFileChange = (file: any, customers?: Customer[]) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -272,6 +317,11 @@ export function useDevices() {
           expectedQuantity: Number(row['数量'] || row['expectedQuantity'] || 0),
           remark: String(row['备注'] || row['remark'] || ''),
         })).filter(item => item.customerName && item.deviceName && item.expectedQuantity > 0);
+
+        // 解析完成后分析客户匹配情况
+        if (customers && importData.value.length > 0) {
+          analyzeImportCustomers(customers);
+        }
       } catch (error) {
         console.error('Failed to parse file:', error);
         ElMessage.error('文件解析失败，请检查格式');
@@ -280,37 +330,60 @@ export function useDevices() {
     reader.readAsArrayBuffer(file.raw);
   };
 
-  const handleImport = async (projectId: string, customers: Customer[]) => {
+  // 全部新建未匹配客户
+  const createAllUnmatched = async (customers: Customer[]) => {
+    const unmatched = Object.entries(importCustomerMap.value).filter(([, v]) => !v.matchedId);
+    for (const [name] of unmatched) {
+      try {
+        const res = await customersApi.create({ name });
+        customers.push(res.data);
+        importCustomerMap.value[name].matchedId = res.data.id;
+      } catch (error) {
+        console.error('Failed to create customer:', error);
+      }
+    }
+  };
+
+  // 全部更正：用每个未匹配客户的第一条建议自动填充
+  const applyAllSuggestions = () => {
+    for (const [name, info] of Object.entries(importCustomerMap.value)) {
+      if (!info.matchedId && info.suggestions.length > 0) {
+        importCustomerMap.value[name].matchedId = info.suggestions[0].id;
+      }
+    }
+  };
+
+  const handleImport = async (projectId: string) => {
     if (importData.value.length === 0) return false;
 
-    for (const item of importData.value) {
-      let customer = customers.find(c => c.name === item.customerName);
+    // 确保所有客户都已匹配
+    const hasUnmatched = Object.values(importCustomerMap.value).some(v => !v.matchedId);
+    if (hasUnmatched) {
+      ElMessage.warning('存在未匹配的客户，请先处理');
+      return false;
+    }
 
-      if (!customer) {
-        try {
-          const res = await customersApi.create({ name: item.customerName });
-          customer = res.data;
-          customers.push(customer);
-        } catch (error) {
-          console.error('Failed to create customer:', error);
-          continue;
-        }
-      }
+    let successCount = 0;
+    for (const item of importData.value) {
+      const match = importCustomerMap.value[item.customerName];
+      if (!match?.matchedId) continue;
 
       try {
         await performanceApi.createDevice(projectId, {
-          customerId: customer.id,
+          customerId: match.matchedId,
           deviceName: item.deviceName,
           expectedQuantity: item.expectedQuantity,
           remark: item.remark || undefined,
         });
+        successCount++;
       } catch (error) {
         console.error('Failed to create device:', error);
       }
     }
 
-    ElMessage.success('导入完成');
+    ElMessage.success(`导入完成，成功 ${successCount} 条`);
     importData.value = [];
+    importCustomerMap.value = {};
     uploadRef.value?.clearFiles();
     await loadDevices(projectId);
     return true;
@@ -331,6 +404,8 @@ export function useDevices() {
     stageMaxQuantity,
     sortedDevices,
     importData,
+    importCustomerMap,
+    getUnmatchedCount,
     uploadRef,
     // 数据加载
     loadDevices,
@@ -350,6 +425,9 @@ export function useDevices() {
     // Excel 导入
     downloadTemplate,
     handleFileChange,
+    analyzeImportCustomers,
+    createAllUnmatched,
+    applyAllSuggestions,
     handleImport,
     // 工具
     getDeviceRowClass,

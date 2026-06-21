@@ -227,7 +227,7 @@
               <div class="record-collaborators" v-if="record.collaborators?.length || record.includeRecorder">
                 <span class="collab-label">协作：</span>
                 <span v-for="(c, i) in record.collaborators" :key="c.id">{{ i ? '、' : '' }}{{ c.name }}</span>
-                <span v-if="record.includeRecorder && record.creator">、{{ record.creator.name }}(记)</span>
+                <span v-if="record.includeRecorder && record.creator">{{ record.collaborators?.length ? '、' : '' }}{{ record.creator.name }}(记)</span>
               </div>
               <div class="record-remark" v-if="record.remark">备注：{{ record.remark }}</div>
               <div class="record-actions" v-if="canCreateRecord || canManageProject" @click.stop>
@@ -353,8 +353,8 @@
               <el-option v-for="c in customers.filter(c => c?.id)" :key="c.id" :label="c.name || '未知'" :value="c.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="关联设备">
-            <el-select v-model="recordForm.deviceId" placeholder="选择设备（可选）" clearable filterable style="width: 100%">
+          <el-form-item label="关联设备" required>
+            <el-select v-model="recordForm.deviceId" placeholder="请选择设备" filterable style="width: 100%">
               <el-option v-for="d in filteredDevicesForRecord.filter(d => d?.id)" :key="d.id" :label="`${d.customer?.name || ''} - ${d.deviceName}`" :value="d.id" />
             </el-select>
           </el-form-item>
@@ -373,7 +373,7 @@
               <el-button :icon="Minus" circle size="small" @click="recordForm.workDuration = Math.max(0.5, recordForm.workDuration - 0.5)" />
               <span class="qty-val">{{ recordForm.workDuration }}</span>
               <el-button :icon="Plus" circle size="small" @click="recordForm.workDuration += 0.5" />
-              <el-segmented v-model="recordForm.workUnit" :options="[{ value: WorkUnit.DAY, label: '天' }, { value: WorkUnit.HOUR, label: '小时' }]" size="small" />
+              <el-segmented v-model="recordForm.workUnit" :options="[{ value: WorkUnit.DAY, label: '工日' }, { value: WorkUnit.HOUR, label: '小时' }]" size="small" />
             </div>
           </el-form-item>
           <el-form-item label="工作描述">

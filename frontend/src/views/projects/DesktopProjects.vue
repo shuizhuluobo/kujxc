@@ -36,6 +36,8 @@
           :stage-max-quantity="stageMaxQuantity"
           :stage-modal-title="stageModalTitle"
           :import-data="importData"
+          :import-customer-map="importCustomerMap"
+          :unmatched-count="getUnmatchedCount"
           :show-create-project-modal="showCreateProjectModal"
           :show-edit-project-modal="showEditProjectModal"
           :show-record-modal="showRecordModal"
@@ -62,8 +64,10 @@
           @submit-stage="handleSubmitStage"
           @import-device="openImportModal"
           @download-template="downloadTemplate"
-          @file-change="handleFileChange"
+          @file-change="(file: any) => handleFileChange(file, customers)"
           @confirm-import="handleConfirmImport"
+          @create-all-unmatched="() => createAllUnmatched(customers)"
+          @apply-all-suggestions="applyAllSuggestions"
           @page-change="currentPage = $event"
           @create-project-submit="handleCreateProjectSubmit"
           @update-project-submit="handleUpdateProjectSubmit"
@@ -223,6 +227,10 @@ const {
   downloadTemplate,
   handleFileChange,
   handleImport,
+  importCustomerMap,
+  getUnmatchedCount,
+  createAllUnmatched,
+  applyAllSuggestions,
 } = useDevices();
 
 const {
@@ -417,13 +425,14 @@ const handleSubmitStage = async () => {
 
 const openImportModal = () => {
   importData.value = [];
+  importCustomerMap.value = {};
   uploadRef.value?.clearFiles();
   showImportModal.value = true;
 };
 
 const handleConfirmImport = async () => {
   if (!selectedProject.value) return;
-  const ok = await handleImport(selectedProject.value.id, customers.value);
+  const ok = await handleImport(selectedProject.value.id);
   if (ok) showImportModal.value = false;
 };
 

@@ -258,10 +258,16 @@ export class PerformanceService {
       let deviceUpdateData: any = {};
 
       if (data.deviceId && data.recordType && data.quantity) {
-        device = await tx.customerDevice.findUnique({
-          where: { id: data.deviceId },
-          include: { customer: true },
-        });
+        // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+        const [lockedDevice] = await tx.$queryRaw<any[]>`
+          SELECT * FROM "CustomerDevice" WHERE id = ${data.deviceId} FOR UPDATE
+        `;
+        if (!lockedDevice) throw new NotFoundException('设备不存在');
+        // 查询关联客户
+        const customer = lockedDevice.customerId
+          ? await tx.customer.findUnique({ where: { id: lockedDevice.customerId } })
+          : null;
+        device = { ...lockedDevice, customer };
         if (device) {
           let newQuantity: number;
           switch (data.recordType) {
@@ -352,9 +358,10 @@ export class PerformanceService {
 
     if (deviceId && (qtyChanged || typeChanged)) {
       return this.prisma.$transaction(async (tx) => {
-        const device = await tx.customerDevice.findUnique({
-          where: { id: deviceId },
-        });
+        // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+        const [device] = await tx.$queryRaw<any[]>`
+          SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+        `;
         if (!device) {
           // 设备不存在，直接更新记录
           return tx.performanceRecord.update({
@@ -454,9 +461,10 @@ export class PerformanceService {
     if (record.deviceId) {
       const deviceId = record.deviceId;
       return this.prisma.$transaction(async (tx) => {
-        const device = await tx.customerDevice.findUnique({
-          where: { id: deviceId },
-        });
+        // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+        const [device] = await tx.$queryRaw<any[]>`
+          SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+        `;
         if (!device) {
           await tx.performanceRecord.delete({ where: { id: recordId } });
           return;
@@ -577,12 +585,16 @@ export class PerformanceService {
     remark?: string;
   }, userId: string, roleCode?: string) {
     return this.prisma.$transaction(async (tx) => {
-      // 事务内重新读取设备，确保并发安全
-      const device = await tx.customerDevice.findUnique({
-        where: { id: deviceId },
-        include: { project: true, customer: true },
-      });
-      if (!device) throw new NotFoundException('设备不存在');
+      // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+      const [lockedDevice] = await tx.$queryRaw<any[]>`
+        SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+      `;
+      if (!lockedDevice) throw new NotFoundException('设备不存在');
+      const project = await tx.performanceProject.findUnique({ where: { id: lockedDevice.projectId } });
+      const customer = lockedDevice.customerId
+        ? await tx.customer.findUnique({ where: { id: lockedDevice.customerId } })
+        : null;
+      const device = { ...lockedDevice, project, customer };
 
       // 校验：管理员或项目成员可记录
       await this.assertProjectMember(device.projectId, userId, roleCode);
@@ -639,11 +651,16 @@ export class PerformanceService {
     remark?: string;
   }, userId: string, roleCode?: string) {
     return this.prisma.$transaction(async (tx) => {
-      const device = await tx.customerDevice.findUnique({
-        where: { id: deviceId },
-        include: { project: true, customer: true },
-      });
-      if (!device) throw new NotFoundException('设备不存在');
+      // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+      const [lockedDevice] = await tx.$queryRaw<any[]>`
+        SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+      `;
+      if (!lockedDevice) throw new NotFoundException('设备不存在');
+      const project = await tx.performanceProject.findUnique({ where: { id: lockedDevice.projectId } });
+      const customer = lockedDevice.customerId
+        ? await tx.customer.findUnique({ where: { id: lockedDevice.customerId } })
+        : null;
+      const device = { ...lockedDevice, project, customer };
 
       // 校验：管理员或项目成员可记录
       await this.assertProjectMember(device.projectId, userId, roleCode);
@@ -700,11 +717,16 @@ export class PerformanceService {
     remark?: string;
   }, userId: string, roleCode?: string) {
     return this.prisma.$transaction(async (tx) => {
-      const device = await tx.customerDevice.findUnique({
-        where: { id: deviceId },
-        include: { project: true, customer: true },
-      });
-      if (!device) throw new NotFoundException('设备不存在');
+      // 使用 SELECT FOR UPDATE 加行锁，防止并发丢失更新
+      const [lockedDevice] = await tx.$queryRaw<any[]>`
+        SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+      `;
+      if (!lockedDevice) throw new NotFoundException('设备不存在');
+      const project = await tx.performanceProject.findUnique({ where: { id: lockedDevice.projectId } });
+      const customer = lockedDevice.customerId
+        ? await tx.customer.findUnique({ where: { id: lockedDevice.customerId } })
+        : null;
+      const device = { ...lockedDevice, project, customer };
 
       // 校验：管理员或项目成员可记录
       await this.assertProjectMember(device.projectId, userId, roleCode);
@@ -954,12 +976,12 @@ export class PerformanceService {
     infoSheet.getRow(1).font = { bold: true };
     
     infoSheet.addRow({ label: '项目名称', value: project.projectName });
-    infoSheet.addRow({ label: '计算方式', value: project.calculationType === 'QUANTITY' ? '按量计算' : '按天计算' });
+    infoSheet.addRow({ label: '计算方式', value: project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算' });
     infoSheet.addRow({ label: '设备总量', value: project.totalQuantity || '-' });
     infoSheet.addRow({ label: '送货单价', value: `${project.deliveryUnitPrice}元/台` });
     infoSheet.addRow({ label: '安装单价', value: `${project.installUnitPrice}元/台` });
     infoSheet.addRow({ label: '调试单价', value: `${project.debugUnitPrice}元/台` });
-    infoSheet.addRow({ label: '日结单价', value: `${project.dailyPrice}元/人/天` });
+    infoSheet.addRow({ label: '日结单价', value: `${project.dailyPrice}元/人/工日` });
     infoSheet.addRow({ label: '备注', value: project.remark || '-' });
     infoSheet.addRow({ label: '创建人', value: project.creator?.name || '-' });
     infoSheet.addRow({ label: '创建时间', value: new Date(project.createdAt).toLocaleString('zh-CN') });
@@ -998,7 +1020,7 @@ export class PerformanceService {
       const quantityOrHours = record.quantity 
         ? `${record.quantity}台` 
         : record.workHours 
-          ? `${record.workHours}小时 (${(record.workHours / 8).toFixed(1)}天)` 
+          ? `${record.workHours}小时 (${(record.workHours / 8).toFixed(1)}工日)` 
           : '-';
       const collaboratorNames = record.collaboratorIds.map(id => collaboratorMap.get(id) || id).join(', ');
       
@@ -1025,7 +1047,7 @@ export class PerformanceService {
       { header: '安装金额', key: 'installAmount', width: 12 },
       { header: '调试数量', key: 'debugCount', width: 12 },
       { header: '调试金额', key: 'debugAmount', width: 12 },
-      { header: '工作天数', key: 'totalWorkDays', width: 12 },
+      { header: '工日数', key: 'totalWorkDays', width: 12 },
       { header: '日结金额', key: 'workDaysAmount', width: 12 },
       { header: '合计金额', key: 'totalAmount', width: 12 },
     ];
@@ -1112,7 +1134,7 @@ export class PerformanceService {
       // 添加到汇总表
       summarySheet.addRow({
         projectName: project.projectName,
-        calculationType: project.calculationType === 'QUANTITY' ? '按量计算' : '按天计算',
+        calculationType: project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
         totalQuantity: project.totalQuantity || '-',
         recordCount: project.records.length,
         creator: userMap.get(project.creatorId) || '-',

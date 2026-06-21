@@ -138,6 +138,11 @@ export function useWorkRecords() {
     // 兼容桌面端（recordTypes 数组）与移动端（recordType 单选）
     const recordType = recordForm.recordType || recordForm.recordTypes[0];
     if (!recordType) return;
+    // 按量计算项目必须选择关联设备，否则无法核减设备数量
+    if (project.calculationType === CalculationType.QUANTITY && !recordForm.deviceId) {
+      ElMessage.warning('请选择关联设备');
+      return;
+    }
 
     try {
       let workHours: number | undefined;

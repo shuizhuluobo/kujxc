@@ -58,7 +58,7 @@
             </span>
             <span v-if="canViewPerformance" class="header-meta">
               {{ selectedProject.calculationType === CalculationType.QUANTITY
-                ? `送${selectedProject.deliveryUnitPrice}/装${selectedProject.installUnitPrice}/调${selectedProject.debugUnitPrice}`
+                ? `送${stageTotals.delivery}/装${stageTotals.install}/调${stageTotals.debug}`
                 : `${selectedProject.dailyPrice}元/天` }}
             </span>
           </div>
@@ -125,21 +125,21 @@
             <el-table-column label="应送" width="60" align="center">
               <template #default="{ row }">{{ row.expectedQuantity }}</template>
             </el-table-column>
-            <el-table-column label="送货" width="70" align="center">
+            <el-table-column label="送货" width="70" align="right">
               <template #default="{ row }">
                 <span :class="{ done: row.deliveryQuantity >= row.expectedQuantity }">
                   {{ row.deliveryQuantity }}/{{ row.expectedQuantity }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="安装" width="70" align="center">
+            <el-table-column label="安装" width="70" align="right">
               <template #default="{ row }">
                 <span :class="{ done: row.installQuantity >= row.deliveryQuantity && row.deliveryQuantity > 0 }">
                   {{ row.installQuantity }}/{{ row.deliveryQuantity }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="调试" width="70" align="center">
+            <el-table-column label="调试" width="70" align="right">
               <template #default="{ row }">
                 <span :class="{ done: row.debugQuantity >= row.installQuantity && row.installQuantity > 0 }">
                   {{ row.debugQuantity }}/{{ row.installQuantity }}
@@ -153,21 +153,11 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="160" fixed="right">
+            <el-table-column label="操作" width="120" fixed="right">
               <template #default="{ row }">
                 <div class="row-actions">
-                  <el-button size="small" link type="primary" @click="$emit('recordStage', row, 'delivery')" :disabled="row.deliveryQuantity >= row.expectedQuantity">送货</el-button>
-                  <el-button size="small" link type="success" @click="$emit('recordStage', row, 'install')" :disabled="row.installQuantity >= row.deliveryQuantity || row.deliveryQuantity === 0">安装</el-button>
-                  <el-button size="small" link type="warning" @click="$emit('recordStage', row, 'debug')" :disabled="row.debugQuantity >= row.installQuantity || row.installQuantity === 0">调试</el-button>
-                  <el-dropdown v-if="canManageProject" trigger="click" @command="(cmd: string) => handleDeviceAction(cmd, row)">
-                    <el-button size="small" link type="info"><el-icon><MoreFilled /></el-icon></el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                        <el-dropdown-item command="delete" divided v-if="!row.isCompleted">删除</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+                  <el-button size="small" link type="primary" @click="$emit('editDevice', row)">编辑</el-button>
+                  <el-button size="small" link type="danger" @click="$emit('deleteDevice', row)" :disabled="row.isCompleted">删除</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -185,49 +175,93 @@
           <el-button size="small" type="primary" @click="$emit('createRecord')">+ 新增记录</el-button>
         </div>
         <div class="panel-body">
-          <el-table v-if="records.length > 0" :data="paginatedRecords" stripe size="small">
-            <el-table-column label="日期" width="105" sortable>
+          <el-table class="records-table" :data="paginatedRecords" stripe size="small">
+            <el-table-column width="105" sortable prop="date">
+              <template #header>
+                <div class="th-filter"><span>日期</span></div>
+              </template>
               <template #default="{ row }">{{ formatDate(row.date) }}</template>
             </el-table-column>
-            <el-table-column label="类型" width="75">
+            <el-table-column width="120">
+              <template #header>
+                <div class="th-filter">
+                  <span>类型</span>
+                  <el-select
+                    v-model="recordFilter.recordType"
+                    size="small"
+                    clearable
+                    placeholder="全部"
+                    class="th-filter-select"
+                  >
+                    <el-option v-for="(label, key) in RECORD_TYPE_LABELS" :key="key" :label="label" :value="key" />
+                  </el-select>
+                </div>
+              </template>
               <template #default="{ row }">
                 <el-tag size="small" :type="getRecordTypeTag(row.recordType)">
                   {{ RECORD_TYPE_LABELS[(row.recordType || '') as RecordType] || '-' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="数量/时长" width="95">
+            <el-table-column width="95">
+              <template #header>
+                <div class="th-filter"><span>数量/时长</span></div>
+              </template>
               <template #default="{ row }">
                 <span v-if="selectedProject!.calculationType === CalculationType.QUANTITY">{{ row.quantity || 0 }} 台</span>
                 <span v-else>{{ formatWorkHours(row.workHours || 0) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="客户" min-width="90" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+            <el-table-column min-width="140" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+              <template #header>
+                <div class="th-filter">
+                  <span>客户</span>
+                  <el-select
+                    v-model="recordFilter.customerId"
+                    size="small"
+                    clearable
+                    filterable
+                    placeholder="全部"
+                    class="th-filter-select"
+                  >
+                    <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+                  </el-select>
+                </div>
+              </template>
               <template #default="{ row }">{{ row.customer?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column label="协作人" min-width="140">
+            <el-table-column min-width="140">
+              <template #header>
+                <div class="th-filter"><span>协作人</span></div>
+              </template>
               <template #default="{ row }">
                 <span v-for="(c, i) in row.collaborators" :key="c.id">
                   {{ i ? '、' : '' }}{{ c.name }}
                 </span>
-                <span v-if="row.includeRecorder && row.creator">、{{ row.creator.name }}(记)</span>
+                <span v-if="row.includeRecorder && row.creator">{{ row.collaborators?.length ? '、' : '' }}{{ row.creator.name }}(记)</span>
               </template>
             </el-table-column>
-            <el-table-column label="描述" min-width="120" show-overflow-tooltip v-if="selectedProject.calculationType === CalculationType.DAILY">
+            <el-table-column min-width="120" show-overflow-tooltip v-if="selectedProject.calculationType === CalculationType.DAILY">
+              <template #header>
+                <div class="th-filter"><span>描述</span></div>
+              </template>
               <template #default="{ row }">{{ row.description || '-' }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="90" v-if="canManageProject" fixed="right">
+            <el-table-column width="90" v-if="canManageProject" fixed="right">
+              <template #header>
+                <div class="th-filter"><span>操作</span></div>
+              </template>
               <template #default="{ row }">
                 <el-button size="small" link type="primary" @click="$emit('editRecord', row)">编辑</el-button>
                 <el-button size="small" link type="danger" @click="$emit('deleteRecord', row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
-          <div v-if="records.length > pageSize" class="pagination-wrap">
-            <el-pagination v-model:current-page="currentPageModel" :page-size="pageSize" :total="records.length" layout="prev, pager, next" small />
+          <div v-if="filteredRecords.length > pageSize" class="pagination-wrap">
+            <el-pagination v-model:current-page="currentPageModel" :page-size="pageSize" :total="filteredRecords.length" layout="prev, pager, next" small />
           </div>
-          <div v-if="records.length === 0" class="empty-tip">
-            <p>暂无工作记录</p>
+          <div v-if="filteredRecords.length === 0" class="empty-tip">
+            <p>{{ records.length === 0 ? '暂无工作记录' : '没有符合筛选条件的记录' }}</p>
           </div>
         </div>
       </section>
@@ -239,30 +273,12 @@
           <el-button size="small" @click="$emit('refreshStats')">刷新</el-button>
         </div>
         <div class="panel-body">
-          <el-table v-if="stats.length > 0" :data="stats" stripe size="small">
-            <el-table-column label="#" type="index" width="45" />
-            <el-table-column label="姓名" prop="userName" min-width="90" />
-            <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-              <el-table-column label="送货" width="85" align="right">
-                <template #default="{ row }">{{ row.deliveryCount || 0 }}台<br/><span class="amount">¥{{ (row.deliveryAmount || 0).toFixed(2) }}</span></template>
-              </el-table-column>
-              <el-table-column label="安装" width="85" align="right">
-                <template #default="{ row }">{{ row.installCount || 0 }}台<br/><span class="amount">¥{{ (row.installAmount || 0).toFixed(2) }}</span></template>
-              </el-table-column>
-              <el-table-column label="调试" width="85" align="right">
-                <template #default="{ row }">{{ row.debugCount || 0 }}台<br/><span class="amount">¥{{ (row.debugAmount || 0).toFixed(2) }}</span></template>
-              </el-table-column>
-            </template>
-            <template v-else>
-              <el-table-column label="工作时长" width="100" align="right">
-                <template #default="{ row }">{{ formatWorkHours((row.totalWorkDays || 0) * HOURS_PER_DAY) }}</template>
-              </el-table-column>
-            </template>
-            <el-table-column label="合计金额" width="110" align="right" fixed="right">
-              <template #default="{ row }"><strong>¥{{ (row.totalAmount || 0).toFixed(2) }}</strong></template>
-            </el-table-column>
-          </el-table>
-          <div v-else class="empty-tip">
+          <StatsTable
+            v-if="selectedProject"
+            :data="stats"
+            :calculation-type="selectedProject.calculationType"
+          />
+          <div v-if="stats.length === 0" class="empty-tip">
             <p>暂无汇总数据</p>
           </div>
         </div>
@@ -279,13 +295,13 @@
     <!-- 新建项目弹窗 -->
     <el-dialog v-model="showCreateProjectModalModel" title="新建项目" width="520px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
-        <el-form-item label="项目名称" required>
+        <el-form-item label="项目名称" required v-shake ref="projectNameItem">
           <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
         </el-form-item>
         <el-form-item label="计算方式" required>
           <el-radio-group v-model="projectForm.calculationType">
             <el-radio :value="CalculationType.QUANTITY">按数量计算</el-radio>
-            <el-radio :value="CalculationType.DAILY">按天计算</el-radio>
+            <el-radio :value="CalculationType.DAILY">按工日计算</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="设备总量" v-if="projectForm.calculationType === CalculationType.QUANTITY">
@@ -304,7 +320,7 @@
           <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="按天单价" v-if="projectForm.calculationType === CalculationType.DAILY">
+        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
@@ -326,7 +342,7 @@
     <!-- 编辑项目弹窗 -->
     <el-dialog v-model="showEditProjectModalModel" title="编辑项目" width="520px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
-        <el-form-item label="项目名称" required>
+        <el-form-item label="项目名称" required v-shake ref="editProjectNameItem">
           <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
         </el-form-item>
         <el-form-item label="设备总量" v-if="projectForm.calculationType === CalculationType.QUANTITY">
@@ -345,7 +361,7 @@
           <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="按天单价" v-if="projectForm.calculationType === CalculationType.DAILY">
+        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
@@ -367,12 +383,12 @@
     <!-- 新增/编辑设备弹窗 -->
     <el-dialog v-model="showCreateDeviceModalModel" title="新增设备" width="500px" destroy-on-close>
       <el-form :model="deviceForm" label-width="80px">
-        <el-form-item label="客户" required>
+        <el-form-item label="客户" required v-shake ref="deviceCustomerItem">
           <el-select v-model="deviceForm.customerId" placeholder="选择客户" filterable style="width: 100%">
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="设备名称" required>
+        <el-form-item label="设备名称" required v-shake ref="deviceNameItem">
           <el-input v-model="deviceForm.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
         <el-form-item label="预计数量" required>
@@ -385,7 +401,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showCreateDeviceModalModel = false">取消</el-button>
-        <el-button type="primary" @click="$emit('saveDevice')">确定</el-button>
+        <el-button type="primary" @click="handleSaveDeviceClick">确定</el-button>
       </template>
     </el-dialog>
 
@@ -396,7 +412,7 @@
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="设备名称" required>
+        <el-form-item label="设备名称" required v-shake ref="editDeviceNameItem">
           <el-input v-model="deviceForm.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
         <el-form-item label="预计数量" required>
@@ -409,7 +425,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showEditDeviceModalModel = false">取消</el-button>
-        <el-button type="primary" @click="$emit('saveDevice')">确定</el-button>
+        <el-button type="primary" @click="handleSaveDeviceClick">确定</el-button>
       </template>
     </el-dialog>
 
@@ -423,7 +439,7 @@
           <p v-else-if="currentStage === 'install'"><strong>待安装：</strong>{{ (editingDevice?.deliveryQuantity || 0) - (editingDevice?.installQuantity || 0) }} 台</p>
           <p v-else-if="currentStage === 'debug'"><strong>待调试：</strong>{{ (editingDevice?.installQuantity || 0) - (editingDevice?.debugQuantity || 0) }} 台</p>
         </div>
-        <el-form-item label="工作日期" required>
+        <el-form-item label="工作日期" required v-shake ref="stageDateItem">
           <el-date-picker v-model="stageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="数量" required>
@@ -445,17 +461,17 @@
       </el-form>
       <template #footer>
         <el-button @click="showStageModalModel = false">取消</el-button>
-        <el-button type="primary" @click="$emit('submitStage')">确定</el-button>
+        <el-button type="primary" @click="handleSubmitStageClick">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 工作记录弹窗 -->
     <el-dialog v-model="showRecordModalModel" :title="editingRecord ? '编辑工作记录' : '新增工作记录'" width="540px" destroy-on-close>
       <el-form :model="recordForm" label-width="90px">
-        <el-form-item label="日期" required>
+        <el-form-item label="日期" required v-shake ref="recordDateItem">
           <el-date-picker v-model="recordForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="工作类型" required>
+        <el-form-item label="工作类型" required v-shake ref="recordTypeItem">
           <el-checkbox-group v-model="recordForm.recordTypes">
             <el-checkbox :value="RecordType.DELIVERY" :disabled="selectedProject?.calculationType !== CalculationType.QUANTITY">送货</el-checkbox>
             <el-checkbox :value="RecordType.INSTALL" :disabled="selectedProject?.calculationType !== CalculationType.QUANTITY">安装</el-checkbox>
@@ -464,26 +480,27 @@
           </el-checkbox-group>
         </el-form-item>
         <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
-          <el-form-item label="客户" required>
-            <el-select v-model="recordForm.customerId" placeholder="选择客户" clearable filterable style="width: 100%">
-              <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
+          <el-form-item label="客户" required v-shake ref="recordCustomerItem">
+            <el-select v-model="recordForm.customerId" placeholder="先选择工作类型" clearable filterable style="width: 100%" :disabled="!hasSelectedRecordType" @change="onRecordCustomerChange">
+              <el-option v-for="customer in filteredCustomersForRecord" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="关联设备">
-            <el-select v-model="recordForm.deviceId" placeholder="选择设备（可选）" clearable filterable style="width: 100%">
-              <el-option v-for="d in filteredDevicesForRecord.filter(d => d?.id)" :key="d.id" :label="`${d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
+          <el-form-item label="关联设备" required v-shake ref="recordDeviceItem">
+            <el-select v-model="recordForm.deviceId" placeholder="先选择客户" filterable style="width: 100%" :disabled="!recordForm.customerId">
+              <el-option v-for="d in filteredDevicesForRecord" :key="d.id" :label="`${d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="数量" required>
-            <el-input-number v-model="recordForm.quantity" :min="1" style="width: 140px" />
+            <el-input-number v-model="recordForm.quantity" :min="1" :max="maxQuantityForRecord" style="width: 140px" />
             <span class="unit"> 台</span>
+            <span v-if="maxQuantityForRecord < Infinity" class="max-hint">（剩余可填：{{ maxQuantityForRecord }} 台）</span>
           </el-form-item>
         </template>
         <template v-else>
           <el-form-item label="工作时长" required>
             <el-input-number v-model="recordForm.workDuration" :min="0.5" :step="0.5" style="width: 120px" />
             <el-select v-model="recordForm.workUnit" style="width: 80px; margin-left: 8px;">
-              <el-option :value="WorkUnit.DAY" :label="'天'" />
+              <el-option :value="WorkUnit.DAY" :label="'工日'" />
               <el-option :value="WorkUnit.HOUR" :label="'小时'" />
             </el-select>
           </el-form-item>
@@ -506,7 +523,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showRecordModalModel = false">取消</el-button>
-        <el-button type="primary" @click="$emit('saveRecord')">保存</el-button>
+        <el-button type="primary" @click="handleSaveRecordClick">保存</el-button>
       </template>
     </el-dialog>
 
@@ -533,25 +550,65 @@
       </el-upload>
       <div v-if="importData.length > 0" class="import-preview">
         <h4>预览数据 (共 {{ importData.length }} 条)</h4>
-        <el-table :data="importData.slice(0, 10)" border size="small" max-height="250">
-          <el-table-column prop="customerName" label="客户名称" />
+        <el-table :data="previewData" border size="small" max-height="250">
+          <el-table-column label="客户名称">
+            <template #default="{ row }">
+              <span :class="{ 'matched-name': row.matched, 'original-name': !row.matched }">{{ row.resolvedName }}</span>
+              <el-tag v-if="row.matched && row.resolvedName !== row.customerName" size="small" type="warning" class="corrected-tag">已更正</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="deviceName" label="设备名称" />
           <el-table-column prop="expectedQuantity" label="数量" width="80" />
           <el-table-column prop="remark" label="备注" />
         </el-table>
         <p v-if="importData.length > 10" class="preview-more">...还有 {{ importData.length - 10 }} 条数据</p>
+
+        <!-- 客户匹配面板 -->
+        <div v-if="unmatchedCount > 0" class="customer-match-panel">
+          <div class="match-header">
+            <h4>客户匹配（{{ unmatchedCount }} 个未匹配）</h4>
+            <div class="match-actions">
+              <el-button size="small" type="warning" @click="$emit('applyAllSuggestions')">全部更正</el-button>
+              <el-button size="small" type="success" @click="$emit('createAllUnmatched')">全部新建</el-button>
+            </div>
+          </div>
+          <el-table :data="Object.entries(importCustomerMap).filter(([, v]) => !v.matchedId).map(([name, v]) => ({ name, ...v }))" border size="small" max-height="200">
+            <el-table-column prop="name" label="导入客户名" width="180" />
+            <el-table-column label="选择已有客户">
+              <template #default="{ row }">
+                <el-select v-model="importCustomerMap[row.name].matchedId" placeholder="选择客户" filterable size="small" style="width: 100%">
+                  <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="建议" width="200">
+              <template #default="{ row }">
+                <div v-if="row.suggestions.length > 0" class="suggestions">
+                  <el-tag v-for="s in row.suggestions" :key="s.id" size="small" class="suggestion-tag" @click="importCustomerMap[row.name].matchedId = s.id">
+                    {{ s.name }}
+                  </el-tag>
+                </div>
+                <span v-else class="no-suggestion">无相似客户</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div v-else-if="importData.length > 0 && Object.keys(importCustomerMap).length > 0" class="match-done">
+          <el-alert title="所有客户已匹配" type="success" :closable="false" show-icon />
+        </div>
       </div>
       <template #footer>
         <el-button @click="showImportModalModel = false">取消</el-button>
-        <el-button type="primary" @click="$emit('confirmImport')" :disabled="importData.length === 0">确认导入</el-button>
+        <el-button type="primary" @click="$emit('confirmImport')" :disabled="importData.length === 0 || unmatchedCount > 0">确认导入</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Download, EditPen, Delete, MoreFilled, UploadFilled } from '@element-plus/icons-vue';
+import { computed, ref } from 'vue';
+import { Download, EditPen, Delete, UploadFilled } from '@element-plus/icons-vue';
+import StatsTable from './StatsTable.vue';
 import {
   CalculationType,
   CALCULATION_TYPE_LABELS,
@@ -589,6 +646,8 @@ const props = defineProps<{
   stageMaxQuantity: number;
   stageModalTitle: string;
   importData: Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>;
+  importCustomerMap: Record<string, { matchedId: string | null; suggestions: Customer[] }>;
+  unmatchedCount: number;
   showCreateProjectModal: boolean;
   showEditProjectModal: boolean;
   showRecordModal: boolean;
@@ -620,6 +679,8 @@ const emit = defineEmits<{
   downloadTemplate: [];
   fileChange: [file: any];
   confirmImport: [];
+  createAllUnmatched: [];
+  applyAllSuggestions: [];
   pageChange: [page: number];
   createProjectSubmit: [];
   updateProjectSubmit: [];
@@ -637,6 +698,114 @@ const currentPageModel = computed({
   get: () => props.currentPage,
   set: (v: number) => emit('pageChange', v),
 });
+
+// 预览数据：显示匹配后的客户名
+const previewData = computed(() => {
+  return props.importData.slice(0, 10).map(item => {
+    const match = props.importCustomerMap[item.customerName];
+    let resolvedName = item.customerName;
+    let matched = false;
+    if (match?.matchedId) {
+      const c = props.customers.find(cu => cu.id === match.matchedId);
+      if (c) {
+        resolvedName = c.name;
+        matched = true;
+      }
+    }
+    return { ...item, resolvedName, matched };
+  });
+});
+
+// 记录表单校验：摇晃提示
+const recordDateItem = ref<any>(null);
+const recordTypeItem = ref<any>(null);
+const recordCustomerItem = ref<any>(null);
+const recordDeviceItem = ref<any>(null);
+
+// 设备表单校验：摇晃提示
+const deviceCustomerItem = ref<any>(null);
+const deviceNameItem = ref<any>(null);
+const editDeviceNameItem = ref<any>(null);
+
+// 阶段记录表单校验
+const stageDateItem = ref<any>(null);
+
+// 项目表单校验
+const projectNameItem = ref<any>(null);
+const editProjectNameItem = ref<any>(null);
+
+const shakeItem = (itemRef: any) => {
+  const el = itemRef?.$el || itemRef;
+  el?.__shake?.();
+};
+
+const handleCreateProject = () => {
+  if (!props.projectForm.projectName?.trim()) {
+    shakeItem(projectNameItem.value);
+    return;
+  }
+  emit('createProjectSubmit');
+};
+
+const handleUpdateProject = () => {
+  if (!props.projectForm.projectName?.trim()) {
+    shakeItem(editProjectNameItem.value);
+    return;
+  }
+  emit('updateProjectSubmit');
+};
+
+const handleSubmitStageClick = () => {
+  if (!props.stageForm.date) {
+    shakeItem(stageDateItem.value);
+    return;
+  }
+  emit('submitStage');
+};
+
+const handleSaveDeviceClick = () => {
+  const form = props.deviceForm;
+  let invalid = false;
+  // 编辑模式下客户不可改，无需校验
+  if (!props.showEditDeviceModal && !form.customerId) {
+    shakeItem(deviceCustomerItem.value);
+    invalid = true;
+  }
+  if (!form.deviceName?.trim()) {
+    shakeItem(props.showEditDeviceModal ? editDeviceNameItem.value : deviceNameItem.value);
+    invalid = true;
+  }
+  if (invalid) return;
+  emit('saveDevice');
+};
+
+const handleSaveRecordClick = () => {
+  const form = props.recordForm;
+  const isQuantity = props.selectedProject?.calculationType === CalculationType.QUANTITY;
+  let invalid = false;
+
+  if (!form.date) {
+    shakeItem(recordDateItem.value);
+    invalid = true;
+  }
+  const recordType = form.recordType || form.recordTypes?.[0];
+  if (!recordType) {
+    shakeItem(recordTypeItem.value);
+    invalid = true;
+  }
+  if (isQuantity) {
+    if (!form.customerId) {
+      shakeItem(recordCustomerItem.value);
+      invalid = true;
+    }
+    if (!form.deviceId) {
+      shakeItem(recordDeviceItem.value);
+      invalid = true;
+    }
+  }
+  if (invalid) return;
+  emit('saveRecord');
+};
 const showCreateProjectModalModel = computed({
   get: () => props.showCreateProjectModal,
   set: (v: boolean) => emit('updateShowCreateProjectModal', v),
@@ -668,12 +837,97 @@ const showImportModalModel = computed({
 
 const paginatedRecords = computed(() => {
   const start = (props.currentPage - 1) * props.pageSize;
-  return props.records.slice(start, start + props.pageSize);
+  return filteredRecords.value.slice(start, start + props.pageSize);
 });
 
+// 工作记录筛选
+const recordFilter = ref<{ customerId: string; recordType: string }>({
+  customerId: '',
+  recordType: '',
+});
+
+const filteredRecords = computed(() => {
+  return props.records.filter((r) => {
+    // 客户筛选
+    if (recordFilter.value.customerId && r.customerId !== recordFilter.value.customerId) return false;
+    // 类型筛选
+    if (recordFilter.value.recordType && r.recordType !== recordFilter.value.recordType) return false;
+    return true;
+  });
+});
+
+const resetRecordFilter = () => {
+  recordFilter.value = { customerId: '', recordType: '' };
+};
+
+// 是否已选择工作类型
+const hasSelectedRecordType = computed(() => {
+  const types = props.recordForm.recordTypes || props.recordForm.recordType;
+  return Array.isArray(types) ? types.length > 0 : !!types;
+});
+
+// 更改客户时清除关联设备
+const onRecordCustomerChange = () => {
+  props.recordForm.deviceId = '';
+};
+
+// 按选中类型判断设备是否已完成该类型
+const isDeviceTypeDone = (d: CustomerDevice, type: string) => {
+  if (type === RecordType.DELIVERY) return d.deliveryQuantity >= d.expectedQuantity;
+  if (type === RecordType.INSTALL) return d.installQuantity >= d.expectedQuantity;
+  if (type === RecordType.DEBUG) return d.debugQuantity >= d.expectedQuantity;
+  return false;
+};
+
+// 过滤客户：至少有一个设备在选中类型上未完成
+const filteredCustomersForRecord = computed(() => {
+  if (!hasSelectedRecordType.value) return [];
+  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
+  const validCustomerIds = new Set<string>();
+  props.devices.forEach((d) => {
+    // 设备至少有一个选中类型未完成
+    const hasUnfinished = types.some((t: string) => !isDeviceTypeDone(d, t));
+    if (hasUnfinished) validCustomerIds.add(d.customerId);
+  });
+  return props.customers.filter((c) => c?.id && validCustomerIds.has(c.id));
+});
+
+// 过滤设备：按客户 + 选中类型未完成
 const filteredDevicesForRecord = computed(() => {
   if (!props.recordForm.customerId) return [];
-  return [];
+  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
+  return props.devices.filter((d) => {
+    if (d.customerId !== props.recordForm.customerId) return false;
+    // 至少有一个选中类型未完成
+    return types.some((t: string) => !isDeviceTypeDone(d, t));
+  });
+});
+
+// 选中设备的剩余可填数量：取选中类型中最小的剩余值
+const maxQuantityForRecord = computed(() => {
+  if (!props.recordForm.deviceId) return Infinity;
+  const device = props.devices.find((d) => d.id === props.recordForm.deviceId);
+  if (!device) return Infinity;
+  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
+  if (types.length === 0) return Infinity;
+  const remainings = types.map((t: string) => {
+    if (t === RecordType.DELIVERY) return device.expectedQuantity - device.deliveryQuantity;
+    if (t === RecordType.INSTALL) return device.expectedQuantity - device.installQuantity;
+    if (t === RecordType.DEBUG) return device.expectedQuantity - device.debugQuantity;
+    return Infinity;
+  });
+  return Math.max(0, Math.min(...remainings));
+});
+
+// 按数量计算项目：送/装/调累计数量（来自所有设备求和）
+const stageTotals = computed(() => {
+  const totals = { delivery: 0, install: 0, debug: 0 };
+  for (const d of props.devices) {
+    totals.delivery += d.deliveryQuantity || 0;
+    totals.install += d.installQuantity || 0;
+    totals.debug += d.debugQuantity || 0;
+  }
+  return totals;
 });
 
 const formatDate = (dateStr: string) => {
@@ -694,28 +948,12 @@ const getRecordTypeTag = (type?: RecordType): '' | 'primary' | 'success' | 'warn
 const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
   return row.isCompleted ? 'completed-row' : '';
 };
-
-const handleDeviceAction = (command: string, device: CustomerDevice) => {
-  if (command === 'edit') {
-    emit('editDevice', device);
-  } else if (command === 'delete') {
-    emit('deleteDevice', device);
-  }
-};
-
-const handleCreateProject = () => {
-  emit('createProjectSubmit');
-};
-
-const handleUpdateProject = () => {
-  emit('updateProjectSubmit');
-};
 </script>
 
 <style scoped>
 .performance-stats {
   display: flex;
-  height: calc(100vh - 120px);
+  min-height: calc(100vh - 120px);
   gap: 0;
   background: #f5f7fa;
 }
@@ -728,6 +966,9 @@ const handleUpdateProject = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 120px);
 }
 
 .sidebar-header {
@@ -765,7 +1006,7 @@ const handleUpdateProject = () => {
 .project-card:hover .card-actions { opacity: 1; }
 .empty-hint { text-align: center; padding: 48px 20px; color: #94a3b8; font-size: 13px; }
 
-.main-content { flex: 1; overflow-y: auto; padding: 24px 28px; background: #f5f7fa; }
+.main-content { flex: 1; padding: 24px 28px; background: #f5f7fa; }
 .main-content.empty { display: flex; align-items: center; justify-content: center; color: #94a3b8; background: transparent; }
 .empty-placeholder p { font-size: 15px; }
 
@@ -801,11 +1042,18 @@ const handleUpdateProject = () => {
 .panel-body { padding: 16px 20px; }
 .empty-tip { text-align: center; padding: 32px 20px; color: #94a3b8; font-size: 13px; }
 .row-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.th-filter { display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 0; height: 100%; }
+.th-filter > span { font-size: 12px; color: #909399; font-weight: 600; flex-shrink: 0; }
+.th-filter-select { flex: 1; min-width: 0; }
+.records-table :deep(.el-table__header th) { vertical-align: middle; }
+.records-table :deep(.el-table__header th .cell) { width: 100%; display: flex; align-items: center; }
 .done { color: #10b981; font-weight: 600; }
 .amount { color: #94a3b8; font-size: 11px; }
 .pagination-wrap { display: flex; justify-content: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
 
 .unit { margin-left: 8px; color: #64748b; font-size: 13px; }
+.max-hint { margin-left: 6px; color: #f59e0b; font-size: 12px; }
 .switch-hint { margin-left: 10px; font-size: 12px; color: #94a3b8; }
 .confirm-info { background: #f8fafc; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-size: 13px; border: 1px solid #e2e8f0; }
 .confirm-info p { margin: 4px 0; color: #475569; }
@@ -816,4 +1064,17 @@ const handleUpdateProject = () => {
 .import-header .import-tip { font-size: 12px; color: var(--text-secondary, #999); }
 .import-preview h4 { margin: 14px 0 10px; font-size: 13px; color: #374151; }
 .preview-more { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 6px; }
+.customer-match-panel { margin-top: 16px; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; background: #fffbeb; }
+.match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.match-header h4 { margin: 0; font-size: 13px; color: #b45309; }
+.match-actions { display: flex; gap: 8px; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 4px; }
+.suggestion-tag { cursor: pointer; }
+.no-suggestion { font-size: 12px; color: #94a3b8; }
+.match-done { margin-top: 12px; }
+.matched-name { color: #16a34a; font-weight: 500; }
+.original-name { color: #dc2626; }
+.corrected-tag { margin-left: 6px; }
 </style>
+
+

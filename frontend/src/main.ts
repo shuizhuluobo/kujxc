@@ -13,6 +13,7 @@ import 'vant/lib/index.css';
 
 import App from './App.vue';
 import router from './router';
+import shake from './directives/shake';
 import './style.css';
 import './styles/element-overrides.css';
 import './styles/vant-overrides.css';
@@ -45,6 +46,7 @@ Locale.use('zh-CN', zhCN);
 app.use(createPinia());
 app.use(router);
 app.use(ElementPlus, { locale: zhCn });
+app.directive('shake', shake);
 
 // Version: 202603062330
 app.mount('#app');
