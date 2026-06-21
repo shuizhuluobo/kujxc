@@ -40,6 +40,9 @@ export function useProjects() {
   const canViewPerformance = computed(() =>
     hasPermission(authStore.user?.role?.permissions || [], 'fee:view_stats') || isAdmin.value,
   );
+  const canViewAmount = computed(() =>
+    hasPermission(authStore.user?.role?.permissions || [], 'fee:view_amount') || isAdmin.value,
+  );
 
   // ============ 按区域分组的用户（用于快捷多选成员） ============
   const regionGroups = computed(() => {
@@ -248,6 +251,7 @@ export function useProjects() {
     canCreateRecord,
     canManageDevice,
     canViewPerformance,
+    canViewAmount,
     // 区域分组
     regionGroups,
     addUsersByRegion,

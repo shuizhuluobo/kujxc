@@ -167,28 +167,28 @@
             size="small"
             :row-class-name="({ row }) => row.isCompleted ? 'row-completed' : ''"
             style="width: 100%"
-            :cell-style="{ padding: '4px 0' }"
-            :header-cell-style="{ padding: '4px 0' }"
+            :cell-style="{ padding: '2px 0' }"
+            :header-cell-style="{ padding: '2px 0' }"
           >
-            <el-table-column label="客户" min-width="90">
+            <el-table-column label="客户" min-width="80">
               <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column prop="deviceName" label="设备" min-width="70" />
-            <el-table-column label="送货" width="70" align="center">
-              <template #default="{ row }">{{ row.deliveryQuantity }}/{{ row.expectedQuantity }}</template>
-            </el-table-column>
-            <el-table-column label="安装" width="70" align="center">
-              <template #default="{ row }">{{ row.installQuantity }}/{{ row.deliveryQuantity }}</template>
-            </el-table-column>
-            <el-table-column label="调试" width="70" align="center">
-              <template #default="{ row }">{{ row.debugQuantity }}/{{ row.installQuantity }}</template>
-            </el-table-column>
-            <el-table-column label="状态" width="55" align="center">
+            <el-table-column label="状态" width="50" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完成' : '进行' }}</el-tag>
+                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完' : '行' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="90" align="center" v-if="canManageDevice">
+            <el-table-column prop="deviceName" label="设备" min-width="60" />
+            <el-table-column label="送货" width="55" align="center">
+              <template #default="{ row }">{{ row.deliveryQuantity }}/{{ row.expectedQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="安装" width="55" align="center">
+              <template #default="{ row }">{{ row.installQuantity }}/{{ row.deliveryQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="调试" width="55" align="center">
+              <template #default="{ row }">{{ row.debugQuantity }}/{{ row.installQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="80" align="center" v-if="canManageDevice">
               <template #default="{ row }">
                 <el-button size="small" link type="primary" @click="openEditDeviceDrawer(row)">编辑</el-button>
                 <el-button size="small" link type="danger" :disabled="row.isCompleted" @click="handleDeleteDevice(row)">删除</el-button>
@@ -201,10 +201,11 @@
 
       <!-- 工作记录 -->
       <div class="section" v-if="selectedProject.calculationType !== CalculationType.WAREHOUSE">
-        <div class="section-header">
-          <h3>工作记录</h3>
-          <el-button size="small" type="primary" @click="openCreateRecordDrawer">新增</el-button>
+        <div class="section-header collapsible" @click="recordExpanded = !recordExpanded">
+          <h3>工作记录 <el-icon class="expand-icon" :class="{ expanded: recordExpanded }"><ArrowRight /></el-icon></h3>
+          <el-button size="small" type="primary" @click.stop="openCreateRecordDrawer">新增</el-button>
         </div>
+        <template v-if="recordExpanded">
         <div class="work-record-list" v-if="records.length > 0">
           <div
             v-for="record in visibleWorkRecords"
@@ -243,20 +244,23 @@
           </div>
         </div>
         <div v-else class="empty-hint">暂无工作记录</div>
+        </template>
       </div>
 
       <!-- 工作量汇总 -->
       <div class="section" v-if="canViewPerformance && stats.length > 0 && selectedProject.calculationType !== CalculationType.WAREHOUSE">
-        <div class="section-header">
-          <h3>工作量汇总 <span class="my-stats-mini" v-if="myStats">
+        <div class="section-header collapsible" @click="statsExpanded = !statsExpanded">
+          <h3>工作量汇总 <el-icon class="expand-icon" :class="{ expanded: statsExpanded }"><ArrowRight /></el-icon>
+            <span class="my-stats-mini" v-if="myStats">
             我的：
             <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
               送{{ myStats.deliveryCount }} 装{{ myStats.installCount }} 调{{ myStats.debugCount }}
             </template>
             <template v-else>{{ formatWorkHours(myStats.totalWorkDays * HOURS_PER_DAY) }}</template>
-            ¥{{ (myStats.totalAmount || 0).toFixed(0) }}
+            <span v-if="canViewAmount">¥{{ (myStats.totalAmount || 0).toFixed(0) }}</span>
           </span></h3>
         </div>
+        <template v-if="statsExpanded">
         <div class="stats-list">
           <div v-for="stat in stats" :key="stat.userId" class="stat-row">
             <span class="stat-name">{{ stat.userName }}</span>
@@ -270,9 +274,10 @@
                 <span>{{ formatWorkHours((stat.totalWorkDays || 0) * HOURS_PER_DAY) }}</span>
               </template>
             </div>
-            <span class="stat-amount">¥{{ (stat.totalAmount || 0).toFixed(2) }}</span>
+            <span class="stat-amount" v-if="canViewAmount">¥{{ (stat.totalAmount || 0).toFixed(2) }}</span>
           </div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -281,7 +286,7 @@
       v-model="showProjectDrawer"
       :title="projectForm.editingId ? '编辑项目' : '新建项目'"
       direction="btt"
-      size="60%"
+      size="60dvh"
     >
       <el-form :model="projectForm" label-position="top">
         <el-form-item label="项目名称" required>
@@ -329,7 +334,7 @@
       v-model="showRecordDrawer"
       :title="editingRecord ? '编辑记录' : '新增记录'"
       direction="btt"
-      size="85%"
+      size="85dvh"
       :close-on-click-modal="false"
     >
       <el-form :model="recordForm" label-position="top" class="record-form">
@@ -426,7 +431,7 @@
       v-model="stageDrawerVisible"
       :title="stageDrawerTitle"
       direction="btt"
-      size="70%"
+      size="70dvh"
     >
       <el-form :model="mobileStageForm" label-position="top" class="stage-form">
         <el-form-item label="数量" v-if="mobileStageForm.maxQty > 0">
@@ -459,7 +464,7 @@
       v-model="deviceDrawerVisible"
       :title="editingDevice ? '编辑设备' : '新增设备'"
       direction="btt"
-      size="70%"
+      size="70dvh"
     >
       <el-form :model="deviceForm" label-position="top" class="stage-form">
         <el-form-item label="客户" required>
@@ -499,7 +504,7 @@
                   <el-table :data="category.items" stripe size="small" empty-text="暂无项目">
                     <el-table-column prop="item" label="项目" min-width="120" />
                     <el-table-column prop="unit" label="单位" width="50" />
-                    <el-table-column label="价格" width="110">
+                    <el-table-column v-if="canViewAmount" label="价格" width="110">
                       <template #default="{ row }">
                         <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="feeUpdateSetting(row)" />
                       </template>
@@ -519,7 +524,7 @@
                   <el-table :data="category.items" stripe size="small" empty-text="暂无项目">
                     <el-table-column prop="item" label="项目" min-width="120" />
                     <el-table-column prop="unit" label="单位" width="50" />
-                    <el-table-column label="价格" width="110">
+                    <el-table-column v-if="canViewAmount" label="价格" width="110">
                       <template #default="{ row }">
                         <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="feeUpdateSetting(row)" />
                       </template>
@@ -575,6 +580,7 @@ const {
   canCreateRecord,
   canManageDevice,
   canViewPerformance,
+  canViewAmount,
   regionGroups,
   addUsersByRegion,
   loadProjects,
@@ -635,6 +641,8 @@ const {
 const searchText = ref('');
 const warehouseMode = ref(false);
 const deviceExpanded = ref(false);
+const recordExpanded = ref(true);
+const statsExpanded = ref(true);
 const expandedRecordIds = ref<Set<string>>(new Set());
 const showProjectDrawer = ref(false);
 const showRecordDrawer = ref(false);

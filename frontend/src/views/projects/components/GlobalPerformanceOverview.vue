@@ -33,7 +33,7 @@
         <span class="summary-label">涉及项目</span>
         <span class="summary-value">{{ totalProjectCount }}</span>
       </div>
-      <div class="summary-card highlight">
+      <div class="summary-card highlight" v-if="canViewAmount">
         <span class="summary-label">总金额</span>
         <span class="summary-value">{{ totalAmount.toFixed(2) }} 元</span>
       </div>
@@ -49,7 +49,7 @@
         <el-table-column label="数量" width="80" align="right">
           <template #default="{ row }">{{ row.deliveryCount }}</template>
         </el-table-column>
-        <el-table-column label="金额" width="100" align="right">
+        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
           <template #default="{ row }">{{ row.deliveryAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
@@ -57,7 +57,7 @@
         <el-table-column label="数量" width="80" align="right">
           <template #default="{ row }">{{ row.installCount }}</template>
         </el-table-column>
-        <el-table-column label="金额" width="100" align="right">
+        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
           <template #default="{ row }">{{ row.installAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
@@ -65,7 +65,7 @@
         <el-table-column label="数量" width="80" align="right">
           <template #default="{ row }">{{ row.debugCount }}</template>
         </el-table-column>
-        <el-table-column label="金额" width="100" align="right">
+        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
           <template #default="{ row }">{{ row.debugAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
@@ -73,11 +73,11 @@
         <el-table-column label="工日数" width="80" align="right">
           <template #default="{ row }">{{ row.totalWorkDays }}</template>
         </el-table-column>
-        <el-table-column label="金额" width="100" align="right">
+        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
           <template #default="{ row }">{{ row.workDaysAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
-      <el-table-column label="合计金额" width="120" align="right">
+      <el-table-column v-if="canViewAmount" label="合计金额" width="120" align="right">
         <template #default="{ row }">
           <strong>{{ row.totalAmount.toFixed(2) }}</strong>
         </template>
@@ -93,6 +93,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { performanceApi, usersApi } from '@/api';
 import type { GlobalPerformanceResult, User } from '@/types';
+import { useAuthStore } from '@/stores/auth';
+import { hasPermission } from '@/config/permissions';
+
+const authStore = useAuthStore();
+const canViewAmount = computed(() =>
+  hasPermission(authStore.user?.role?.permissions || [], 'fee:view_amount') || authStore.isAdmin,
+);
 
 const globalStats = ref<GlobalPerformanceResult[]>([]);
 const users = ref<User[]>([]);

@@ -587,5 +587,12 @@ defineExpose({ showFilterDrawer });
 
 .card-list {
   padding: 0 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-list :deep(.work-order-card) {
+  margin-bottom: 0;
 }
 </style>

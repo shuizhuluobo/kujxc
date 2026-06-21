@@ -13,22 +13,22 @@
       <el-table-column label="送货" width="85" align="right">
         <template #default="{ row }">
           <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.deliveryCount || 0 }}台</div>
-          <div class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.deliveryAmount || 0).toFixed(2) }}</div>
+          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.deliveryAmount || 0).toFixed(2) }}</div>
         </template>
       </el-table-column>
       <el-table-column label="安装" width="85" align="right">
         <template #default="{ row }">
           <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.installCount || 0 }}台</div>
-          <div class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.installAmount || 0).toFixed(2) }}</div>
+          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.installAmount || 0).toFixed(2) }}</div>
         </template>
       </el-table-column>
       <el-table-column label="调试" width="85" align="right">
         <template #default="{ row }">
           <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.debugCount || 0 }}台</div>
-          <div class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.debugAmount || 0).toFixed(2) }}</div>
+          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.debugAmount || 0).toFixed(2) }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="合计金额" width="100" align="right">
+      <el-table-column v-if="canViewAmount" label="合计金额" width="100" align="right">
         <template #default="{ row }">
           <strong>¥{{ (row.totalAmount || 0).toFixed(2) }}</strong>
         </template>
@@ -50,7 +50,7 @@
           {{ formatWorkHours((row.totalWorkDays || 0) * HOURS_PER_DAY) }}
         </template>
       </el-table-column>
-      <el-table-column label="合计金额" min-width="110" align="right">
+      <el-table-column v-if="canViewAmount" label="合计金额" min-width="110" align="right">
         <template #default="{ row }">
           <strong>¥{{ (row.totalAmount || 0).toFixed(2) }}</strong>
         </template>
@@ -70,6 +70,7 @@ import type { PerformanceResult } from '@/types';
 defineProps<{
   data: PerformanceResult[];
   calculationType: string;
+  canViewAmount?: boolean;
 }>();
 
 const cellStyle = ({ column }: any) => {

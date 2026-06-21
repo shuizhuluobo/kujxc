@@ -23,6 +23,7 @@
           :can-manage-project="canManageProject"
           :can-create-record="canCreateRecord"
           :can-view-performance="canViewPerformance"
+          :can-view-amount="canViewAmount"
           :loading="loading"
           :current-page="currentPage"
           :page-size="pageSize"
@@ -88,6 +89,7 @@
           :users="users"
           :customers="customers"
           :can-manage-project="canManageProject"
+          :can-view-amount="canViewAmount"
           :fee-computer-count="feeComputerCount"
           :fee-computer-service-map="feeComputerServiceMap"
           :fee-additional-fee-enabled="feeAdditionalFeeEnabled"
@@ -172,6 +174,7 @@ const {
   canManageProject,
   canCreateRecord,
   canViewPerformance,
+  canViewAmount,
   loadProjects,
   selectProject,
   deselectProject,

@@ -58,6 +58,7 @@
               />
             </div>
             <FeeResult
+              v-if="canViewAmount"
               :selected-items="feeSelectedItems"
               :subtotal="feeSubtotal"
               :discount="feeDiscount"
@@ -113,7 +114,7 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="实收" width="100">
+            <el-table-column v-if="canViewAmount" label="实收" width="100">
               <template #default="{ row }">{{ row.actualAmount }}元</template>
             </el-table-column>
             <el-table-column prop="remark" label="备注" min-width="150" />
@@ -155,7 +156,7 @@
                     <el-table :data="category.items" stripe size="small" empty-text="暂无项目">
                       <el-table-column prop="item" label="项目" min-width="140" />
                       <el-table-column prop="unit" label="单位" width="55" />
-                      <el-table-column label="价格" width="120">
+                      <el-table-column v-if="canViewAmount" label="价格" width="120">
                         <template #default="{ row }">
                           <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="$emit('updateSetting', row)" />
                         </template>
@@ -175,7 +176,7 @@
                     <el-table :data="category.items" stripe size="small" empty-text="暂无项目">
                       <el-table-column prop="item" label="项目" min-width="140" />
                       <el-table-column prop="unit" label="单位" width="55" />
-                      <el-table-column label="价格" width="120">
+                      <el-table-column v-if="canViewAmount" label="价格" width="120">
                         <template #default="{ row }">
                           <el-input-number v-model="row.price" :min="0" :precision="2" size="small" @change="$emit('updateSetting', row)" />
                         </template>
@@ -218,6 +219,7 @@ const props = defineProps<{
   users: User[];
   customers: Customer[];
   canManageProject: boolean;
+  canViewAmount: boolean;
   feeComputerCount: number;
   feeComputerServiceMap: Record<string, any>;
   feeAdditionalFeeEnabled: boolean;

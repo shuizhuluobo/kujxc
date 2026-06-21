@@ -94,7 +94,7 @@
           <span class="stat-value">{{ formatWorkHours(myStats.totalWorkDays * HOURS_PER_DAY) }}</span>
           <span class="stat-key">工作时长</span>
         </div>
-        <div class="stat-card total">
+        <div class="stat-card total" v-if="canViewAmount">
           <span class="stat-value">¥{{ (myStats?.totalAmount || 0).toFixed(2) }}</span>
           <span class="stat-key">合计金额</span>
         </div>
@@ -281,6 +281,7 @@
             v-if="selectedProject"
             :data="stats"
             :calculation-type="selectedProject.calculationType"
+            :can-view-amount="canViewAmount"
           />
           <div v-if="stats.length === 0" class="empty-tip">
             <p>暂无汇总数据</p>
@@ -312,19 +313,19 @@
           <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.deliveryUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.installUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY">
+        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
@@ -353,19 +354,19 @@
           <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.deliveryUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.installUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
           <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/台</span>
         </el-form-item>
-        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY">
+        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
@@ -637,6 +638,7 @@ const props = defineProps<{
   canManageProject: boolean;
   canCreateRecord: boolean;
   canViewPerformance: boolean;
+  canViewAmount: boolean;
   loading: boolean;
   currentPage: number;
   pageSize: number;
