@@ -586,7 +586,7 @@ defineExpose({ showFilterDrawer });
 }
 
 .card-list {
-  padding: 0 16px 20px;
+  padding: 8px 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;

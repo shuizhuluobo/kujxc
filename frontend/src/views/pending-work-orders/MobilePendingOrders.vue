@@ -529,6 +529,7 @@ function onRefresh() {
 }
 
 .card-list {
+  padding: 8px 16px 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
