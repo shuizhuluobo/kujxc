@@ -912,8 +912,8 @@ const maxQuantityForRecord = computed(() => {
   if (types.length === 0) return Infinity;
   const remainings = types.map((t: string) => {
     if (t === RecordType.DELIVERY) return device.expectedQuantity - device.deliveryQuantity;
-    if (t === RecordType.INSTALL) return device.expectedQuantity - device.installQuantity;
-    if (t === RecordType.DEBUG) return device.expectedQuantity - device.debugQuantity;
+    if (t === RecordType.INSTALL) return device.deliveryQuantity - device.installQuantity;
+    if (t === RecordType.DEBUG) return device.installQuantity - device.debugQuantity;
     return Infinity;
   });
   return Math.max(0, Math.min(...remainings));
