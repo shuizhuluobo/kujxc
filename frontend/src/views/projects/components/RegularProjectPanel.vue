@@ -482,12 +482,12 @@
         <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
           <el-form-item label="客户" required v-shake ref="recordCustomerItem">
             <el-select v-model="recordForm.customerId" placeholder="先选择工作类型" clearable filterable style="width: 100%" :disabled="!hasSelectedRecordType" @change="onRecordCustomerChange">
-              <el-option v-for="customer in filteredCustomersForRecord" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
+              <el-option v-for="customer in filteredCustomersForRecord" :key="customer.id" :label="customer.shortName ? `${customer.shortName} (${customer.name})` : customer.name" :value="customer.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="关联设备" required v-shake ref="recordDeviceItem">
             <el-select v-model="recordForm.deviceId" placeholder="先选择客户" filterable style="width: 100%" :disabled="!recordForm.customerId">
-              <el-option v-for="d in filteredDevicesForRecord" :key="d.id" :label="`${d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
+              <el-option v-for="d in filteredDevicesForRecord" :key="d.id" :label="`${d.customer?.shortName || d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="数量" required>

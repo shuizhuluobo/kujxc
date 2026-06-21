@@ -161,38 +161,38 @@
           </div>
         </div>
         <template v-if="deviceExpanded">
-          <div class="device-list" v-if="devices.length > 0">
-            <div v-for="device in devices" :key="device.id" class="device-card" :class="{ completed: device.isCompleted }">
-              <div class="device-top">
-                <span class="device-name">{{ device.deviceName }}</span>
-                <el-tag :type="device.isCompleted ? 'success' : 'warning'" size="small">
-                  {{ device.isCompleted ? '完成' : '进行中' }}
-                </el-tag>
-              </div>
-              <div class="device-customer">{{ device.customer?.name || '-' }}</div>
-              <div class="device-progress">
-                <div class="progress-step" :class="{ done: device.deliveryQuantity >= device.expectedQuantity }">
-                  <span class="step-label">送</span>
-                  <span class="step-val">{{ device.deliveryQuantity }}/{{ device.expectedQuantity }}</span>
-                </div>
-                <div class="progress-arrow" v-if="device.deliveryQuantity > 0">→</div>
-                <div class="progress-step" :class="{ done: device.installQuantity >= device.deliveryQuantity && device.deliveryQuantity > 0 }" v-if="device.deliveryQuantity > 0">
-                  <span class="step-label">装</span>
-                  <span class="step-val">{{ device.installQuantity }}/{{ device.deliveryQuantity }}</span>
-                </div>
-                <div class="progress-arrow" v-if="device.installQuantity > 0">→</div>
-                <div class="progress-step" :class="{ done: device.debugQuantity >= device.installQuantity && device.installQuantity > 0 }" v-if="device.installQuantity > 0">
-                  <span class="step-label">调</span>
-                  <span class="step-val">{{ device.debugQuantity }}/{{ device.installQuantity }}</span>
-                </div>
-              </div>
-              <div class="device-actions" v-if="canManageDevice">
-                <el-button size="small" type="primary" @click="openStageDrawer(device, 'delivery')" :disabled="device.deliveryQuantity >= device.expectedQuantity">送货</el-button>
-                <el-button size="small" type="success" @click="openStageDrawer(device, 'install')" :disabled="device.installQuantity >= device.deliveryQuantity || device.deliveryQuantity === 0">安装</el-button>
-                <el-button size="small" type="warning" @click="openStageDrawer(device, 'debug')" :disabled="device.debugQuantity >= device.installQuantity || device.installQuantity === 0">调试</el-button>
-              </div>
-            </div>
-          </div>
+          <el-table
+            v-if="sortedDevices.length > 0"
+            :data="sortedDevices"
+            size="small"
+            :row-class-name="({ row }) => row.isCompleted ? 'row-completed' : ''"
+            style="width: 100%"
+          >
+            <el-table-column label="客户" min-width="100">
+              <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
+            </el-table-column>
+            <el-table-column prop="deviceName" label="设备" min-width="80" />
+            <el-table-column label="送/应" width="65" align="center">
+              <template #default="{ row }">{{ row.deliveryQuantity }}/{{ row.expectedQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="装/送" width="65" align="center">
+              <template #default="{ row }">{{ row.installQuantity }}/{{ row.deliveryQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="调/装" width="65" align="center">
+              <template #default="{ row }">{{ row.debugQuantity }}/{{ row.installQuantity }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="60" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完成' : '进行' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="90" align="center" v-if="canManageDevice">
+              <template #default="{ row }">
+                <el-button size="small" link type="primary" @click="openEditDeviceDrawer(row)">编辑</el-button>
+                <el-button size="small" link type="danger" :disabled="row.isCompleted" @click="handleDeleteDevice(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
           <div v-else class="empty-hint">暂无设备</div>
         </template>
       </div>
@@ -349,21 +349,41 @@
         </el-form-item>
         <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
           <el-form-item label="客户" required>
-            <el-select v-model="recordForm.customerId" placeholder="选择客户" clearable filterable style="width: 100%">
-              <el-option v-for="c in customers.filter(c => c?.id)" :key="c.id" :label="c.name || '未知'" :value="c.id" />
+            <el-select
+              v-model="recordForm.customerId"
+              :placeholder="recordForm.recordType ? '选择客户' : '先选择工作类型'"
+              clearable
+              filterable
+              style="width: 100%"
+              :disabled="!recordForm.recordType"
+              @change="recordForm.deviceId = ''"
+            >
+              <el-option
+                v-for="c in filteredCustomersForRecord"
+                :key="c.id"
+                :label="c.shortName ? `${c.shortName} (${c.name})` : c.name"
+                :value="c.id"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="关联设备" required>
-            <el-select v-model="recordForm.deviceId" placeholder="请选择设备" filterable style="width: 100%">
-              <el-option v-for="d in filteredDevicesForRecord.filter(d => d?.id)" :key="d.id" :label="`${d.customer?.name || ''} - ${d.deviceName}`" :value="d.id" />
+            <el-select
+              v-model="recordForm.deviceId"
+              :placeholder="recordForm.customerId ? '请选择设备' : '先选择客户'"
+              filterable
+              style="width: 100%"
+              :disabled="!recordForm.customerId"
+            >
+              <el-option v-for="d in filteredDevicesForRecord.filter(d => d?.id)" :key="d.id" :label="`${d.customer?.shortName || d.customer?.name || ''} - ${d.deviceName}`" :value="d.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="数量" required>
             <div class="qty-row">
-              <el-button :icon="Minus" circle size="small" @click="recordForm.quantity = Math.max(1, recordForm.quantity - 1)" />
+              <el-button :icon="Minus" circle size="small" @click="recordForm.quantity = Math.max(1, Math.min(recordForm.quantity - 1, maxQuantityForRecord))" />
               <span class="qty-val">{{ recordForm.quantity }}</span>
-              <el-button :icon="Plus" circle size="small" @click="recordForm.quantity++" />
+              <el-button :icon="Plus" circle size="small" :disabled="recordForm.quantity >= maxQuantityForRecord" @click="recordForm.quantity++" />
               <span class="qty-unit">台</span>
+              <span v-if="maxQuantityForRecord < Infinity" class="qty-max-hint">剩余{{ maxQuantityForRecord }}</span>
             </div>
           </el-form-item>
         </template>
@@ -435,14 +455,14 @@
     <!-- 新增设备抽屉 -->
     <el-drawer
       v-model="deviceDrawerVisible"
-      title="新增设备"
+      :title="editingDevice ? '编辑设备' : '新增设备'"
       direction="btt"
       size="70%"
     >
       <el-form :model="deviceForm" label-position="top" class="stage-form">
         <el-form-item label="客户" required>
-          <el-select v-model="deviceForm.customerId" filterable placeholder="选择客户" style="width: 100%">
-            <el-option v-for="c in customers.filter(c => c?.id)" :key="c.id" :label="c.name || '未知'" :value="c.id" />
+          <el-select v-model="deviceForm.customerId" filterable placeholder="选择客户" style="width: 100%" :disabled="!!editingDevice">
+            <el-option v-for="c in customers.filter(c => c?.id)" :key="c.id" :label="c.shortName ? `${c.shortName} (${c.name})` : c.name" :value="c.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="设备名称" required>
@@ -454,7 +474,7 @@
         <el-form-item label="备注">
           <el-input v-model="deviceForm.remark" type="textarea" :rows="2" placeholder="选填" />
         </el-form-item>
-        <el-button type="primary" style="width: 100%; margin-top: 8px" :loading="deviceSaving" @click="handleSubmitDevice">确认新增</el-button>
+        <el-button type="primary" style="width: 100%; margin-top: 8px" :loading="deviceSaving" @click="handleSubmitDevice">{{ editingDevice ? '确认修改' : '确认新增' }}</el-button>
       </el-form>
     </el-drawer>
 
@@ -587,9 +607,13 @@ const {
   devices,
   deviceForm,
   mobileStageForm,
+  editingDevice,
   loadDevices,
   prepareMobileStageModal,
   createDevice,
+  updateDevice,
+  deleteDevice,
+  fillDeviceFormForEdit,
   submitMobileStage,
 } = useDevices();
 
@@ -652,10 +676,54 @@ const deviceSummaryText = computed(() => {
   return `${totalQty}台 · ${doneQty}台完成 · ${totalQty - doneQty}台进行中`;
 });
 
+// ============ 设备清单排序：完成的沉底 ============
+const sortedDevices = computed(() => {
+  return [...devices.value].sort((a, b) => {
+    if (a.isCompleted === b.isCompleted) return 0;
+    return a.isCompleted ? 1 : -1;
+  });
+});
+
 // ============ 关联设备过滤 ============
+// 按选中工作类型判断设备是否已完成该类型
+const isDeviceTypeDone = (d: CustomerDevice, type: string) => {
+  if (type === RecordType.DELIVERY) return d.deliveryQuantity >= d.expectedQuantity;
+  if (type === RecordType.INSTALL) return d.installQuantity >= d.expectedQuantity;
+  if (type === RecordType.DEBUG) return d.debugQuantity >= d.expectedQuantity;
+  return false;
+};
+
+// 过滤客户：至少有一个设备在选中类型上未完成
+const filteredCustomersForRecord = computed(() => {
+  if (!recordForm.recordType) return [];
+  const type = recordForm.recordType;
+  const validCustomerIds = new Set<string>();
+  devices.value.forEach((d) => {
+    if (!isDeviceTypeDone(d, type)) validCustomerIds.add(d.customerId);
+  });
+  return customers.value.filter((c) => c?.id && validCustomerIds.has(c.id));
+});
+
+// 过滤设备：按客户 + 选中类型未完成
 const filteredDevicesForRecord = computed(() => {
-  if (!recordForm.customerId) return devices.value;
-  return devices.value.filter(d => d.customerId === recordForm.customerId);
+  if (!recordForm.customerId) return [];
+  const type = recordForm.recordType;
+  if (!type) return [];
+  return devices.value.filter((d) =>
+    d.customerId === recordForm.customerId && !isDeviceTypeDone(d, type),
+  );
+});
+
+// 选中设备的剩余可填数量
+const maxQuantityForRecord = computed(() => {
+  if (!recordForm.deviceId || !recordForm.recordType) return Infinity;
+  const device = devices.value.find((d) => d.id === recordForm.deviceId);
+  if (!device) return Infinity;
+  const t = recordForm.recordType;
+  if (t === RecordType.DELIVERY) return device.expectedQuantity - device.deliveryQuantity;
+  if (t === RecordType.INSTALL) return device.deliveryQuantity - device.installQuantity;
+  if (t === RecordType.DEBUG) return device.installQuantity - device.debugQuantity;
+  return Infinity;
 });
 
 // ============ 费用设置分组 ============
@@ -821,6 +889,7 @@ const handleDeleteRecord = async (record: WorkRecord) => {
 
 // ============ 设备操作 ============
 const openCreateDeviceDrawer = () => {
+  editingDevice.value = null;
   deviceForm.customerId = '';
   deviceForm.deviceName = '';
   deviceForm.expectedQuantity = 1;
@@ -828,17 +897,29 @@ const openCreateDeviceDrawer = () => {
   deviceDrawerVisible.value = true;
 };
 
+const openEditDeviceDrawer = (device: CustomerDevice) => {
+  fillDeviceFormForEdit(device);
+  deviceDrawerVisible.value = true;
+};
+
 const handleSubmitDevice = async () => {
   if (!selectedProject.value) return;
   deviceSaving.value = true;
   try {
-    const ok = await createDevice(selectedProject.value.id);
+    const ok = editingDevice.value
+      ? await updateDevice(selectedProject.value.id)
+      : await createDevice(selectedProject.value.id);
     if (ok) {
       deviceDrawerVisible.value = false;
     }
   } finally {
     deviceSaving.value = false;
   }
+};
+
+const handleDeleteDevice = async (device: CustomerDevice) => {
+  if (!selectedProject.value) return;
+  await deleteDevice(selectedProject.value.id, device);
 };
 
 const openStageDrawer = (device: CustomerDevice, stage: 'delivery' | 'install' | 'debug') => {
@@ -928,7 +1009,7 @@ onMounted(async () => {
 .device-name { font-size: 14px; font-weight: 600; }
 .device-customer { font-size: 12px; color: var(--text-secondary, #999); margin-bottom: 8px; }
 .device-progress { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.progress-step { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: #fff; border-radius: 4px; font-size: 12px; }
+.progress-step { display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--el-bg-color, #fff); border-radius: 4px; font-size: 12px; }
 .progress-step.done { background: #dcfce7; color: #16a34a; }
 .step-label { font-weight: 600; }
 .progress-arrow { color: var(--text-secondary, #999); }
@@ -936,7 +1017,7 @@ onMounted(async () => {
 
 .work-record-list { display: flex; flex-direction: column; gap: 8px; }
 .work-record-card { padding: 12px; background: var(--bg-color, #f5f7fa); border-radius: 8px; cursor: pointer; }
-.work-record-card.expanded { background: #fff; border: 1px solid var(--el-color-primary-light-7); }
+.work-record-card.expanded { background: var(--el-bg-color, #fff); border: 1px solid var(--el-color-primary-light-7); }
 .record-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .record-date { font-weight: 600; min-width: 80px; }
 .record-qty { color: var(--text-secondary, #999); }
@@ -960,7 +1041,7 @@ onMounted(async () => {
 .record-time { font-size: 12px; color: var(--text-secondary, #999); }
 .record-amount { font-size: 16px; font-weight: 700; color: var(--el-color-success); }
 .record-items { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-.record-item-tag { font-size: 12px; padding: 2px 6px; background: #fff; border-radius: 4px; }
+.record-item-tag { font-size: 12px; padding: 2px 6px; background: var(--el-bg-color, #fff); border-radius: 4px; }
 .record-item-more { font-size: 12px; color: var(--text-secondary, #999); }
 .record-bottom { display: flex; gap: 8px; font-size: 12px; color: var(--text-secondary, #999); }
 
@@ -981,9 +1062,14 @@ onMounted(async () => {
 .qty-row { display: flex; align-items: center; gap: 12px; }
 .qty-val { font-size: 20px; font-weight: 600; min-width: 40px; text-align: center; }
 .qty-unit { font-size: 14px; color: var(--text-secondary, #999); }
+.qty-max-hint { font-size: 12px; color: var(--el-color-warning); margin-left: 4px; }
 .switch-hint { font-size: 12px; color: var(--text-secondary, #999); margin-left: 8px; }
 
 .stage-form .form-tip { font-size: 12px; color: var(--text-secondary, #999); margin-top: 4px; }
+
+/* 设备清单表格 - 完成行样式 */
+:deep(.el-table .row-completed) { opacity: 0.6; }
+:deep(.el-table .row-completed td) { background: var(--el-fill-color-light, #f5f7fa) !important; }
 
 .settings-tip { margin: 0 0 12px 0; color: var(--el-text-color-secondary); font-size: 13px; }
 .settings-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
