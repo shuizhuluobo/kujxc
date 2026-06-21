@@ -28,7 +28,7 @@
       
       <el-menu-item index="/projects" v-if="canAccessProjects">
         <el-icon><Wallet /></el-icon>
-        <span>项目与绩效</span>
+        <span>项目记录</span>
       </el-menu-item>
       
       <el-sub-menu index="admin" v-if="canAccessAnyAdmin">

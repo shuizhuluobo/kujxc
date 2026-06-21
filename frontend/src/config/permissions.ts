@@ -89,13 +89,13 @@ export const PermissionModules = {
         ],
     },
 
-    // 项目与绩效
+    // 项目记录
     FEE: {
         key: 'fee',
-        name: '项目与绩效',
+        name: '项目记录',
         icon: 'Wallet',
         pages: [
-            { key: 'list', name: '项目与绩效', path: '/projects' },
+            { key: 'list', name: '项目记录', path: '/projects' },
         ],
         actions: [
             { key: 'view_project', name: '查看项目', description: '允许查看项目列表和详情' },
