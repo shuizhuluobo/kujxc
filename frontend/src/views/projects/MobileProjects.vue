@@ -636,7 +636,7 @@ const {
   feeRecords,
   loadGlobalFeeRecords,
   formatFeeDate,
-} = useFeeRecords();
+} = useFeeRecords(feeAllSettings);
 
 // ============ 本地状态 ============
 const searchText = ref('');

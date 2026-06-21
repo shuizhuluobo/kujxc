@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, type Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { performanceApi } from '@/api';
 import type { FeeSetting, FeeRecord } from '@/api';
@@ -7,10 +7,14 @@ import type { FeeSetting, FeeRecord } from '@/api';
  * 公物仓费用记录管理 composable
  * 统一桌面端与移动端共享的费用记录加载、保存、删除逻辑
  * 以及费用设置弹窗的分组展示逻辑
+ *
+ * @param allSettingsRef 来自 useFeeCalculator 的 allSettings，作为费用设置分组的数据源
  */
-export function useFeeRecords() {
+export function useFeeRecords(allSettingsRef?: Ref<FeeSetting[]>) {
   const feeRecords = ref<FeeRecord[]>([]);
-  const allSettings = ref<FeeSetting[]>([]);
+  // 优先使用外部传入的 allSettings（来自 useFeeCalculator，已加载数据）
+  // 否则回退到本地空 ref（保持向后兼容）
+  const allSettings = allSettingsRef ?? ref<FeeSetting[]>([]);
   const activeSettingsCategory = ref<string>('');
   const activeSettingsCategories = ref<string[]>([]);
   const collaboratorIds = ref<string[]>([]);

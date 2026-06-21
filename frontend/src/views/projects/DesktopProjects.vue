@@ -280,7 +280,7 @@ const {
   saveGlobalFeeRecord,
   deleteGlobalFeeRecord,
   formatFeeDate,
-} = useFeeRecords();
+} = useFeeRecords(feeAllSettings);
 
 // ============ 弹窗状态 ============
 const showCreateProjectModal = ref(false);
