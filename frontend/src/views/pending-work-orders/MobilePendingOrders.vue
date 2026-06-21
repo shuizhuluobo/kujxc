@@ -276,10 +276,9 @@ function toggleFilterPopup() {
   showFilterPopup.value = !showFilterPopup.value;
 }
 
-// Check if current region is the engineer's default region
+// Check if current region is the user's default region (auto-filtered, not a manual filter)
 const isDefaultRegion = computed(() => {
-  if (authStore.roleCode !== 'engineer') return false;
-  return props.filter.regionId === authStore.user?.regionId;
+  return props.filter.regionId !== '' && props.filter.regionId === authStore.user?.regionId;
 });
 
 const hasActiveFilters = computed(() => {
