@@ -33,6 +33,9 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  // 禁用 X-Powered-By 响应头，避免暴露后端技术栈
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
   // 注册全局异常过滤器
   app.useGlobalFilters(new GlobalExceptionFilter());
 
