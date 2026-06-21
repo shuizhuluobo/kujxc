@@ -167,21 +167,23 @@
             size="small"
             :row-class-name="({ row }) => row.isCompleted ? 'row-completed' : ''"
             style="width: 100%"
+            :cell-style="{ padding: '4px 0' }"
+            :header-cell-style="{ padding: '4px 0' }"
           >
-            <el-table-column label="客户" min-width="100">
+            <el-table-column label="客户" min-width="90">
               <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column prop="deviceName" label="设备" min-width="80" />
-            <el-table-column label="送/应" width="65" align="center">
+            <el-table-column prop="deviceName" label="设备" min-width="70" />
+            <el-table-column label="送货" width="70" align="center">
               <template #default="{ row }">{{ row.deliveryQuantity }}/{{ row.expectedQuantity }}</template>
             </el-table-column>
-            <el-table-column label="装/送" width="65" align="center">
+            <el-table-column label="安装" width="70" align="center">
               <template #default="{ row }">{{ row.installQuantity }}/{{ row.deliveryQuantity }}</template>
             </el-table-column>
-            <el-table-column label="调/装" width="65" align="center">
+            <el-table-column label="调试" width="70" align="center">
               <template #default="{ row }">{{ row.debugQuantity }}/{{ row.installQuantity }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="60" align="center">
+            <el-table-column label="状态" width="55" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完成' : '进行' }}</el-tag>
               </template>
@@ -337,7 +339,7 @@
         <el-form-item label="工作类型" required>
           <div class="type-chips">
             <div
-              v-for="opt in recordTypeOptions"
+              v-for="opt in recordTypeOptions(selectedProject)"
               :key="opt.value"
               class="type-chip"
               :class="{ active: recordForm.recordType === opt.value, disabled: opt.disabled }"

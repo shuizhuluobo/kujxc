@@ -119,7 +119,7 @@
           >
             <el-table-column label="#" type="index" width="45" />
             <el-table-column label="客户" min-width="100">
-              <template #default="{ row }">{{ row.customer?.name || '-' }}</template>
+              <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
             </el-table-column>
             <el-table-column label="设备名称" prop="deviceName" min-width="140" />
             <el-table-column label="应送" width="60" align="center">
