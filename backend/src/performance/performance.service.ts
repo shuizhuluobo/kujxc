@@ -225,7 +225,7 @@ export class PerformanceService {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
 
@@ -330,7 +330,7 @@ export class PerformanceService {
         },
         include: {
           creator: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
         },
       });
 
@@ -378,7 +378,7 @@ export class PerformanceService {
             data,
             include: {
               creator: { select: { id: true, name: true } },
-              customer: { select: { id: true, name: true } },
+              customer: { select: { id: true, name: true, shortName: true } },
             },
           });
         }
@@ -441,7 +441,7 @@ export class PerformanceService {
           data,
           include: {
             creator: { select: { id: true, name: true } },
-            customer: { select: { id: true, name: true } },
+            customer: { select: { id: true, name: true, shortName: true } },
           },
         });
       });
@@ -455,7 +455,7 @@ export class PerformanceService {
       data,
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
   }
@@ -523,7 +523,7 @@ export class PerformanceService {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
         project: { select: { id: true, projectName: true } },
       },
     });
@@ -545,7 +545,7 @@ export class PerformanceService {
       },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
     this.emitDeviceChanged(projectId, device.id);
@@ -575,7 +575,7 @@ export class PerformanceService {
       data,
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
     if (projectId) this.emitDeviceChanged(projectId, deviceId);
@@ -647,7 +647,7 @@ export class PerformanceService {
         },
         include: {
           creator: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
         },
       });
       await tx.performanceRecord.create({
@@ -715,7 +715,7 @@ export class PerformanceService {
         },
         include: {
           creator: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
         },
       });
       await tx.performanceRecord.create({
@@ -783,7 +783,7 @@ export class PerformanceService {
         },
         include: {
           creator: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
         },
       });
       await tx.performanceRecord.create({
@@ -1241,7 +1241,7 @@ export class PerformanceService {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
   }
@@ -1269,7 +1269,7 @@ export class PerformanceService {
       },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
   }

@@ -211,7 +211,7 @@ export class FeeService {
       },
       include: {
         creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, shortName: true } },
       },
     });
   }
@@ -245,7 +245,7 @@ export class FeeService {
         skip: offset,
         include: {
           creator: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
         },
       }),
       this.prisma.feeRecord.count({ where }),
