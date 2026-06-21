@@ -5,7 +5,7 @@
       <div class="sidebar-header">
         <span class="sidebar-title">项目列表</span>
         <div class="sidebar-actions">
-          <el-button v-if="canManageProject" type="primary" size="small" @click="$emit('createProject')">新增</el-button>
+          <el-button v-if="canCreateProject" type="primary" size="small" @click="$emit('createProject')">新增</el-button>
           <el-button v-if="canViewPerformance && projects.length > 0" size="small" @click="$emit('exportAll')">导出</el-button>
         </div>
       </div>
