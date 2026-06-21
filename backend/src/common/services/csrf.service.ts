@@ -2,6 +2,14 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
+/**
+ * CSRF 防护层（冗余设计）
+ *
+ * 说明：本项目采用 JWT Bearer + localStorage 认证，浏览器不会自动携带凭证，
+ * CSRF 攻击面不存在。本层为历史遗留的纵深防御，保留不影响安全。
+ * 若未来引入 Cookie 认证，需修复 consumeToken 的 token 复用问题
+ * （当前 consumeToken 仅校验签名，不消费/失效 token）。
+ */
 @Injectable()
 export class CsrfService {
   private readonly tokenSecret: string;

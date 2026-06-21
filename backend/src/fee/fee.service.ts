@@ -151,24 +151,59 @@ export class FeeService {
     customerId?: string;
     creatorId: string;
   }): Promise<FeeRecord> {
-    // 校验金额一致性
-    const itemsTotal = data.items.reduce((sum, item) => sum + item.total, 0);
-    if (Math.abs(itemsTotal - data.subtotal) > 0.01) {
-      throw new BadRequestException('费用明细小计与项目合计不一致');
+    // 安全计算：忽略前端传入的 unitPrice/total，按 category+item 从 FeeSetting 重算
+    // 防止攻击者提交篡改后的单价
+    const recalculatedItems: FeeItem[] = [];
+    for (const item of data.items) {
+      if (item.quantity <= 0) continue;
+
+      const setting = await this.prisma.feeSetting.findFirst({
+        where: {
+          category: item.category || '未分类',
+          item: item.item,
+          isActive: true,
+        },
+      });
+
+      if (!setting) {
+        throw new BadRequestException(
+          `未找到有效的费用设置: ${item.category || '未分类'} - ${item.item}`,
+        );
+      }
+
+      recalculatedItems.push({
+        category: setting.category,
+        item: setting.item,
+        quantity: item.quantity,
+        unitPrice: setting.price,
+        total: item.quantity * setting.price,
+      });
     }
+
+    if (recalculatedItems.length === 0) {
+      throw new BadRequestException('费用明细不能为空');
+    }
+
+    // 用重算后的金额覆盖前端传入值
+    const subtotal = recalculatedItems.reduce(
+      (sum, item) => sum + item.total,
+      0,
+    );
+    const actualAmount = subtotal - data.discount;
+
     if (data.discount < 0) {
       throw new BadRequestException('折扣金额不能为负数');
     }
-    if (Math.abs(data.actualAmount - (data.subtotal - data.discount)) > 0.01) {
-      throw new BadRequestException('实付金额计算不一致');
+    if (actualAmount < 0) {
+      throw new BadRequestException('折扣金额不能超过小计金额');
     }
 
     return this.prisma.feeRecord.create({
       data: {
-        items: data.items as unknown as Prisma.InputJsonValue,
-        subtotal: data.subtotal,
+        items: recalculatedItems as unknown as Prisma.InputJsonValue,
+        subtotal,
         discount: data.discount,
-        actualAmount: data.actualAmount,
+        actualAmount,
         remark: data.remark,
         creatorId: data.creatorId,
         projectId: data.projectId,

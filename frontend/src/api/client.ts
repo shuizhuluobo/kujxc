@@ -133,11 +133,18 @@ api.interceptors.response.use(
         }
 
         const authStore = useAuthStore();
-        const config = error.config;
+        const config = error.config as (InternalAxiosRequestConfig & { _retryCount?: number }) | undefined;
 
-        // 如果是 403 错误且是 CSRF token 问题，刷新 CSRF token 并重试
-        if (error.response?.status === 403 && config && 
+        // 如果是 403 错误且是 CSRF token 问题，刷新 CSRF token 并重试（最多重试 1 次）
+        if (error.response?.status === 403 && config &&
             (error.response.data as any)?.message?.includes('CSRF')) {
+            const retryCount = config._retryCount || 0;
+            if (retryCount >= 1) {
+                if (import.meta.env.DEV) {
+                    console.error('[API] CSRF retry limit exceeded, giving up');
+                }
+                return Promise.reject(error);
+            }
             if (import.meta.env.DEV) {
                 console.log('[API] CSRF token invalid, refreshing and retrying...');
             }
@@ -145,6 +152,7 @@ api.interceptors.response.use(
                 clearToken();
                 const token = await getCsrfToken();
                 config.headers['X-CSRF-Token'] = token;
+                config._retryCount = retryCount + 1;
                 return api.request(config);
             } catch (err) {
                 if (import.meta.env.DEV) {
@@ -154,12 +162,21 @@ api.interceptors.response.use(
             }
         }
 
-        // 如果是 401 错误，且不是登录或刷新 Token 接口
+        // 如果是 401 错误，且不是登录或刷新 Token 接口（最多重试 1 次）
         if (error.response?.status === 401 && config && !config.url?.includes('/auth/login') && !config.url?.includes('/auth/refresh')) {
+            const retryCount = config._retryCount || 0;
+            if (retryCount >= 1) {
+                authStore.logout();
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
+                return Promise.reject(error);
+            }
             // 尝试刷新 token
             try {
                 await authStore.refreshToken();
                 // 刷新成功后重试原请求
+                config._retryCount = retryCount + 1;
                 return api.request(config);
             } catch (err) {
                 // 刷新失败，强制退出

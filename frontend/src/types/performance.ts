@@ -5,8 +5,8 @@ export enum CalculationType {
 }
 
 export const CALCULATION_TYPE_LABELS: Record<CalculationType, string> = {
-    [CalculationType.QUANTITY]: '按量计算',
-    [CalculationType.DAILY]: '按天计算',
+    [CalculationType.QUANTITY]: '按数量计算',
+    [CalculationType.DAILY]: '按工日计算',
     [CalculationType.WAREHOUSE]: '公物仓',
 };
 
@@ -40,7 +40,7 @@ export enum WorkUnit {
 }
 
 export const WORK_UNIT_LABELS: Record<WorkUnit, string> = {
-    [WorkUnit.DAY]: '天',
+    [WorkUnit.DAY]: '工日',
     [WorkUnit.HOUR]: '小时',
 };
 
@@ -212,14 +212,16 @@ export interface UpdateWorkRecordDto {
 
 export function formatWorkHours(hours: number): string {
     if (hours <= 0) return '0小时';
-    if (hours % HOURS_PER_DAY === 0) {
-        const days = hours / HOURS_PER_DAY;
-        return `${days}天`;
+    // 先四舍五入到合理精度，避免浮点数精度问题（如 13.04 % 8 = 5.039999999999999）
+    const rounded = Math.round(hours * 100) / 100;
+    if (rounded % HOURS_PER_DAY === 0) {
+        const days = rounded / HOURS_PER_DAY;
+        return `${days}工日`;
     }
-    const days = Math.floor(hours / HOURS_PER_DAY);
-    const remainingHours = hours % HOURS_PER_DAY;
+    const days = Math.floor(rounded / HOURS_PER_DAY);
+    const remainingHours = Math.round((rounded % HOURS_PER_DAY) * 10) / 10;
     if (days > 0) {
-        return `${days}天${remainingHours}小时`;
+        return `${days}工日${remainingHours}小时`;
     }
     return `${remainingHours}小时`;
 }

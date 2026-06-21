@@ -587,7 +587,7 @@ export function useFeeCalculator() {
     return new Date(dateStr).toLocaleString('zh-CN');
   };
 
-  const loadSettings = async () => {
+  const loadSettings = async (isRetrying = false) => {
     try {
       const res = await api.get('/fee/settings');
       const data = res.data as FeeSetting[];
@@ -768,95 +768,8 @@ export function useFeeCalculator() {
           terminalCount: 0,
         }));
 
-      // 动态补充全流程服务（数据库可能已有，需避免重复，不存在则创建到数据库）
-      const existingItems = recycleAndComboItems.map(s => s.item);
-      const fullServiceItems = [
-        { name: '复印机全流程服务', price: 260, unit: '台' },
-        { name: '打印机全流程服务', price: 140, unit: '台' },
-        { name: '扫描仪全流程服务', price: 140, unit: '台' },
-        { name: '碎纸机全流程服务', price: 60, unit: '台' },
-        { name: '投影机全流程服务', price: 160, unit: '台' },
-      ];
-      for (const fp of fullServiceItems) {
-        if (!existingItems.includes(fp.name)) {
-          // 调用创建接口保存到数据库
-          try {
-            const res = await api.post('/fee/settings', {
-              category: '外设全流程服务',
-              item: fp.name,
-              unit: fp.unit,
-              price: fp.price,
-              description: '含送货、安装、回收全流程',
-            });
-            const created = res.data as FeeSetting;
-            recycleAndComboItems.push({
-              id: created.id,
-              category: created.category,
-              item: created.item,
-              unit: created.unit,
-              price: created.price,
-              priceSmall: created.price,
-              priceLarge: created.price,
-              unitSmall: created.unit,
-              unitLarge: created.unit,
-              quantity: 0,
-              total: 0,
-              selected: false,
-              disabled: false,
-              terminalCount: 0,
-            });
-          } catch (e) {
-            // 创建失败则使用临时ID（只读模式）
-            recycleAndComboItems.push({
-              id: 'combo-' + fp.name,
-              category: '外设全流程服务',
-              item: fp.name,
-              unit: fp.unit,
-              price: fp.price,
-              priceSmall: fp.price,
-              priceLarge: fp.price,
-              unitSmall: fp.unit,
-              unitLarge: fp.unit,
-              quantity: 0,
-              total: 0,
-              selected: false,
-              disabled: false,
-              terminalCount: 0,
-            });
-          }
-        }
-      }
-
       peripheralRecycleServices.value = recycleAndComboItems;
 
-      // 将全流程服务动态项也加入 allSettings，以便在费用设置面板显示
-      for (const fp of fullServiceItems) {
-        if (!existingItems.includes(fp.name) && !allSettings.value.some(s => s.item === fp.name)) {
-          try {
-            const res = await api.post('/fee/settings', {
-              category: '外设全流程服务',
-              item: fp.name,
-              unit: fp.unit,
-              price: fp.price,
-              description: '含送货、安装、回收全流程',
-            });
-            const created = res.data as FeeSetting;
-            allSettings.value.push(created);
-          } catch (e) {
-            // 创建失败则使用临时ID（只读模式）
-            allSettings.value.push({
-              id: 'combo-' + fp.name,
-              category: '外设全流程服务',
-              item: fp.name,
-              unit: fp.unit,
-              price: fp.price,
-              isActive: true,
-              sortOrder: 999,
-            } as FeeSetting);
-          }
-        }
-      }
-      
       // 送货服务现在为空，安装已包含送货
       peripheralDeliveryServices.value = [];
 
@@ -935,10 +848,18 @@ export function useFeeCalculator() {
 
     } catch (e: any) {
       console.error('Load settings error:', e);
-      try {
-        await api.post('/fee/settings/init');
-        loadSettings();
-      } catch (err: any) {
+      // 仅在首次失败时尝试初始化，避免无限递归
+      if (!isRetrying) {
+        try {
+          await api.post('/fee/settings/init');
+          // init 成功后重新加载一次，标记 isRetrying 防止再次进入此分支
+          await loadSettings(true);
+          return;
+        } catch (err: any) {
+          ElMessage.closeAll();
+          ElMessage.error('加载费用设置失败');
+        }
+      } else {
         ElMessage.closeAll();
         ElMessage.error('加载费用设置失败');
       }

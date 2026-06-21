@@ -69,8 +69,8 @@
           <template #default="{ row }">{{ row.debugAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
-      <el-table-column label="按天" align="center">
-        <el-table-column label="天数" width="80" align="right">
+      <el-table-column label="按工日" align="center">
+        <el-table-column label="工日数" width="80" align="right">
           <template #default="{ row }">{{ row.totalWorkDays }}</template>
         </el-table-column>
         <el-table-column label="金额" width="100" align="right">
