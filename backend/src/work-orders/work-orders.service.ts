@@ -111,9 +111,9 @@ export class WorkOrdersService {
     if (filterDto.completerId) where.completerId = filterDto.completerId;
 
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate + 'T23:59:59');
+      where.completedAt = {};
+      if (startDate) where.completedAt.gte = new Date(startDate);
+      if (endDate) where.completedAt.lte = new Date(endDate + 'T23:59:59');
     }
 
     if (keyword) {
@@ -582,9 +582,9 @@ export class WorkOrdersService {
     if (completerId) where.completerId = completerId;
 
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate + 'T23:59:59');
+      where.completedAt = {};
+      if (startDate) where.completedAt.gte = new Date(startDate);
+      if (endDate) where.completedAt.lte = new Date(endDate + 'T23:59:59');
     }
 
     if (keyword) {
