@@ -150,9 +150,9 @@
           <span class="close-btn" @click="showCompleteBubble = false">×</span>
         </div>
         <div class="bubble-body">
-          <!-- 同区域工程师快捷选择 -->
+          <!-- 同区域人员快捷选择 -->
           <div class="form-item" v-if="sameRegionEngineers.length > 0">
-            <label>同区域工程师</label>
+            <label>同区域人员</label>
             <div class="checkbox-group">
               <el-checkbox-group v-model="sameRegionEngineerIds">
                 <el-checkbox 
@@ -303,13 +303,12 @@ const canViewRepairFee = computed(() => {
   return authStore.isAdmin || String(props.workOrder.completerId) === String(authStore.user?.id);
 });
 
-// 获取同区域工程师列表
+// 获取同区域人员列表（不限角色）
 const sameRegionEngineers = computed<UserType[]>(() => {
   const regionId = props.workOrder.regionId;
   if (!regionId) return [];
   return baseDataStore.users.filter(
-    u => u.role?.code === 'engineer' && 
-         u.regionId === regionId && 
+    u => u.regionId === regionId && 
          u.id !== authStore.user?.id
   );
 });
