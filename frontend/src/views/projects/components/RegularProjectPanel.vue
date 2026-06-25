@@ -453,7 +453,7 @@
         </el-form-item>
         <el-form-item label="协作人员">
           <el-select v-model="stageForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
-            <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
+            <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
@@ -515,7 +515,7 @@
         </template>
         <el-form-item label="协作人员">
           <el-select v-model="recordForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
-            <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
+            <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
@@ -624,6 +624,9 @@ import {
   formatWorkHours,
 } from '@/types';
 import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats } from '@/types';
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
 
 const props = defineProps<{
   projects: Project[];
@@ -703,6 +706,12 @@ const emit = defineEmits<{
 const currentPageModel = computed({
   get: () => props.currentPage,
   set: (v: number) => emit('pageChange', v),
+});
+
+// 协作人候选列表：仅项目成员，排除当前用户（记录人本人）
+const collaboratorOptions = computed(() => {
+  const memberIds = props.selectedProject?.members?.map(m => m.userId) ?? [];
+  return props.users.filter(u => u?.id && memberIds.includes(u.id) && u.id !== authStore.user?.id);
 });
 
 // 预览数据：显示匹配后的客户名

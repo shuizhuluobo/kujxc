@@ -409,7 +409,7 @@
         </template>
         <el-form-item label="协作人员">
           <el-select v-model="recordForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
-            <el-option v-for="u in users.filter(u => u?.id)" :key="u.id" :label="u.name || '未知'" :value="u.id" />
+            <el-option v-for="u in collaboratorOptions" :key="u.id" :label="u.name || '未知'" :value="u.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
@@ -446,7 +446,7 @@
         </el-form-item>
         <el-form-item label="协作人">
           <el-select v-model="mobileStageForm.collaboratorIds" multiple filterable placeholder="选择协作人" style="width: 100%">
-            <el-option v-for="u in users.filter(u => u?.id)" :key="u.id" :label="u.name || '未知'" :value="u.id" />
+            <el-option v-for="u in collaboratorOptions" :key="u.id" :label="u.name || '未知'" :value="u.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
@@ -555,6 +555,9 @@ import { useDevices } from './composables/useDevices';
 import { useFeeCalculator } from './composables/useFeeCalculator';
 import { useFeeRecords } from './composables/useFeeRecords';
 import { useSSE } from '@/composables/useSSE';
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
 import {
   CalculationType,
   CALCULATION_TYPE_LABELS,
@@ -644,6 +647,13 @@ const warehouseMode = ref(false);
 const deviceExpanded = ref(false);
 const recordExpanded = ref(true);
 const statsExpanded = ref(true);
+
+// 协作人候选列表：仅项目成员，排除当前用户（记录人本人）
+const collaboratorOptions = computed(() => {
+  const memberIds = selectedProject.value?.members?.map(m => m.userId) ?? [];
+  return users.value.filter((u: any) => u?.id && memberIds.includes(u.id) && u.id !== authStore.user?.id);
+});
+
 const expandedRecordIds = ref<Set<string>>(new Set());
 const showProjectDrawer = ref(false);
 const showRecordDrawer = ref(false);
