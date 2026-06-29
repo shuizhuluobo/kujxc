@@ -3,8 +3,8 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { performanceApi, customersApi, usersApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { hasPermission } from '@/config/permissions';
-import type { Project, User, Customer } from '@/types';
-import { CalculationType, CALCULATION_TYPE_LABELS } from '@/types';
+import type { Project, User, Customer, StageInput } from '@/types';
+import { CalculationType, CALCULATION_TYPE_LABELS, DEFAULT_STAGES, StageTrackingMode } from '@/types';
 
 /**
  * 项目管理 composable
@@ -71,22 +71,21 @@ export function useProjects() {
     projectName: '',
     calculationType: CalculationType.QUANTITY as CalculationType,
     totalQuantity: 1,
-    deliveryUnitPrice: 0,
-    installUnitPrice: 0,
-    debugUnitPrice: 0,
+    stages: [] as StageInput[],
     dailyPrice: 0,
     remark: '',
     memberIds: [] as string[],
     editingId: '' as string,
   });
 
+  const cloneDefaultStages = (): StageInput[] =>
+    DEFAULT_STAGES.map(s => ({ ...s }));
+
   const resetProjectForm = () => {
     projectForm.projectName = '';
     projectForm.calculationType = CalculationType.QUANTITY;
     projectForm.totalQuantity = 1;
-    projectForm.deliveryUnitPrice = 0;
-    projectForm.installUnitPrice = 0;
-    projectForm.debugUnitPrice = 0;
+    projectForm.stages = cloneDefaultStages();
     projectForm.dailyPrice = 0;
     projectForm.remark = '';
     projectForm.memberIds = [];
@@ -97,15 +96,60 @@ export function useProjects() {
     projectForm.projectName = project.projectName;
     projectForm.calculationType = project.calculationType;
     projectForm.totalQuantity = project.totalQuantity || 1;
-    projectForm.deliveryUnitPrice = project.deliveryUnitPrice;
-    projectForm.installUnitPrice = project.installUnitPrice;
-    projectForm.debugUnitPrice = project.debugUnitPrice;
+    projectForm.stages = (project.stages && project.stages.length)
+      ? project.stages
+          .slice()
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(s => ({
+            id: s.id,
+            name: s.name,
+            code: s.code,
+            trackingMode: s.trackingMode,
+            unitPrice: s.unitPrice,
+            sortOrder: s.sortOrder,
+          }))
+      : cloneDefaultStages();
     projectForm.dailyPrice = project.dailyPrice;
     projectForm.remark = project.remark || '';
     projectForm.memberIds = (project.members || [])
       .filter(m => m.role !== 'OWNER')
       .map(m => m.userId);
     projectForm.editingId = project.id;
+  };
+
+  // ============ 阶段校验（与后端一致） ============
+  const validateStages = (stages: StageInput[]): string | null => {
+    if (stages.length === 0) return '按量项目至少需要一个阶段';
+    const names = new Set<string>();
+    const codes = new Set<string>();
+    for (const s of stages) {
+      if (!s.name?.trim()) return '阶段名称不能为空';
+      if (!s.code?.trim()) return '阶段编码不能为空';
+      if (names.has(s.name)) return `阶段名称"${s.name}"重复`;
+      if (codes.has(s.code)) return `阶段编码"${s.code}"重复`;
+      names.add(s.name);
+      codes.add(s.code);
+    }
+    return null;
+  };
+
+  // ============ 阶段配置操作（用于项目表单） ============
+  const addStage = () => {
+    const nextOrder = projectForm.stages.length;
+    projectForm.stages.push({
+      name: '',
+      code: '',
+      trackingMode: StageTrackingMode.DEVICE,
+      unitPrice: 0,
+      sortOrder: nextOrder,
+    });
+  };
+
+  const removeStage = (index: number) => {
+    if (projectForm.stages.length <= 1) return;
+    projectForm.stages.splice(index, 1);
+    // 重新排序
+    projectForm.stages.forEach((s, i) => { s.sortOrder = i; });
   };
 
   // ============ 项目 CRUD ============
@@ -131,21 +175,27 @@ export function useProjects() {
 
   const createProject = async (data: Partial<typeof projectForm>) => {
     try {
+      const isQuantity = data.calculationType === CalculationType.QUANTITY;
+      if (isQuantity) {
+        const err = validateStages(data.stages || []);
+        if (err) {
+          ElMessage.error(err);
+          throw new Error(err);
+        }
+      }
       await performanceApi.createProject({
         projectName: data.projectName!,
         calculationType: data.calculationType as CalculationType,
-        totalQuantity: data.calculationType === CalculationType.QUANTITY ? data.totalQuantity : undefined,
-        deliveryUnitPrice: data.deliveryUnitPrice,
-        installUnitPrice: data.installUnitPrice,
-        debugUnitPrice: data.debugUnitPrice,
-        dailyPrice: data.dailyPrice,
+        totalQuantity: isQuantity ? data.totalQuantity : undefined,
+        stages: isQuantity ? data.stages : undefined,
+        dailyPrice: data.dailyPrice ?? 0,
         remark: data.remark || undefined,
         memberIds: data.memberIds?.length ? data.memberIds : undefined,
       });
       ElMessage.success('创建成功');
       await loadProjects();
     } catch (e: any) {
-      ElMessage.error(e?.response?.data?.message || '创建失败');
+      ElMessage.error(e?.response?.data?.message || e?.message || '创建失败');
       throw e;
     }
   };
@@ -153,13 +203,19 @@ export function useProjects() {
   const updateProject = async (data: Partial<typeof projectForm>) => {
     if (!data.editingId) return;
     try {
+      const isQuantity = data.calculationType === CalculationType.QUANTITY;
+      if (isQuantity && data.stages) {
+        const err = validateStages(data.stages);
+        if (err) {
+          ElMessage.error(err);
+          throw new Error(err);
+        }
+      }
       await performanceApi.updateProject(data.editingId, {
         projectName: data.projectName,
-        totalQuantity: data.calculationType === CalculationType.QUANTITY ? data.totalQuantity : undefined,
-        deliveryUnitPrice: data.deliveryUnitPrice,
-        installUnitPrice: data.installUnitPrice,
-        debugUnitPrice: data.debugUnitPrice,
-        dailyPrice: data.dailyPrice,
+        totalQuantity: isQuantity ? data.totalQuantity : undefined,
+        stages: isQuantity ? data.stages : undefined,
+        dailyPrice: data.dailyPrice ?? 0,
         remark: data.remark || undefined,
         memberIds: data.memberIds,
       });
@@ -264,6 +320,9 @@ export function useProjects() {
     deleteProject,
     resetProjectForm,
     fillProjectFormForEdit,
+    validateStages,
+    addStage,
+    removeStage,
     // 用户/客户
     loadUsersAndCustomers,
     // 导出

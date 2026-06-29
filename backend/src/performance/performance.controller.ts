@@ -191,36 +191,6 @@ export class PerformanceController {
     return this.performanceService.deleteDevice(deviceId, user.id, user.roleCode);
   }
 
-  @Post('devices/:deviceId/delivery')
-  @Permissions('fee:view_project')
-  async recordDelivery(
-    @Param('deviceId') deviceId: string,
-    @Body() data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string },
-    @CurrentUser() user: CurrentUserData,
-  ) {
-    return this.performanceService.recordDelivery(deviceId, data, user.id, user.roleCode);
-  }
-
-  @Post('devices/:deviceId/install')
-  @Permissions('fee:view_project')
-  async recordInstall(
-    @Param('deviceId') deviceId: string,
-    @Body() data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string },
-    @CurrentUser() user: CurrentUserData,
-  ) {
-    return this.performanceService.recordInstall(deviceId, data, user.id, user.roleCode);
-  }
-
-  @Post('devices/:deviceId/debug')
-  @Permissions('fee:view_project')
-  async recordDebug(
-    @Param('deviceId') deviceId: string,
-    @Body() data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string },
-    @CurrentUser() user: CurrentUserData,
-  ) {
-    return this.performanceService.recordDebug(deviceId, data, user.id, user.roleCode);
-  }
-
   @Get('projects/:projectId/stats')
   @Permissions('fee:view_stats')
   async getStats(@Param('projectId') projectId: string) {

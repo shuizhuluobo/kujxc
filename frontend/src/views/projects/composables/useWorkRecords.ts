@@ -1,11 +1,10 @@
 import { ref, reactive, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { performanceApi } from '@/api';
-import type { Project, WorkRecord, PerformanceResult, MyPerformanceStats, CustomerDevice } from '@/types';
+import type { Project, WorkRecord, PerformanceResult, MyPerformanceStats, ProjectStage } from '@/types';
 import {
   CalculationType,
-  RecordType,
-  RECORD_TYPE_LABELS,
+  StageTrackingMode,
   WorkUnit,
   HOURS_PER_DAY,
   formatWorkHours,
@@ -14,6 +13,7 @@ import {
 /**
  * 工作记录管理 composable
  * 统一桌面端与移动端共享的工作记录 CRUD、表单状态、统计加载逻辑
+ * 按量项目记录统一通过 stageId 关联动态阶段；DEVICE 模式阶段需关联设备
  */
 export function useWorkRecords() {
   const records = ref<WorkRecord[]>([]);
@@ -24,9 +24,7 @@ export function useWorkRecords() {
   // ============ 工作记录表单 ============
   const recordForm = reactive({
     date: '',
-    // 桌面端使用 recordTypes 数组（多选），移动端使用 recordType 单选
-    recordTypes: [] as RecordType[],
-    recordType: undefined as RecordType | undefined,
+    stageId: '' as string,
     quantity: 1,
     customerId: '',
     deviceId: '',
@@ -42,8 +40,7 @@ export function useWorkRecords() {
 
   const resetRecordForm = () => {
     recordForm.date = '';
-    recordForm.recordTypes = [];
-    recordForm.recordType = undefined;
+    recordForm.stageId = '';
     recordForm.quantity = 1;
     recordForm.customerId = '';
     recordForm.deviceId = '';
@@ -58,8 +55,7 @@ export function useWorkRecords() {
   const fillRecordFormForEdit = (record: WorkRecord) => {
     editingRecord.value = record;
     recordForm.date = record.date;
-    recordForm.recordTypes = record.recordType ? [record.recordType] : [];
-    recordForm.recordType = record.recordType || undefined;
+    recordForm.stageId = record.stageId || '';
     recordForm.quantity = record.quantity || 1;
     recordForm.customerId = record.customerId || '';
     recordForm.deviceId = record.deviceId || '';
@@ -88,20 +84,21 @@ export function useWorkRecords() {
     recordForm.date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
-  // ============ 记录类型选项（移动端用） ============
-  const recordTypeOptions = (project: Project | null) => {
-    const isQty = project?.calculationType === CalculationType.QUANTITY;
-    return [
-      { value: RecordType.DELIVERY, label: '送货', disabled: !isQty },
-      { value: RecordType.INSTALL, label: '安装', disabled: !isQty },
-      { value: RecordType.DEBUG, label: '调试', disabled: !isQty },
-      { value: RecordType.CONSTRUCTION, label: '施工', disabled: isQty },
-    ];
+  // ============ 阶段选项（按项目动态阶段生成） ============
+  const stageOptions = (project: Project | null): ProjectStage[] => {
+    if (!project || project.calculationType !== CalculationType.QUANTITY) return [];
+    return (project.stages || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
+  };
+
+  // 当前所选阶段对象
+  const selectedStage = (project: Project | null): ProjectStage | undefined => {
+    if (!recordForm.stageId) return undefined;
+    return (project?.stages || []).find(s => s.id === recordForm.stageId);
   };
 
   // ============ 校验 ============
   const canSaveRecord = computed(() => {
-    return !!(recordForm.date && (recordForm.recordType || recordForm.recordTypes.length > 0));
+    return !!recordForm.date;
   });
 
   // ============ 数据加载 ============
@@ -135,13 +132,20 @@ export function useWorkRecords() {
   // ============ 记录 CRUD ============
   const saveRecord = async (project: Project) => {
     if (!recordForm.date) return;
-    // 兼容桌面端（recordTypes 数组）与移动端（recordType 单选）
-    const recordType = recordForm.recordType || recordForm.recordTypes[0];
-    if (!recordType) return;
-    // 按量计算项目必须选择关联设备，否则无法核减设备数量
-    if (project.calculationType === CalculationType.QUANTITY && !recordForm.deviceId) {
-      ElMessage.warning('请选择关联设备');
+
+    const isQuantity = project.calculationType === CalculationType.QUANTITY;
+    // 按量项目必须选择阶段
+    if (isQuantity && !recordForm.stageId) {
+      ElMessage.warning('请选择阶段');
       return;
+    }
+    // DEVICE 模式阶段必须关联设备
+    if (isQuantity) {
+      const stage = (project.stages || []).find(s => s.id === recordForm.stageId);
+      if (stage?.trackingMode === StageTrackingMode.DEVICE && !recordForm.deviceId) {
+        ElMessage.warning('该阶段需关联设备');
+        return;
+      }
     }
 
     try {
@@ -154,8 +158,8 @@ export function useWorkRecords() {
 
       const data = {
         date: recordForm.date,
-        recordType,
-        quantity: project.calculationType === CalculationType.QUANTITY ? recordForm.quantity : undefined,
+        stageId: isQuantity ? recordForm.stageId : undefined,
+        quantity: isQuantity ? recordForm.quantity : undefined,
         workHours,
         customerId: recordForm.customerId || undefined,
         deviceId: recordForm.deviceId || undefined,
@@ -196,14 +200,14 @@ export function useWorkRecords() {
   };
 
   // ============ 工具方法 ============
-  const getRecordTypeTag = (type?: RecordType): '' | 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
-    const map: Record<string, '' | 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
-      DELIVERY: 'primary',
-      INSTALL: 'success',
-      DEBUG: 'warning',
-      CONSTRUCTION: 'info',
-    };
-    return map[type || ''] || '';
+  // 获取记录的阶段名称（优先用 stage.name，回退到历史 recordType）
+  const getRecordStageName = (record: WorkRecord, project: Project | null): string => {
+    if (record.stage?.name) return record.stage.name;
+    if (record.stageId && project?.stages) {
+      const s = project.stages.find(sg => sg.id === record.stageId);
+      if (s) return s.name;
+    }
+    return '';
   };
 
   const formatDate = (dateStr: string) => {
@@ -228,16 +232,16 @@ export function useWorkRecords() {
     resetRecordForm,
     fillRecordFormForEdit,
     prepareNewRecord,
-    recordTypeOptions,
+    stageOptions,
+    selectedStage,
     // CRUD
     saveRecord,
     deleteRecord,
     // 工具
-    getRecordTypeTag,
+    getRecordStageName,
     formatDate,
     formatWorkHours,
     // 常量
-    RECORD_TYPE_LABELS,
     HOURS_PER_DAY,
   };
 }

@@ -10,22 +10,16 @@
     >
       <el-table-column label="#" type="index" width="45" align="center" />
       <el-table-column label="姓名" prop="userName" min-width="90" align="left" />
-      <el-table-column label="送货" width="85" align="right">
+      <el-table-column
+        v-for="stage in stages"
+        :key="stage.id"
+        :label="stage.name"
+        width="100"
+        align="right"
+      >
         <template #default="{ row }">
-          <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.deliveryCount || 0 }}台</div>
-          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.deliveryAmount || 0).toFixed(2) }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column label="安装" width="85" align="right">
-        <template #default="{ row }">
-          <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.installCount || 0 }}台</div>
-          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.installAmount || 0).toFixed(2) }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column label="调试" width="85" align="right">
-        <template #default="{ row }">
-          <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ row.debugCount || 0 }}台</div>
-          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ (row.debugAmount || 0).toFixed(2) }}</div>
+          <div class="align-right-cell" :style="{ textAlign: 'right', width: '100%', display: 'block' }">{{ getStageCount(row, stage.id) }}台</div>
+          <div v-if="canViewAmount" class="align-right-cell amount" :style="{ textAlign: 'right', width: '100%', display: 'block' }">¥{{ getStageAmount(row, stage.id).toFixed(2) }}</div>
         </template>
       </el-table-column>
       <el-table-column v-if="canViewAmount" label="合计金额" width="100" align="right">
@@ -65,13 +59,19 @@
 
 <script setup lang="ts">
 import { HOURS_PER_DAY, formatWorkHours } from '@/types';
-import type { PerformanceResult } from '@/types';
+import type { PerformanceResult, ProjectStage } from '@/types';
 
-defineProps<{
+const props = defineProps<{
   data: PerformanceResult[];
   calculationType: string;
   canViewAmount?: boolean;
+  stages?: ProjectStage[];
 }>();
+
+const getStageCount = (row: PerformanceResult, stageId: string) =>
+  row?.stageStats?.[stageId]?.count ?? 0;
+const getStageAmount = (row: PerformanceResult, stageId: string) =>
+  row?.stageStats?.[stageId]?.amount ?? 0;
 
 const cellStyle = ({ column }: any) => {
   if (column.type === 'index') return { textAlign: 'center' };

@@ -58,7 +58,7 @@
             </span>
             <span v-if="canViewPerformance" class="header-meta">
               {{ selectedProject.calculationType === CalculationType.QUANTITY
-                ? `送${stageTotals.delivery}/装${stageTotals.install}/调${stageTotals.debug}`
+                ? projectStageSummary
                 : `${selectedProject.dailyPrice}元/天` }}
             </span>
           </div>
@@ -78,18 +78,16 @@
 
       <!-- 统计卡片 -->
       <div class="stats-cards" v-if="myStats">
-        <div class="stat-card" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-          <span class="stat-value">{{ myStats.deliveryCount }}</span>
-          <span class="stat-key">送货(台)</span>
-        </div>
-        <div class="stat-card" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-          <span class="stat-value">{{ myStats.installCount }}</span>
-          <span class="stat-key">安装(台)</span>
-        </div>
-        <div class="stat-card" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-          <span class="stat-value">{{ myStats.debugCount }}</span>
-          <span class="stat-key">调试(台)</span>
-        </div>
+        <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+          <div
+            v-for="stage in quantityStages"
+            :key="stage.id"
+            class="stat-card"
+          >
+            <span class="stat-value">{{ myStatsStageCount(stage.id) }}</span>
+            <span class="stat-key">{{ stage.name }}(台)</span>
+          </div>
+        </template>
         <div class="stat-card" v-if="selectedProject.calculationType === CalculationType.DAILY">
           <span class="stat-value">{{ formatWorkHours(myStats.totalWorkDays * HOURS_PER_DAY) }}</span>
           <span class="stat-key">工作时长</span>
@@ -125,39 +123,46 @@
             <el-table-column label="应送" width="60" align="center">
               <template #default="{ row }">{{ row.expectedQuantity }}</template>
             </el-table-column>
-            <el-table-column label="送货" width="70" align="right">
+            <el-table-column
+              v-for="stage in deviceStages"
+              :key="stage.id"
+              :label="stage.name"
+              width="80"
+              align="right"
+            >
               <template #default="{ row }">
-                <span :class="{ done: row.deliveryQuantity >= row.expectedQuantity }">
-                  {{ row.deliveryQuantity }}/{{ row.expectedQuantity }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="安装" width="70" align="right">
-              <template #default="{ row }">
-                <span :class="{ done: row.installQuantity >= row.deliveryQuantity && row.deliveryQuantity > 0 }">
-                  {{ row.installQuantity }}/{{ row.deliveryQuantity }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="调试" width="70" align="right">
-              <template #default="{ row }">
-                <span :class="{ done: row.debugQuantity >= row.installQuantity && row.installQuantity > 0 }">
-                  {{ row.debugQuantity }}/{{ row.installQuantity }}
+                <span :class="{ done: stageProgress(row, stage.id) >= row.expectedQuantity }">
+                  {{ stageProgress(row, stage.id) }}/{{ row.expectedQuantity }}
                 </span>
               </template>
             </el-table-column>
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">
-                  {{ row.isCompleted ? '完成' : '进行中' }}
+                <el-tag :type="deviceCompleted(row) ? 'success' : 'warning'" size="small">
+                  {{ deviceCompleted(row) ? '完成' : '进行中' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
                 <div class="row-actions">
+                  <el-dropdown v-if="deviceStages.length > 0" trigger="click" @command="(cmd: string) => $emit('recordStage', row, cmd)">
+                    <el-button size="small" link type="primary">记录<el-icon><ArrowDown /></el-icon></el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                          v-for="stage in deviceStages"
+                          :key="stage.id"
+                          :command="stage.id"
+                          :disabled="stageProgress(row, stage.id) >= row.expectedQuantity"
+                        >
+                          {{ stage.name }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                   <el-button size="small" link type="primary" @click="$emit('editDevice', row)">编辑</el-button>
-                  <el-button size="small" link type="danger" @click="$emit('deleteDevice', row)" :disabled="row.isCompleted">删除</el-button>
+                  <el-button size="small" link type="danger" @click="$emit('deleteDevice', row)" :disabled="deviceCompleted(row)">删除</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -184,24 +189,24 @@
               </template>
               <template #default="{ row }">{{ formatDate(row.date) }}</template>
             </el-table-column>
-            <el-table-column width="120">
+            <el-table-column width="120" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
               <template #header>
                 <div class="th-filter">
-                  <span>类型</span>
+                  <span>阶段</span>
                   <el-select
-                    v-model="recordFilter.recordType"
+                    v-model="recordFilter.stageId"
                     size="small"
                     clearable
                     placeholder="全部"
                     class="th-filter-select"
                   >
-                    <el-option v-for="(label, key) in RECORD_TYPE_LABELS" :key="key" :label="label" :value="key" />
+                    <el-option v-for="stage in quantityStages" :key="stage.id" :label="stage.name" :value="stage.id" />
                   </el-select>
                 </div>
               </template>
               <template #default="{ row }">
-                <el-tag size="small" :type="getRecordTypeTag(row.recordType)">
-                  {{ RECORD_TYPE_LABELS[(row.recordType || '') as RecordType] || '-' }}
+                <el-tag size="small" type="primary">
+                  {{ getRecordStageName(row) || '-' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -282,6 +287,7 @@
             :data="stats"
             :calculation-type="selectedProject.calculationType"
             :can-view-amount="canViewAmount"
+            :stages="selectedProject.stages"
           />
           <div v-if="stats.length === 0" class="empty-tip">
             <p>暂无汇总数据</p>
@@ -298,7 +304,7 @@
     </main>
 
     <!-- 新建项目弹窗 -->
-    <el-dialog v-model="showCreateProjectModalModel" title="新建项目" width="520px" destroy-on-close>
+    <el-dialog v-model="showCreateProjectModalModel" title="新建项目" width="700px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
         <el-form-item label="项目名称" required v-shake ref="projectNameItem">
           <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
@@ -313,17 +319,43 @@
           <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.deliveryUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
-        </el-form-item>
-        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.installUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
-        </el-form-item>
-        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
+        <el-form-item label="阶段配置" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+          <el-table :data="projectForm.stages" border size="small" style="width: 100%">
+            <el-table-column label="序号" type="index" width="55" align="center" />
+            <el-table-column label="阶段名称" width="80">
+              <template #default="{ row }">
+                <el-input v-model="row.name" size="small" placeholder="如 送货" />
+              </template>
+            </el-table-column>
+            <el-table-column label="编码" width="90">
+              <template #default="{ row }">
+                <el-input v-model="row.code" size="small" placeholder="如 delivery" />
+              </template>
+            </el-table-column>
+            <el-table-column label="单价" width="120" v-if="canViewAmount">
+              <template #default="{ row }">
+                <el-input-number v-model="row.unitPrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
+              </template>
+            </el-table-column>
+            <el-table-column label="跟踪模式" width="120">
+              <template #default="{ row }">
+                <el-select v-model="row.trackingMode" size="small" style="width: 100%">
+                  <el-option
+                    v-for="(label, key) in STAGE_TRACKING_MODE_LABELS"
+                    :key="key"
+                    :label="label"
+                    :value="key"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="70" align="center">
+              <template #default="{ $index }">
+                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="projectForm.stages.length <= 1">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button size="small" type="primary" link @click="addStage" style="margin-top: 8px">+ 添加阶段</el-button>
         </el-form-item>
         <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
@@ -345,7 +377,7 @@
     </el-dialog>
 
     <!-- 编辑项目弹窗 -->
-    <el-dialog v-model="showEditProjectModalModel" title="编辑项目" width="520px" destroy-on-close>
+    <el-dialog v-model="showEditProjectModalModel" title="编辑项目" width="700px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
         <el-form-item label="项目名称" required v-shake ref="editProjectNameItem">
           <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
@@ -354,17 +386,43 @@
           <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="送货单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.deliveryUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
-        </el-form-item>
-        <el-form-item label="安装单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.installUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
-        </el-form-item>
-        <el-form-item label="调试单价" v-if="projectForm.calculationType === CalculationType.QUANTITY && canViewAmount">
-          <el-input-number v-model="projectForm.debugUnitPrice" :min="0" :precision="2" style="width: 130px" />
-          <span class="unit">元/台</span>
+        <el-form-item label="阶段配置" v-if="projectForm.calculationType === CalculationType.QUANTITY">
+          <el-table :data="projectForm.stages" border size="small" style="width: 100%">
+            <el-table-column label="序号" type="index" width="55" align="center" />
+            <el-table-column label="阶段名称" width="80">
+              <template #default="{ row }">
+                <el-input v-model="row.name" size="small" placeholder="如 送货" />
+              </template>
+            </el-table-column>
+            <el-table-column label="编码" width="90">
+              <template #default="{ row }">
+                <el-input v-model="row.code" size="small" placeholder="如 delivery" />
+              </template>
+            </el-table-column>
+            <el-table-column label="单价" width="120" v-if="canViewAmount">
+              <template #default="{ row }">
+                <el-input-number v-model="row.unitPrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
+              </template>
+            </el-table-column>
+            <el-table-column label="跟踪模式" width="120">
+              <template #default="{ row }">
+                <el-select v-model="row.trackingMode" size="small" style="width: 100%">
+                  <el-option
+                    v-for="(label, key) in STAGE_TRACKING_MODE_LABELS"
+                    :key="key"
+                    :label="label"
+                    :value="key"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="70" align="center">
+              <template #default="{ $index }">
+                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="projectForm.stages.length <= 1">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button size="small" type="primary" link @click="addStage" style="margin-top: 8px">+ 添加阶段</el-button>
         </el-form-item>
         <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
           <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
@@ -440,9 +498,9 @@
         <div class="confirm-info">
           <p><strong>客户：</strong>{{ editingDevice?.customer?.name }}</p>
           <p><strong>设备：</strong>{{ editingDevice?.deviceName }}</p>
-          <p v-if="currentStage === 'delivery'"><strong>待送货：</strong>{{ (editingDevice?.expectedQuantity || 0) - (editingDevice?.deliveryQuantity || 0) }} 台</p>
-          <p v-else-if="currentStage === 'install'"><strong>待安装：</strong>{{ (editingDevice?.deliveryQuantity || 0) - (editingDevice?.installQuantity || 0) }} 台</p>
-          <p v-else-if="currentStage === 'debug'"><strong>待调试：</strong>{{ (editingDevice?.installQuantity || 0) - (editingDevice?.debugQuantity || 0) }} 台</p>
+          <p v-if="currentStage">
+            <strong>待{{ currentStage.name }}：</strong>{{ stageRemaining }} 台
+          </p>
         </div>
         <el-form-item label="工作日期" required v-shake ref="stageDateItem">
           <el-date-picker v-model="stageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
@@ -476,17 +534,14 @@
         <el-form-item label="日期" required v-shake ref="recordDateItem">
           <el-date-picker v-model="recordForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="工作类型" required v-shake ref="recordTypeItem">
-          <el-checkbox-group v-model="recordForm.recordTypes">
-            <el-checkbox :value="RecordType.DELIVERY" :disabled="selectedProject?.calculationType !== CalculationType.QUANTITY">送货</el-checkbox>
-            <el-checkbox :value="RecordType.INSTALL" :disabled="selectedProject?.calculationType !== CalculationType.QUANTITY">安装</el-checkbox>
-            <el-checkbox :value="RecordType.DEBUG" :disabled="selectedProject?.calculationType !== CalculationType.QUANTITY">调试</el-checkbox>
-            <el-checkbox :value="RecordType.CONSTRUCTION" :disabled="selectedProject?.calculationType !== CalculationType.DAILY">施工</el-checkbox>
-          </el-checkbox-group>
+        <el-form-item label="阶段" required v-shake ref="recordStageItem" v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
+          <el-select v-model="recordForm.stageId" placeholder="选择阶段" style="width: 100%" @change="onRecordStageChange">
+            <el-option v-for="stage in quantityStages" :key="stage.id" :label="stage.name" :value="stage.id" />
+          </el-select>
         </el-form-item>
-        <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
+        <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY && currentSelectedStage?.trackingMode === StageTrackingMode.DEVICE">
           <el-form-item label="客户" required v-shake ref="recordCustomerItem">
-            <el-select v-model="recordForm.customerId" placeholder="先选择工作类型" clearable filterable style="width: 100%" :disabled="!hasSelectedRecordType" @change="onRecordCustomerChange">
+            <el-select v-model="recordForm.customerId" placeholder="选择客户" clearable filterable style="width: 100%" @change="onRecordCustomerChange">
               <el-option v-for="customer in filteredCustomersForRecord" :key="customer.id" :label="customer.shortName ? `${customer.shortName} (${customer.name})` : customer.name" :value="customer.id" />
             </el-select>
           </el-form-item>
@@ -501,7 +556,13 @@
             <span v-if="maxQuantityForRecord < Infinity" class="max-hint">（剩余可填：{{ maxQuantityForRecord }} 台）</span>
           </el-form-item>
         </template>
-        <template v-else>
+        <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY && currentSelectedStage?.trackingMode === StageTrackingMode.PROJECT">
+          <el-form-item label="数量" required>
+            <el-input-number v-model="recordForm.quantity" :min="1" style="width: 140px" />
+            <span class="unit"> 台</span>
+          </el-form-item>
+        </template>
+        <template v-if="selectedProject?.calculationType === CalculationType.DAILY">
           <el-form-item label="工作时长" required>
             <el-input-number v-model="recordForm.workDuration" :min="0.5" :step="0.5" style="width: 120px" />
             <el-select v-model="recordForm.workUnit" style="width: 80px; margin-left: 8px;">
@@ -612,18 +673,18 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Download, EditPen, Delete, UploadFilled, ArrowRight } from '@element-plus/icons-vue';
+import { Download, EditPen, Delete, UploadFilled, ArrowRight, ArrowDown } from '@element-plus/icons-vue';
 import StatsTable from './StatsTable.vue';
 import {
   CalculationType,
   CALCULATION_TYPE_LABELS,
-  RecordType,
-  RECORD_TYPE_LABELS,
+  StageTrackingMode,
+  STAGE_TRACKING_MODE_LABELS,
   WorkUnit,
   HOURS_PER_DAY,
   formatWorkHours,
 } from '@/types';
-import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats } from '@/types';
+import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats, ProjectStage } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
@@ -650,7 +711,7 @@ const props = defineProps<{
   editingRecord: WorkRecord | null;
   deviceForm: any;
   editingDevice: CustomerDevice | null;
-  currentStage: 'delivery' | 'install' | 'debug';
+  currentStage: ProjectStage | undefined;
   stageForm: any;
   stageMaxQuantity: number;
   stageModalTitle: string;
@@ -682,8 +743,10 @@ const emit = defineEmits<{
   editDevice: [device: CustomerDevice];
   saveDevice: [];
   deleteDevice: [device: CustomerDevice];
-  recordStage: [device: CustomerDevice, stage: 'delivery' | 'install' | 'debug'];
+  recordStage: [device: CustomerDevice, stageId: string];
   submitStage: [];
+  addStage: [];
+  removeStage: [index: number];
   importDevice: [];
   downloadTemplate: [];
   fileChange: [file: any];
@@ -733,7 +796,7 @@ const previewData = computed(() => {
 
 // 记录表单校验：摇晃提示
 const recordDateItem = ref<any>(null);
-const recordTypeItem = ref<any>(null);
+const recordStageItem = ref<any>(null);
 const recordCustomerItem = ref<any>(null);
 const recordDeviceItem = ref<any>(null);
 
@@ -803,12 +866,13 @@ const handleSaveRecordClick = () => {
     shakeItem(recordDateItem.value);
     invalid = true;
   }
-  const recordType = form.recordType || form.recordTypes?.[0];
-  if (!recordType) {
-    shakeItem(recordTypeItem.value);
+  if (isQuantity && !form.stageId) {
+    shakeItem(recordStageItem.value);
     invalid = true;
   }
-  if (isQuantity) {
+  // DEVICE 模式阶段需要客户和设备
+  const stage = currentSelectedStage.value;
+  if (isQuantity && stage?.trackingMode === StageTrackingMode.DEVICE) {
     if (!form.customerId) {
       shakeItem(recordCustomerItem.value);
       invalid = true;
@@ -856,9 +920,9 @@ const paginatedRecords = computed(() => {
 });
 
 // 工作记录筛选
-const recordFilter = ref<{ customerId: string; recordType: string }>({
+const recordFilter = ref<{ customerId: string; stageId: string }>({
   customerId: '',
-  recordType: '',
+  stageId: '',
 });
 
 // 面板折叠状态
@@ -870,103 +934,142 @@ const filteredRecords = computed(() => {
   return props.records.filter((r) => {
     // 客户筛选
     if (recordFilter.value.customerId && r.customerId !== recordFilter.value.customerId) return false;
-    // 类型筛选
-    if (recordFilter.value.recordType && r.recordType !== recordFilter.value.recordType) return false;
+    // 阶段筛选
+    if (recordFilter.value.stageId && r.stageId !== recordFilter.value.stageId) return false;
     return true;
   });
 });
 
 const resetRecordFilter = () => {
-  recordFilter.value = { customerId: '', recordType: '' };
+  recordFilter.value = { customerId: '', stageId: '' };
 };
 
-// 是否已选择工作类型
-const hasSelectedRecordType = computed(() => {
-  const types = props.recordForm.recordTypes || props.recordForm.recordType;
-  return Array.isArray(types) ? types.length > 0 : !!types;
+// 当前所选阶段对象
+const currentSelectedStage = computed<ProjectStage | undefined>(() => {
+  if (!props.recordForm.stageId) return undefined;
+  return (props.selectedProject?.stages || []).find(s => s.id === props.recordForm.stageId);
 });
+
+// 更改阶段时清空客户和设备
+const onRecordStageChange = () => {
+  props.recordForm.customerId = '';
+  props.recordForm.deviceId = '';
+};
 
 // 更改客户时清除关联设备
 const onRecordCustomerChange = () => {
   props.recordForm.deviceId = '';
 };
 
-// 按选中类型判断设备是否已完成该类型
-const isDeviceTypeDone = (d: CustomerDevice, type: string) => {
-  if (type === RecordType.DELIVERY) return d.deliveryQuantity >= d.expectedQuantity;
-  if (type === RecordType.INSTALL) return d.installQuantity >= d.expectedQuantity;
-  if (type === RecordType.DEBUG) return d.debugQuantity >= d.expectedQuantity;
-  return false;
+// 获取设备在指定阶段的已记录数量
+const stageProgress = (d: CustomerDevice, stageId: string): number => {
+  return d.stageProgress?.find(p => p.stageId === stageId)?.quantity || 0;
 };
 
-// 过滤客户：至少有一个设备在选中类型上未完成
+// 设备在某阶段是否已完成
+const isDeviceStageComplete = (d: CustomerDevice, stageId: string): boolean => {
+  return stageProgress(d, stageId) >= d.expectedQuantity;
+};
+
+// 设备是否所有 DEVICE 模式阶段都完成
+const deviceCompleted = (d: CustomerDevice): boolean => {
+  const deviceStages = (props.selectedProject?.stages || []).filter(s => s.trackingMode === StageTrackingMode.DEVICE);
+  if (deviceStages.length === 0) return false;
+  return deviceStages.every(s => isDeviceStageComplete(d, s.id));
+};
+
+// 过滤客户：至少有一个设备在所选阶段未完成（仅 DEVICE 模式阶段）
 const filteredCustomersForRecord = computed(() => {
-  if (!hasSelectedRecordType.value) return [];
-  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
+  const stage = currentSelectedStage.value;
+  if (!stage || stage.trackingMode !== StageTrackingMode.DEVICE) return [];
   const validCustomerIds = new Set<string>();
   props.devices.forEach((d) => {
-    // 设备至少有一个选中类型未完成
-    const hasUnfinished = types.some((t: string) => !isDeviceTypeDone(d, t));
-    if (hasUnfinished) validCustomerIds.add(d.customerId);
+    if (!isDeviceStageComplete(d, stage.id)) validCustomerIds.add(d.customerId);
   });
   return props.customers.filter((c) => c?.id && validCustomerIds.has(c.id));
 });
 
-// 过滤设备：按客户 + 选中类型未完成
+// 过滤设备：按客户 + 所选阶段未完成
 const filteredDevicesForRecord = computed(() => {
   if (!props.recordForm.customerId) return [];
-  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
+  const stage = currentSelectedStage.value;
+  if (!stage || stage.trackingMode !== StageTrackingMode.DEVICE) return [];
   return props.devices.filter((d) => {
     if (d.customerId !== props.recordForm.customerId) return false;
-    // 至少有一个选中类型未完成
-    return types.some((t: string) => !isDeviceTypeDone(d, t));
+    return !isDeviceStageComplete(d, stage.id);
   });
 });
 
-// 选中设备的剩余可填数量：取选中类型中最小的剩余值
+// 选中设备的剩余可填数量
 const maxQuantityForRecord = computed(() => {
   if (!props.recordForm.deviceId) return Infinity;
   const device = props.devices.find((d) => d.id === props.recordForm.deviceId);
   if (!device) return Infinity;
-  const types = props.recordForm.recordTypes || (props.recordForm.recordType ? [props.recordForm.recordType] : []);
-  if (types.length === 0) return Infinity;
-  const remainings = types.map((t: string) => {
-    if (t === RecordType.DELIVERY) return device.expectedQuantity - device.deliveryQuantity;
-    if (t === RecordType.INSTALL) return device.deliveryQuantity - device.installQuantity;
-    if (t === RecordType.DEBUG) return device.installQuantity - device.debugQuantity;
-    return Infinity;
-  });
-  return Math.max(0, Math.min(...remainings));
+  const stage = currentSelectedStage.value;
+  if (!stage) return Infinity;
+  return Math.max(0, device.expectedQuantity - stageProgress(device, stage.id));
 });
 
-// 按数量计算项目：送/装/调累计数量（来自所有设备求和）
-const stageTotals = computed(() => {
-  const totals = { delivery: 0, install: 0, debug: 0 };
-  for (const d of props.devices) {
-    totals.delivery += d.deliveryQuantity || 0;
-    totals.install += d.installQuantity || 0;
-    totals.debug += d.debugQuantity || 0;
-  }
-  return totals;
+// 项目的所有阶段（按 sortOrder 排序）
+const quantityStages = computed<ProjectStage[]>(() => {
+  if (props.selectedProject?.calculationType !== CalculationType.QUANTITY) return [];
+  return (props.selectedProject?.stages || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
 });
+
+// 设备清单表格使用的 DEVICE 模式阶段
+const deviceStages = computed<ProjectStage[]>(() => {
+  return quantityStages.value.filter(s => s.trackingMode === StageTrackingMode.DEVICE);
+});
+
+// 阶段记录弹窗的剩余可填数量
+const stageRemaining = computed(() => {
+  if (!props.editingDevice || !props.currentStage) return 0;
+  return Math.max(0, props.editingDevice.expectedQuantity - stageProgress(props.editingDevice, props.currentStage.id));
+});
+
+// 项目头部阶段汇总（送X/装Y/调Z 形式）
+const projectStageSummary = computed(() => {
+  const stages = quantityStages.value;
+  if (stages.length === 0) return '';
+  // 按阶段累计：仅 DEVICE 模式阶段按设备进度求和
+  return stages.map(s => {
+    const total = props.devices.reduce((sum, d) => sum + stageProgress(d, s.id), 0);
+    return `${s.name}${total}`;
+  }).join('/');
+});
+
+// 记录显示的阶段名称
+const getRecordStageName = (record: WorkRecord): string => {
+  if (record.stage?.name) return record.stage.name;
+  if (record.stageId) {
+    const s = (props.selectedProject?.stages || []).find(sg => sg.id === record.stageId);
+    if (s) return s.name;
+  }
+  return '';
+};
+
+// 统计卡：某阶段我的记录数
+const myStatsStageCount = (stageId: string): number => {
+  const stats = props.myStats as any;
+  if (!stats) return 0;
+  // 优先使用 stageCounts 映射
+  if (stats.stageCounts && typeof stats.stageCounts === 'object') {
+    return stats.stageCounts[stageId] || 0;
+  }
+  return 0;
+};
+
+// 阶段配置操作
+const addStage = () => emit('addStage');
+const removeStage = (index: number) => emit('removeStage', index);
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-const getRecordTypeTag = (type?: RecordType): '' | 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
-  const map: Record<string, '' | 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
-    DELIVERY: 'primary',
-    INSTALL: 'success',
-    DEBUG: 'warning',
-    CONSTRUCTION: 'info',
-  };
-  return map[type || ''] || '';
-};
-
 const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
-  return row.isCompleted ? 'completed-row' : '';
+  return deviceCompleted(row) ? 'completed-row' : '';
 };
 </script>
 

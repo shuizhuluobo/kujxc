@@ -165,7 +165,7 @@
             v-if="sortedDevices.length > 0"
             :data="sortedDevices"
             size="small"
-            :row-class-name="({ row }) => row.isCompleted ? 'row-completed' : ''"
+            :row-class-name="({ row }) => deviceCompleted(row) ? 'row-completed' : ''"
             style="width: 100%"
             :cell-style="{ padding: '2px 0' }"
             :header-cell-style="{ padding: '2px 0' }"
@@ -175,23 +175,23 @@
             </el-table-column>
             <el-table-column label="状态" width="60" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.isCompleted ? 'success' : 'warning'" size="small">{{ row.isCompleted ? '完成' : '进行' }}</el-tag>
+                <el-tag :type="deviceCompleted(row) ? 'success' : 'warning'" size="small">{{ deviceCompleted(row) ? '完成' : '进行' }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="deviceName" label="设备" min-width="60" />
-            <el-table-column label="送货" width="55" align="center">
-              <template #default="{ row }">{{ row.deliveryQuantity }}/{{ row.expectedQuantity }}</template>
-            </el-table-column>
-            <el-table-column label="安装" width="55" align="center">
-              <template #default="{ row }">{{ row.installQuantity }}/{{ row.deliveryQuantity }}</template>
-            </el-table-column>
-            <el-table-column label="调试" width="55" align="center">
-              <template #default="{ row }">{{ row.debugQuantity }}/{{ row.installQuantity }}</template>
+            <el-table-column
+              v-for="stage in deviceStages"
+              :key="stage.id"
+              :label="stage.name"
+              width="60"
+              align="center"
+            >
+              <template #default="{ row }">{{ stageProgress(row, stage.id) }}/{{ row.expectedQuantity }}</template>
             </el-table-column>
             <el-table-column label="操作" width="80" align="center" v-if="canManageDevice">
               <template #default="{ row }">
                 <el-button size="small" link type="primary" @click="openEditDeviceDrawer(row)">编辑</el-button>
-                <el-button size="small" link type="danger" :disabled="row.isCompleted" @click="handleDeleteDevice(row)">删除</el-button>
+                <el-button size="small" link type="danger" :disabled="deviceCompleted(row)" @click="handleDeleteDevice(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -216,8 +216,8 @@
           >
             <div class="record-summary">
               <span class="record-date">{{ formatDate(record.date) }}</span>
-              <el-tag size="small" :type="getRecordTypeTag(record.recordType)">
-                {{ RECORD_TYPE_LABELS[(record.recordType || '') as RecordType] || '-' }}
+              <el-tag v-if="getRecordStageName(record)" size="small" type="primary">
+                {{ getRecordStageName(record) }}
               </el-tag>
               <span class="record-qty">
                 <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">{{ record.quantity || 0 }}台</template>
@@ -254,7 +254,7 @@
             <span class="my-stats-mini" v-if="myStats">
             我的：
             <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-              送{{ myStats.deliveryCount }} 装{{ myStats.installCount }} 调{{ myStats.debugCount }}
+              <span v-for="stage in quantityStages" :key="stage.id">{{ stage.name }}{{ myStatsStageCount(stage.id) }} </span>
             </template>
             <template v-else>{{ formatWorkHours(myStats.totalWorkDays * HOURS_PER_DAY) }}</template>
             <span v-if="canViewAmount">¥{{ (myStats.totalAmount || 0).toFixed(0) }}</span>
@@ -266,9 +266,7 @@
             <span class="stat-name">{{ stat.userName }}</span>
             <div class="stat-detail">
               <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
-                <span>送{{ stat.deliveryCount || 0 }}</span>
-                <span>装{{ stat.installCount || 0 }}</span>
-                <span>调{{ stat.debugCount || 0 }}</span>
+                <span v-for="stage in quantityStages" :key="stage.id">{{ stage.name }}{{ statStageCount(stat, stage.id) }}</span>
               </template>
               <template v-else>
                 <span>{{ formatWorkHours((stat.totalWorkDays || 0) * HOURS_PER_DAY) }}</span>
@@ -322,6 +320,17 @@
             <el-option v-for="u in users.filter(u => u?.id)" :key="u.id" :label="u.name + (u.region?.name ? `（${u.region.name}）` : '')" :value="u.id" />
           </el-select>
         </el-form-item>
+        <el-form-item v-if="projectForm.calculationType === CalculationType.QUANTITY" label="阶段配置">
+          <div class="stages-config">
+            <div v-for="(stage, idx) in projectForm.stages" :key="idx" class="stage-row">
+              <el-input v-model="stage.name" placeholder="阶段名称" size="small" style="flex: 1" />
+              <el-input v-model="stage.code" placeholder="编码" size="small" style="width: 80px" />
+              <el-input-number v-model="stage.unitPrice" :min="0" :precision="2" size="small" style="width: 110px" />
+              <el-button v-if="projectForm.stages.length > 1" size="small" link type="danger" @click="removeStage(idx)">删除</el-button>
+            </div>
+            <el-button size="small" type="primary" link @click="addStage">+ 添加阶段</el-button>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showProjectDrawer = false">取消</el-button>
@@ -344,13 +353,13 @@
         <el-form-item label="工作类型" required>
           <div class="type-chips">
             <div
-              v-for="opt in recordTypeOptions(selectedProject)"
-              :key="opt.value"
+              v-for="stage in stageOptions"
+              :key="stage.id"
               class="type-chip"
-              :class="{ active: recordForm.recordType === opt.value, disabled: opt.disabled }"
-              @click="!opt.disabled && (recordForm.recordType = opt.value)"
+              :class="{ active: recordForm.stageId === stage.id, disabled: !isStageAvailable(stage.id) }"
+              @click="isStageAvailable(stage.id) && (recordForm.stageId = stage.id)"
             >
-              {{ opt.label }}
+              {{ stage.name }}
             </div>
           </div>
         </el-form-item>
@@ -358,11 +367,11 @@
           <el-form-item label="客户" required>
             <el-select
               v-model="recordForm.customerId"
-              :placeholder="recordForm.recordType ? '选择客户' : '先选择工作类型'"
+              :placeholder="recordForm.stageId ? '选择客户' : '先选择工作类型'"
               clearable
               filterable
               style="width: 100%"
-              :disabled="!recordForm.recordType"
+              :disabled="!recordForm.stageId"
               @change="recordForm.deviceId = ''"
             >
               <el-option
@@ -561,8 +570,6 @@ const authStore = useAuthStore();
 import {
   CalculationType,
   CALCULATION_TYPE_LABELS,
-  RecordType,
-  RECORD_TYPE_LABELS,
   WorkUnit,
   HOURS_PER_DAY,
   formatWorkHours,
@@ -595,6 +602,8 @@ const {
   deleteProject,
   resetProjectForm,
   fillProjectFormForEdit,
+  addStage,
+  removeStage,
   loadUsersAndCustomers,
 } = useProjects();
 
@@ -610,7 +619,6 @@ const {
   loadMyStats,
   prepareNewRecord,
   fillRecordFormForEdit,
-  recordTypeOptions,
   saveRecord,
   deleteRecord,
 } = useWorkRecords();
@@ -620,6 +628,9 @@ const {
   deviceForm,
   mobileStageForm,
   editingDevice,
+  deviceStages,
+  getStageProgress,
+  isDeviceCompleted,
   loadDevices,
   prepareMobileStageModal,
   createDevice,
@@ -702,58 +713,76 @@ const projectTypeOptions = computed(() => {
 const deviceSummaryText = computed(() => {
   const totalQty = devices.value.reduce((s, d) => s + (d.expectedQuantity || 0), 0);
   if (totalQty === 0) return '';
-  const doneQty = devices.value.filter(d => d.isCompleted).reduce((s, d) => s + (d.expectedQuantity || 0), 0);
+  const doneQty = devices.value.filter(d => isDeviceCompleted(d)).reduce((s, d) => s + (d.expectedQuantity || 0), 0);
   return `${totalQty}台 · ${doneQty}台完成 · ${totalQty - doneQty}台进行中`;
 });
+
+// ============ 阶段相关本地封装 ============
+const stageProgress = (device: CustomerDevice, stageId: string) => getStageProgress(device, stageId);
+const deviceCompleted = (device: CustomerDevice) => isDeviceCompleted(device);
+
+const quantityStages = computed(() => selectedProject.value?.stages || []);
+const stageOptions = computed(() => {
+  const list = selectedProject.value?.stages || [];
+  return list;
+});
+
+const myStatsStageCount = (stageId: string) => myStats.value?.stageStats?.[stageId]?.count ?? 0;
+const statStageCount = (stat: any, stageId: string) => stat?.stageStats?.[stageId]?.count ?? 0;
+const getRecordStageName = (record: WorkRecord) => {
+  if (!record.stageId) return '';
+  const stage = (selectedProject.value?.stages || []).find(s => s.id === record.stageId);
+  return stage?.name || '';
+};
 
 // ============ 设备清单排序：完成的沉底 ============
 const sortedDevices = computed(() => {
   return [...devices.value].sort((a, b) => {
-    if (a.isCompleted === b.isCompleted) return 0;
-    return a.isCompleted ? 1 : -1;
+    const aDone = isDeviceCompleted(a);
+    const bDone = isDeviceCompleted(b);
+    if (aDone === bDone) return 0;
+    return aDone ? 1 : -1;
   });
 });
 
 // ============ 关联设备过滤 ============
-// 按选中工作类型判断设备是否已完成该类型
-const isDeviceTypeDone = (d: CustomerDevice, type: string) => {
-  if (type === RecordType.DELIVERY) return d.deliveryQuantity >= d.expectedQuantity;
-  if (type === RecordType.INSTALL) return d.installQuantity >= d.expectedQuantity;
-  if (type === RecordType.DEBUG) return d.debugQuantity >= d.expectedQuantity;
-  return false;
+// 按选中阶段判断设备是否已完成该阶段
+const isDeviceStageDone = (d: CustomerDevice, stageId: string) => {
+  return stageProgress(d, stageId) >= d.expectedQuantity;
 };
 
-// 过滤客户：至少有一个设备在选中类型上未完成
+// 阶段是否可用（至少有一个设备未完成该阶段）
+const isStageAvailable = (stageId: string) => {
+  return devices.value.some(d => !isDeviceStageDone(d, stageId));
+};
+
+// 过滤客户：至少有一个设备在选中阶段上未完成
 const filteredCustomersForRecord = computed(() => {
-  if (!recordForm.recordType) return [];
-  const type = recordForm.recordType;
+  if (!recordForm.stageId) return [];
+  const stageId = recordForm.stageId;
   const validCustomerIds = new Set<string>();
   devices.value.forEach((d) => {
-    if (!isDeviceTypeDone(d, type)) validCustomerIds.add(d.customerId);
+    if (!isDeviceStageDone(d, stageId)) validCustomerIds.add(d.customerId);
   });
   return customers.value.filter((c) => c?.id && validCustomerIds.has(c.id));
 });
 
-// 过滤设备：按客户 + 选中类型未完成
+// 过滤设备：按客户 + 选中阶段未完成
 const filteredDevicesForRecord = computed(() => {
   if (!recordForm.customerId) return [];
-  const type = recordForm.recordType;
-  if (!type) return [];
+  const stageId = recordForm.stageId;
+  if (!stageId) return [];
   return devices.value.filter((d) =>
-    d.customerId === recordForm.customerId && !isDeviceTypeDone(d, type),
+    d.customerId === recordForm.customerId && !isDeviceStageDone(d, stageId),
   );
 });
 
 // 选中设备的剩余可填数量
 const maxQuantityForRecord = computed(() => {
-  if (!recordForm.deviceId || !recordForm.recordType) return Infinity;
+  if (!recordForm.deviceId || !recordForm.stageId) return Infinity;
   const device = devices.value.find((d) => d.id === recordForm.deviceId);
   if (!device) return Infinity;
-  const t = recordForm.recordType;
-  if (t === RecordType.DELIVERY) return device.expectedQuantity - device.deliveryQuantity;
-  if (t === RecordType.INSTALL) return device.deliveryQuantity - device.installQuantity;
-  if (t === RecordType.DEBUG) return device.installQuantity - device.debugQuantity;
-  return Infinity;
+  return Math.max(0, device.expectedQuantity - stageProgress(device, recordForm.stageId));
 });
 
 // ============ 费用设置分组 ============
@@ -803,16 +832,6 @@ const getCalcTagType = (type: CalculationType) => {
     [CalculationType.WAREHOUSE]: 'warning',
   };
   return map[type] || '';
-};
-
-const getRecordTypeTag = (type?: RecordType): '' | 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
-  const map: Record<string, '' | 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
-    DELIVERY: 'primary',
-    INSTALL: 'success',
-    DEBUG: 'warning',
-    CONSTRUCTION: 'info',
-  };
-  return map[type || ''] || '';
 };
 
 const formatDate = (dateStr: string) => {
@@ -952,14 +971,14 @@ const handleDeleteDevice = async (device: CustomerDevice) => {
   await deleteDevice(selectedProject.value.id, device);
 };
 
-const openStageDrawer = (device: CustomerDevice, stage: 'delivery' | 'install' | 'debug') => {
-  prepareMobileStageModal(device, stage);
+const openStageDrawer = (device: CustomerDevice, stageId: string) => {
+  prepareMobileStageModal(device, stageId);
   stageDrawerVisible.value = true;
 };
 
 const stageDrawerTitle = computed(() => {
-  const stageLabel = { delivery: '送货', install: '安装', debug: '调试' }[mobileStageForm.stage];
-  return `记录${stageLabel}`;
+  const stage = deviceStages.value.find(s => s.id === mobileStageForm.stageId);
+  return `记录${stage?.name || ''}`;
 });
 
 const handleSubmitStage = async () => {

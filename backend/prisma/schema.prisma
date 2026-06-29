@@ -233,24 +233,45 @@ model FeeSetting {
 }
 
 model PerformanceProject {
-  id                String              @id @default(uuid())
-  projectName       String
-  calculationType   CalculationType
-  totalQuantity     Int?
-  remark            String?
-  createdAt         DateTime            @default(now())
-  creatorId         String
-  deliveryUnitPrice Float               @default(0)
-  installUnitPrice  Float               @default(0)
-  debugUnitPrice    Float               @default(0)
-  dailyPrice        Float               @default(0)
-  deviceList        CustomerDevice[]
-  creator           User                @relation(fields: [creatorId], references: [id])
-  records           PerformanceRecord[]
-  members           ProjectMember[]
-  feeRecords        FeeRecord[]
+  id              String              @id @default(uuid())
+  projectName     String
+  calculationType CalculationType
+  totalQuantity   Int?
+  remark          String?
+  createdAt       DateTime            @default(now())
+  creatorId       String
+  dailyPrice      Float               @default(0)
+  deviceList      CustomerDevice[]
+  creator         User                @relation(fields: [creatorId], references: [id])
+  records         PerformanceRecord[]
+  members         ProjectMember[]
+  stages          ProjectStage[]
+  feeRecords      FeeRecord[]
 
   @@index([creatorId])
+}
+
+enum StageTrackingMode {
+  PROJECT
+  DEVICE
+}
+
+model ProjectStage {
+  id           String             @id @default(uuid())
+  projectId    String
+  name         String
+  code         String
+  trackingMode StageTrackingMode  @default(DEVICE)
+  unitPrice    Float              @default(0)
+  sortOrder    Int                @default(0)
+  createdAt    DateTime           @default(now())
+  project      PerformanceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records      PerformanceRecord[]
+  deviceProgress DeviceStageProgress[]
+
+  @@unique([projectId, code])
+  @@unique([projectId, name])
+  @@index([projectId])
 }
 
 model ProjectMember {
@@ -271,6 +292,7 @@ model PerformanceRecord {
   id              String             @id @default(uuid())
   projectId       String
   recordType      RecordType?
+  stageId         String?
   quantity        Int?
   customerId      String?
   workHours       Float?
@@ -286,42 +308,46 @@ model PerformanceRecord {
   customer        Customer?          @relation(fields: [customerId], references: [id])
   device          CustomerDevice?    @relation(fields: [deviceId], references: [id])
   project         PerformanceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage           ProjectStage?      @relation(fields: [stageId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([creatorId])
+  @@index([stageId])
 }
 
 model CustomerDevice {
-  id                    String              @id @default(uuid())
-  projectId             String
-  customerId            String
-  deviceName            String
-  expectedQuantity      Int                 @default(0)
-  deliveryQuantity      Int                 @default(0)
-  deliveryBy            String?
-  deliveryAt            DateTime?
-  deliveryCollaborators String[]
-  installQuantity       Int                 @default(0)
-  installBy             String?
-  installAt             DateTime?
-  installCollaborators  String[]
-  debugQuantity         Int                 @default(0)
-  debugBy               String?
-  debugAt               DateTime?
-  debugCollaborators    String[]
-  isCompleted           Boolean             @default(false)
-  completedAt           DateTime?
-  remark                String?
-  createdAt             DateTime            @default(now())
-  creatorId             String
-  creator               User                @relation(fields: [creatorId], references: [id])
-  customer              Customer            @relation(fields: [customerId], references: [id])
-  project               PerformanceProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  records               PerformanceRecord[]
+  id               String                @id @default(uuid())
+  projectId        String
+  customerId       String
+  deviceName       String
+  expectedQuantity Int                   @default(0)
+  remark           String?
+  createdAt        DateTime              @default(now())
+  creatorId        String
+  creator          User                  @relation(fields: [creatorId], references: [id])
+  customer         Customer              @relation(fields: [customerId], references: [id])
+  project          PerformanceProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records          PerformanceRecord[]
+  stageProgress    DeviceStageProgress[]
 
   @@index([projectId])
   @@index([customerId])
   @@index([creatorId])
+}
+
+model DeviceStageProgress {
+  id        String         @id @default(uuid())
+  deviceId  String
+  stageId   String
+  quantity  Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  device    CustomerDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  stage     ProjectStage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, stageId])
+  @@index([deviceId])
+  @@index([stageId])
 }
 
 model FeeRecord {

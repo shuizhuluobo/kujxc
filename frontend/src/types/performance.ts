@@ -10,6 +10,7 @@ export const CALCULATION_TYPE_LABELS: Record<CalculationType, string> = {
     [CalculationType.WAREHOUSE]: '公物仓',
 };
 
+// 历史记录类型（仅用于展示旧记录；新记录统一使用 stageId 关联阶段）
 export enum RecordType {
     DELIVERY = 'DELIVERY',
     INSTALL = 'INSTALL',
@@ -24,15 +25,15 @@ export const RECORD_TYPE_LABELS: Record<RecordType, string> = {
     [RecordType.CONSTRUCTION]: '施工',
 };
 
-export const QUANTITY_RECORD_TYPES: RecordType[] = [
-    RecordType.DELIVERY,
-    RecordType.INSTALL,
-    RecordType.DEBUG,
-];
+export enum StageTrackingMode {
+    PROJECT = 'PROJECT',
+    DEVICE = 'DEVICE',
+}
 
-export const DAILY_RECORD_TYPES: RecordType[] = [
-    RecordType.CONSTRUCTION,
-];
+export const STAGE_TRACKING_MODE_LABELS: Record<StageTrackingMode, string> = {
+    [StageTrackingMode.PROJECT]: '按项目总量',
+    [StageTrackingMode.DEVICE]: '按设备数量',
+};
 
 export enum WorkUnit {
     DAY = 'DAY',
@@ -46,6 +47,49 @@ export const WORK_UNIT_LABELS: Record<WorkUnit, string> = {
 
 export const HOURS_PER_DAY = 8;
 
+// 阶段输入（创建/更新项目时配置）
+export interface StageInput {
+    id?: string;
+    name: string;
+    code: string;
+    trackingMode: StageTrackingMode;
+    unitPrice: number;
+    sortOrder?: number;
+}
+
+// 默认三阶段模板（新建按量项目时预填）
+export const DEFAULT_STAGES: StageInput[] = [
+    { name: '送货', code: 'delivery', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 0 },
+    { name: '安装', code: 'install', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 1 },
+    { name: '调试', code: 'debug', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 2 },
+];
+
+export interface ProjectStage {
+    id: string;
+    projectId: string;
+    name: string;
+    code: string;
+    trackingMode: StageTrackingMode;
+    unitPrice: number;
+    sortOrder: number;
+    createdAt: string;
+}
+
+export interface DeviceStageProgress {
+    id: string;
+    deviceId: string;
+    stageId: string;
+    quantity: number;
+    createdAt: string;
+    updatedAt: string;
+    stage?: ProjectStage;
+}
+
+export interface StageStat {
+    count: number;
+    amount: number;
+}
+
 export interface Project {
     id: string;
     projectName: string;
@@ -55,10 +99,8 @@ export interface Project {
     createdAt: string;
     creatorId: string;
     creator?: { id: string; name: string };
-    deliveryUnitPrice: number;
-    installUnitPrice: number;
-    debugUnitPrice: number;
     dailyPrice: number;
+    stages?: ProjectStage[];
     records?: WorkRecord[];
     members?: ProjectMember[];
 }
@@ -76,6 +118,8 @@ export interface WorkRecord {
     id: string;
     projectId: string;
     recordType?: RecordType;
+    stageId?: string;
+    stage?: { id: string; name: string; code: string; trackingMode: StageTrackingMode; unitPrice: number };
     quantity?: number;
     customerId?: string;
     customer?: { id: string; name: string };
@@ -99,40 +143,17 @@ export interface CustomerDevice {
     customer?: { id: string; name: string };
     deviceName: string;
     expectedQuantity: number;
-    
-    deliveryQuantity: number;
-    deliveryBy?: string;
-    deliveryAt?: string;
-    deliveryCollaborators: string[];
-    
-    installQuantity: number;
-    installBy?: string;
-    installAt?: string;
-    installCollaborators: string[];
-    
-    debugQuantity: number;
-    debugBy?: string;
-    debugAt?: string;
-    debugCollaborators: string[];
-    
-    isCompleted: boolean;
-    completedAt?: string;
-    
     remark?: string;
     createdAt: string;
     creatorId: string;
     creator?: { id: string; name: string };
+    stageProgress?: DeviceStageProgress[];
 }
 
 export interface PerformanceResult {
     userId: string;
     userName: string;
-    deliveryCount: number;
-    deliveryAmount: number;
-    installCount: number;
-    installAmount: number;
-    debugCount: number;
-    debugAmount: number;
+    stageStats: Record<string, StageStat>;
     totalWorkDays: number;
     workDaysAmount: number;
     totalAmount: number;
@@ -142,21 +163,14 @@ export interface GlobalPerformanceResult {
     userId: string;
     userName: string;
     projectCount: number;
-    deliveryCount: number;
-    deliveryAmount: number;
-    installCount: number;
-    installAmount: number;
-    debugCount: number;
-    debugAmount: number;
+    totalQuantity: number;
     totalWorkDays: number;
     workDaysAmount: number;
     totalAmount: number;
 }
 
 export interface MyPerformanceStats {
-    deliveryCount: number;
-    installCount: number;
-    debugCount: number;
+    stageStats: Record<string, StageStat>;
     totalWorkDays: number;
     totalAmount: number;
 }
@@ -166,26 +180,22 @@ export interface CreateProjectDto {
     calculationType: CalculationType;
     totalQuantity?: number;
     remark?: string;
-    deliveryUnitPrice?: number;
-    installUnitPrice?: number;
-    debugUnitPrice?: number;
-    dailyPrice?: number;
+    dailyPrice: number;
     memberIds?: string[];
+    stages?: StageInput[];
 }
 
 export interface UpdateProjectDto {
     projectName?: string;
     totalQuantity?: number;
     remark?: string;
-    deliveryUnitPrice?: number;
-    installUnitPrice?: number;
-    debugUnitPrice?: number;
     dailyPrice?: number;
     memberIds?: string[];
+    stages?: StageInput[];
 }
 
 export interface CreateWorkRecordDto {
-    recordType?: RecordType;
+    stageId?: string;
     quantity?: number;
     customerId?: string;
     deviceId?: string;
@@ -198,7 +208,7 @@ export interface CreateWorkRecordDto {
 }
 
 export interface UpdateWorkRecordDto {
-    recordType?: RecordType;
+    stageId?: string;
     quantity?: number;
     customerId?: string;
     deviceId?: string;

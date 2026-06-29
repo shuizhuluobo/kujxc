@@ -45,39 +45,18 @@
       <el-table-column label="项目数" width="80">
         <template #default="{ row }">{{ row.projectCount }}</template>
       </el-table-column>
-      <el-table-column label="送货" align="center">
-        <el-table-column label="数量" width="80" align="right">
-          <template #default="{ row }">{{ row.deliveryCount }}</template>
-        </el-table-column>
-        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
-          <template #default="{ row }">{{ row.deliveryAmount.toFixed(2) }}</template>
-        </el-table-column>
-      </el-table-column>
-      <el-table-column label="安装" align="center">
-        <el-table-column label="数量" width="80" align="right">
-          <template #default="{ row }">{{ row.installCount }}</template>
-        </el-table-column>
-        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
-          <template #default="{ row }">{{ row.installAmount.toFixed(2) }}</template>
-        </el-table-column>
-      </el-table-column>
-      <el-table-column label="调试" align="center">
-        <el-table-column label="数量" width="80" align="right">
-          <template #default="{ row }">{{ row.debugCount }}</template>
-        </el-table-column>
-        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
-          <template #default="{ row }">{{ row.debugAmount.toFixed(2) }}</template>
-        </el-table-column>
+      <el-table-column label="按量总量" prop="totalQuantity" width="100" align="right">
+        <template #default="{ row }">{{ row.totalQuantity }} 台</template>
       </el-table-column>
       <el-table-column label="按工日" align="center">
-        <el-table-column label="工日数" width="80" align="right">
+        <el-table-column label="工日数" prop="totalWorkDays" width="80" align="right">
           <template #default="{ row }">{{ row.totalWorkDays }}</template>
         </el-table-column>
-        <el-table-column v-if="canViewAmount" label="金额" width="100" align="right">
+        <el-table-column v-if="canViewAmount" label="金额" prop="workDaysAmount" width="100" align="right">
           <template #default="{ row }">{{ row.workDaysAmount.toFixed(2) }}</template>
         </el-table-column>
       </el-table-column>
-      <el-table-column v-if="canViewAmount" label="合计金额" width="120" align="right">
+      <el-table-column v-if="canViewAmount" label="合计金额" prop="totalAmount" width="120" align="right">
         <template #default="{ row }">
           <strong>{{ row.totalAmount.toFixed(2) }}</strong>
         </template>
@@ -146,24 +125,20 @@ const loadUsers = async () => {
 
 const getSummary = ({ columns, data }: any) => {
   const sums: string[] = [];
+  const numericFields = ['totalQuantity', 'totalWorkDays', 'workDaysAmount', 'totalAmount'];
   columns.forEach((column: any, index: number) => {
     if (index === 0) {
       sums[index] = '合计';
       return;
     }
     if (index === 1 || index === 2) {
-      sums[index] = '';
+      sums[index] = index === 2 ? String(data.length) : '';
       return;
     }
-    const values = data.map((item: any) => Number(column.property ? item[column.property] : 0));
-    if (!values.every((value: number) => Number.isNaN(value))) {
-      sums[index] = values.reduce((prev: number, curr: number) => {
-        const value = Number(curr);
-        if (!Number.isNaN(value)) {
-          return prev + value;
-        }
-        return prev;
-      }, 0).toFixed(2);
+    const field = column.property;
+    if (field && numericFields.includes(field)) {
+      const total = data.reduce((sum: number, item: any) => sum + (Number(item[field]) || 0), 0);
+      sums[index] = total.toFixed(2);
     } else {
       sums[index] = '';
     }
