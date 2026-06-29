@@ -1,15 +1,38 @@
 import { ref, reactive, computed } from 'vue';
+import type { Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { performanceApi, customersApi } from '@/api';
-import type { Project, Customer, CustomerDevice } from '@/types';
+import type { Project, Customer, CustomerDevice, ProjectStage } from '@/types';
+import { StageTrackingMode } from '@/types';
 
 /**
  * 设备管理 composable
  * 统一桌面端与移动端共享的设备清单 CRUD、阶段记录、Excel 导入逻辑
+ * 阶段记录基于项目动态配置的 ProjectStage（仅 DEVICE 跟踪模式阶段在设备清单记录）
  */
-export function useDevices() {
+export function useDevices(project?: Ref<Project | null>) {
   const devices = ref<CustomerDevice[]>([]);
   const loading = ref(false);
+
+  // ============ 项目阶段（仅 DEVICE 模式阶段在设备清单记录） ============
+  const stages = computed<ProjectStage[]>(() => project?.value?.stages || []);
+  const deviceStages = computed(() => stages.value.filter(s => s.trackingMode === StageTrackingMode.DEVICE));
+
+  // 设备在某阶段的已记录数量
+  const getStageProgress = (device: CustomerDevice, stageId: string): number => {
+    return device.stageProgress?.find(p => p.stageId === stageId)?.quantity || 0;
+  };
+
+  // 设备在某阶段是否达标
+  const isDeviceStageComplete = (device: CustomerDevice, stageId: string): boolean => {
+    return getStageProgress(device, stageId) >= device.expectedQuantity;
+  };
+
+  // 设备是否全部 DEVICE 阶段达标（视为完成）
+  const isDeviceCompleted = (device: CustomerDevice): boolean => {
+    if (deviceStages.value.length === 0) return false;
+    return deviceStages.value.every(s => isDeviceStageComplete(device, s.id));
+  };
 
   // ============ 设备表单 ============
   const deviceForm = reactive({
@@ -39,11 +62,13 @@ export function useDevices() {
   };
 
   // ============ 阶段记录表单 ============
-  const currentStage = ref<'delivery' | 'install' | 'debug'>('delivery');
-  const stageModalTitle = computed(() => {
-    const stageMap = { delivery: '记录送货', install: '记录安装', debug: '记录调试' };
-    return stageMap[currentStage.value];
-  });
+  const currentStageId = ref('');
+  const currentStage = computed<ProjectStage | undefined>(() =>
+    stages.value.find(s => s.id === currentStageId.value),
+  );
+  const stageModalTitle = computed(() =>
+    currentStage.value ? `记录${currentStage.value.name}` : '记录阶段',
+  );
 
   // 桌面端表单
   const stageForm = reactive({
@@ -57,10 +82,10 @@ export function useDevices() {
   // 移动端表单（含额外字段）
   const mobileStageForm = reactive({
     deviceId: '',
-    stage: 'delivery' as 'delivery' | 'install' | 'debug',
-    quantity: 1,
+    stageId: '',
     maxQty: 0,
     unit: '台',
+    quantity: 1,
     date: new Date().toISOString().slice(0, 10),
     collaboratorIds: [] as string[],
     includeRecorder: true,
@@ -68,11 +93,10 @@ export function useDevices() {
   });
 
   const stageMaxQuantity = computed(() => {
-    if (!editingDevice.value) return 9999;
+    if (!editingDevice.value || !currentStageId.value) return 9999;
     const d = editingDevice.value;
-    if (currentStage.value === 'delivery') return d.expectedQuantity - d.deliveryQuantity;
-    if (currentStage.value === 'install') return d.deliveryQuantity - d.installQuantity;
-    return d.installQuantity - d.debugQuantity;
+    const done = getStageProgress(d, currentStageId.value);
+    return Math.max(0, d.expectedQuantity - done);
   });
 
   const resetStageForm = () => {
@@ -83,9 +107,9 @@ export function useDevices() {
     stageForm.remark = '';
   };
 
-  const prepareStageModal = (device: CustomerDevice, stage: 'delivery' | 'install' | 'debug') => {
+  const prepareStageModal = (device: CustomerDevice, stageId: string) => {
     editingDevice.value = device;
-    currentStage.value = stage;
+    currentStageId.value = stageId;
     stageForm.date = new Date().toISOString().slice(0, 10);
     stageForm.quantity = 1;
     stageForm.collaboratorIds = [];
@@ -93,14 +117,11 @@ export function useDevices() {
     stageForm.remark = '';
   };
 
-  const prepareMobileStageModal = (device: CustomerDevice, stage: 'delivery' | 'install' | 'debug') => {
-    const maxQty = stage === 'delivery'
-      ? device.expectedQuantity - device.deliveryQuantity
-      : stage === 'install'
-      ? device.deliveryQuantity - device.installQuantity
-      : device.installQuantity - device.debugQuantity;
+  const prepareMobileStageModal = (device: CustomerDevice, stageId: string) => {
+    const done = getStageProgress(device, stageId);
+    const maxQty = Math.max(0, device.expectedQuantity - done);
     mobileStageForm.deviceId = device.id;
-    mobileStageForm.stage = stage;
+    mobileStageForm.stageId = stageId;
     mobileStageForm.maxQty = maxQty;
     mobileStageForm.quantity = Math.min(1, maxQty) || 1;
     mobileStageForm.date = new Date().toISOString().slice(0, 10);
@@ -126,7 +147,7 @@ export function useDevices() {
   });
 
   const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
-    return row.isCompleted ? 'completed-row' : '';
+    return isDeviceCompleted(row) ? 'completed-row' : '';
   };
 
   // ============ 设备 CRUD ============
@@ -176,19 +197,15 @@ export function useDevices() {
     }
   };
 
-  // ============ 阶段记录提交 ============
+  // ============ 阶段记录提交（统一走 createRecord） ============
   const submitStage = async (projectId: string) => {
-    if (!editingDevice.value || !stageForm.date) return false;
+    if (!editingDevice.value || !stageForm.date || !currentStageId.value) return false;
     try {
-      const apiMethodMap = {
-        delivery: 'recordDelivery' as const,
-        install: 'recordInstall' as const,
-        debug: 'recordDebug' as const,
-      };
-      const methodName = apiMethodMap[currentStage.value];
-      await performanceApi[methodName](editingDevice.value.id, {
-        date: stageForm.date,
+      await performanceApi.createRecord(projectId, {
+        stageId: currentStageId.value,
+        deviceId: editingDevice.value.id,
         quantity: stageForm.quantity,
+        date: stageForm.date,
         collaboratorIds: stageForm.collaboratorIds,
         includeRecorder: stageForm.includeRecorder,
         remark: stageForm.remark || undefined,
@@ -203,7 +220,7 @@ export function useDevices() {
   };
 
   const submitMobileStage = async (projectId: string) => {
-    if (!mobileStageForm.deviceId) return false;
+    if (!mobileStageForm.deviceId || !mobileStageForm.stageId) return false;
     if (mobileStageForm.maxQty <= 0) {
       ElMessage.warning('该阶段已达上限');
       return false;
@@ -213,14 +230,11 @@ export function useDevices() {
       return false;
     }
     try {
-      const apiMethod = mobileStageForm.stage === 'delivery'
-        ? 'recordDelivery'
-        : mobileStageForm.stage === 'install'
-        ? 'recordInstall'
-        : 'recordDebug';
-      await performanceApi[apiMethod](mobileStageForm.deviceId, {
-        date: mobileStageForm.date,
+      await performanceApi.createRecord(projectId, {
+        stageId: mobileStageForm.stageId,
+        deviceId: mobileStageForm.deviceId,
         quantity: mobileStageForm.quantity,
+        date: mobileStageForm.date,
         collaboratorIds: mobileStageForm.collaboratorIds,
         includeRecorder: mobileStageForm.includeRecorder,
         remark: mobileStageForm.remark || undefined,
@@ -397,11 +411,19 @@ export function useDevices() {
     editingDevice,
     showCreateDeviceModal,
     showEditDeviceModal,
+    // 阶段相关
+    stages,
+    deviceStages,
     currentStage,
+    currentStageId,
     stageModalTitle,
     stageForm,
     mobileStageForm,
     stageMaxQuantity,
+    getStageProgress,
+    isDeviceStageComplete,
+    isDeviceCompleted,
+    // 数据
     sortedDevices,
     importData,
     importCustomerMap,

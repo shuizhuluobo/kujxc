@@ -63,6 +63,8 @@
           @delete-device="handleDeleteDevice"
           @record-stage="openStageModal"
           @submit-stage="handleSubmitStage"
+          @add-stage="addStage"
+          @remove-stage="removeStage"
           @import-device="openImportModal"
           @download-template="downloadTemplate"
           @file-change="(file: any) => handleFileChange(file, customers)"
@@ -184,6 +186,8 @@ const {
   deleteProject,
   resetProjectForm,
   fillProjectFormForEdit,
+  addStage,
+  removeStage,
   loadUsersAndCustomers,
   exportAllProjects,
   exportProject,
@@ -413,8 +417,8 @@ const handleDeleteDevice = async (device: CustomerDevice) => {
   await deleteDevice(selectedProject.value.id, device);
 };
 
-const openStageModal = (device: CustomerDevice, stage: 'delivery' | 'install' | 'debug') => {
-  prepareStageModal(device, stage);
+const openStageModal = (device: CustomerDevice, stageId: string) => {
+  prepareStageModal(device, stageId);
   showStageModal.value = true;
 };
 

@@ -251,12 +251,6 @@ export const performanceApi = {
     updateDevice: (deviceId: string, data: { customerId?: string; deviceName?: string; expectedQuantity?: number; remark?: string }) =>
         api.patch<CustomerDevice>(`/performance/devices/${deviceId}`, data),
     deleteDevice: (deviceId: string) => api.delete(`/performance/devices/${deviceId}`),
-    recordDelivery: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
-        api.post<CustomerDevice>(`/performance/devices/${deviceId}/delivery`, data),
-    recordInstall: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
-        api.post<CustomerDevice>(`/performance/devices/${deviceId}/install`, data),
-    recordDebug: (deviceId: string, data: { quantity: number; collaboratorIds: string[]; date: string; includeRecorder?: boolean; remark?: string }) =>
-        api.post<CustomerDevice>(`/performance/devices/${deviceId}/debug`, data),
 
     getStats: (projectId: string) => api.get<PerformanceResult[]>(`/performance/projects/${projectId}/stats`),
     getMyStats: (projectId: string) => api.get<MyPerformanceStats>(`/performance/projects/${projectId}/stats/me`),
