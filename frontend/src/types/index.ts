@@ -140,7 +140,7 @@ export interface CreateWorkOrderDto {
     serviceTypeId: string;
 }
 
-export interface UpdateWorkOrderDto extends Partial<CreateWorkOrderDto> { }
+export type UpdateWorkOrderDto = Partial<CreateWorkOrderDto>;
 
 export interface CompleteWorkOrderDto {
     collaboratorIds?: string[];
@@ -298,7 +298,7 @@ export interface CreateWikiArticleDto {
     attachments?: Omit<WikiAttachment, 'id' | 'articleId' | 'createdAt'>[];
 }
 
-export interface UpdateWikiArticleDto extends Partial<CreateWikiArticleDto> { }
+export type UpdateWikiArticleDto = Partial<CreateWikiArticleDto>;
 
 // ==================== 绩效统计类型 ====================
 export {

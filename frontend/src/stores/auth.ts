@@ -64,8 +64,6 @@ export const useAuthStore = defineStore('auth', () => {
             await getCsrfToken();
 
             return true;
-        } catch (error) {
-            throw error;
         } finally {
             loading.value = false;
         }
@@ -135,7 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 初始化时获取用户信息和CSRF token
     if (token.value) {
-        fetchProfile();
+        void fetchProfile();
         getCsrfToken().catch(console.error);
     }
 

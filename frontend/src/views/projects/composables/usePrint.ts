@@ -1,4 +1,12 @@
-import { type FeeRecord } from '@/api';
+import { type FeeRecord, type FeeItem } from '@/api';
+
+type PrintFeeItem = FeeItem & { name?: string; unit?: string };
+
+declare global {
+  interface Window {
+    __PRINT_PHONE__?: string;
+  }
+}
 
 /**
  * 转义 HTML 特殊字符，防止 XSS 攻击
@@ -148,7 +156,7 @@ export function recordToPrintData(record: FeeRecord): PrintData {
     clientName: '',
     contactPerson: '',
     contactPhone: '',
-    items: (record.items as any[]).map((item, idx) => ({
+    items: (record.items as PrintFeeItem[]).map((item, idx) => ({
       index: idx + 1,
       name: item.item || item.name || '',
       quantity: item.quantity || 0,
@@ -168,7 +176,7 @@ export function recordToPrintData(record: FeeRecord): PrintData {
  * 打印模板的通用配置
  */
 const PRINT_CONFIG = {
-  contactPhone: (window as any).__PRINT_PHONE__ || '0631-5213686',
+  contactPhone: window.__PRINT_PHONE__ || '0631-5213686',
   companyNotice: '请您仔细核对此单内容，并签字确认，谢谢您的合作！',
 };
 

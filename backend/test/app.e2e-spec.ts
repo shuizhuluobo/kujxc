@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import type { Server } from 'node:http';
 import { AppModule } from '../src/app.module';
 
 interface LoginResponse {
@@ -57,8 +58,21 @@ interface FeeResponse {
   subtotal: number;
 }
 
+interface IdResponse {
+  id: string;
+}
+
+interface UnreadCountResponse {
+  count: number;
+}
+
+interface CsrfTokenResponse {
+  csrfToken: string;
+}
+
 describe('API End-to-End Tests', () => {
   let app: INestApplication;
+  let httpServer: Server;
   let adminToken: string;
   let refreshToken: string;
   let engineerToken: string;
@@ -83,6 +97,7 @@ describe('API End-to-End Tests', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    httpServer = app.getHttpServer() as Server;
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({
@@ -99,7 +114,7 @@ describe('API End-to-End Tests', () => {
 
   describe('Authentication', () => {
     it('should login with admin credentials', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/auth/login')
         .send(adminCredentials)
         .expect(201);
@@ -113,7 +128,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should reject invalid credentials', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'wrongpassword' })
         .expect(401);
@@ -126,7 +141,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should refresh tokens', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/auth/refresh')
         .send({ refreshToken })
         .expect(201);
@@ -139,14 +154,14 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should reject invalid refresh token', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/api/auth/refresh')
         .send({ refreshToken: 'invalid-token' })
         .expect(401);
     });
 
     it('should login as engineer', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/auth/login')
         .send(engineerCredentials)
         .expect(201);
@@ -157,7 +172,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get current user profile', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/auth/profile')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -175,7 +190,7 @@ describe('API End-to-End Tests', () => {
         roleId: '', // Will be filled after getting roles
       };
 
-      const rolesResponse = await request(app.getHttpServer())
+      const rolesResponse = await request(httpServer)
         .get('/api/roles')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -184,7 +199,7 @@ describe('API End-to-End Tests', () => {
       const engineerRole = roles.find((r) => r.code === 'engineer');
       newUser.roleId = engineerRole?.id ?? '';
 
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/users')
         .set('Authorization', `Bearer ${adminToken}`)
         .send(newUser)
@@ -197,7 +212,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should reject duplicate username', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/api/users')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -210,7 +225,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should list users with pagination', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/users?page=1&pageSize=10')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -221,7 +236,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get user by id', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get(`/api/users/${testUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -231,7 +246,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should update user', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .patch(`/api/users/${testUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'Updated Name' })
@@ -242,7 +257,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should change password', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post(`/api/users/${testUserId}/change-password`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -253,14 +268,14 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should delete user', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .delete(`/api/users/${testUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
 
     it('should not allow engineer to access user management', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .get('/api/users')
         .set('Authorization', `Bearer ${engineerToken}`)
         .expect(403);
@@ -269,7 +284,7 @@ describe('API End-to-End Tests', () => {
 
   describe('Customers Management', () => {
     it('should create a new customer', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/customers')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -288,7 +303,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should list customers with keyword search', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/customers?keyword=Test')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -298,7 +313,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get customer by id', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get(`/api/customers/${testCustomerId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -308,17 +323,18 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should update customer', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .patch(`/api/customers/${testCustomerId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ contact: 'Jane Doe' })
         .expect(200);
 
-      expect(response.body.contact).toBe('Jane Doe');
+      const customerResponse = response.body as CustomerResponse;
+      expect(customerResponse.contact).toBe('Jane Doe');
     });
 
     it('should reject deleting customer with work orders', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .delete(`/api/customers/${testCustomerId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(409);
@@ -327,7 +343,7 @@ describe('API End-to-End Tests', () => {
 
   describe('Regions & Service Types', () => {
     it('should list regions', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/regions')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -336,7 +352,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should list service types', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/service-types')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -350,19 +366,21 @@ describe('API End-to-End Tests', () => {
     let serviceTypeId: string;
 
     beforeAll(async () => {
-      const regionsResponse = await request(app.getHttpServer())
+      const regionsResponse = await request(httpServer)
         .get('/api/regions')
         .set('Authorization', `Bearer ${adminToken}`);
-      regionId = regionsResponse.body[0]?.id;
+      const regions = regionsResponse.body as IdResponse[];
+      regionId = regions[0]?.id;
 
-      const serviceTypesResponse = await request(app.getHttpServer())
+      const serviceTypesResponse = await request(httpServer)
         .get('/api/service-types')
         .set('Authorization', `Bearer ${adminToken}`);
-      serviceTypeId = serviceTypesResponse.body[0]?.id;
+      const serviceTypes = serviceTypesResponse.body as IdResponse[];
+      serviceTypeId = serviceTypes[0]?.id;
     });
 
     it('should create a new work order', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/work-orders')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -380,7 +398,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should list work orders with filters', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/work-orders?page=1&pageSize=20')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -390,7 +408,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get work order by id', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get(`/api/work-orders/${testWorkOrderId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -400,7 +418,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should update work order', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .patch(`/api/work-orders/${testWorkOrderId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ detail: 'Updated detail' })
@@ -411,7 +429,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should receive a work order', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post(`/api/work-orders/${testWorkOrderId}/receive`)
         .set('Authorization', `Bearer ${engineerToken}`)
         .expect(201);
@@ -421,7 +439,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should complete a work order', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post(`/api/work-orders/${testWorkOrderId}/complete`)
         .set('Authorization', `Bearer ${engineerToken}`)
         .send({})
@@ -433,7 +451,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get pending work orders', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/work-orders/pending')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -442,7 +460,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get work order stats', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/work-orders/stats')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -453,7 +471,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should delete work order', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .delete(`/api/work-orders/${testWorkOrderId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -464,17 +482,18 @@ describe('API End-to-End Tests', () => {
     let categoryId: string;
 
     it('should list wiki categories', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/wiki/categories')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-      categoryId = response.body[0]?.id;
+      const categories = response.body as IdResponse[];
+      categoryId = categories[0]?.id;
     });
 
     it('should create a wiki article', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/wiki/articles')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -493,7 +512,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should list wiki articles', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/wiki/articles?page=1&pageSize=20')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -503,7 +522,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get wiki article by id', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get(`/api/wiki/articles/${testWikiArticleId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -513,7 +532,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should update wiki article', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .patch(`/api/wiki/articles/${testWikiArticleId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ content: 'Updated content' })
@@ -524,7 +543,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should toggle like on article', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post(`/api/wiki/articles/${testWikiArticleId}/like`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(201);
@@ -534,7 +553,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should delete wiki article', async () => {
-      await request(app.getHttpServer())
+      await request(httpServer)
         .delete(`/api/wiki/articles/${testWikiArticleId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -543,7 +562,7 @@ describe('API End-to-End Tests', () => {
 
   describe('Notifications', () => {
     it('should get user notifications', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/notifications')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -552,18 +571,19 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should get unread notification count', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/notifications/unread-count')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(typeof response.body.count).toBe('number');
+      const unreadResponse = response.body as UnreadCountResponse;
+      expect(typeof unreadResponse.count).toBe('number');
     });
   });
 
   describe('Fee Calculator', () => {
     it('should get fee settings', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .get('/api/fee/settings')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
@@ -572,7 +592,7 @@ describe('API End-to-End Tests', () => {
     });
 
     it('should calculate fee', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/api/fee/calculate')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -595,17 +615,18 @@ describe('API End-to-End Tests', () => {
 
   describe('Security', () => {
     it('should reject unauthenticated requests', async () => {
-      await request(app.getHttpServer()).get('/api/users').expect(401);
+      await request(httpServer).get('/api/users').expect(401);
     });
 
     it('should validate CSRF token', async () => {
-      const csrfResponse = await request(app.getHttpServer())
+      const csrfResponse = await request(httpServer)
         .get('/api/security/csrf-token')
         .expect(200);
 
-      const csrfToken = csrfResponse.body.csrfToken;
+      const csrfBody = csrfResponse.body as CsrfTokenResponse;
+      const csrfToken = csrfBody.csrfToken;
 
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/api/users')
         .set('X-CSRF-Token', csrfToken)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -620,12 +641,12 @@ describe('API End-to-End Tests', () => {
 
     it('should enforce rate limiting on login', async () => {
       for (let i = 0; i < 6; i++) {
-        await request(app.getHttpServer())
+        await request(httpServer)
           .post('/api/auth/login')
           .send({ username: 'admin', password: 'wrong' });
       }
 
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'wrong' })
         .expect(400);

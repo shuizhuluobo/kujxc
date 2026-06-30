@@ -61,7 +61,7 @@
 import { HOURS_PER_DAY, formatWorkHours } from '@/types';
 import type { PerformanceResult, ProjectStage } from '@/types';
 
-const props = defineProps<{
+defineProps<{
   data: PerformanceResult[];
   calculationType: string;
   canViewAmount?: boolean;
@@ -73,7 +73,12 @@ const getStageCount = (row: PerformanceResult, stageId: string) =>
 const getStageAmount = (row: PerformanceResult, stageId: string) =>
   row?.stageStats?.[stageId]?.amount ?? 0;
 
-const cellStyle = ({ column }: any) => {
+interface TableColumn {
+  type?: string;
+  property?: string;
+}
+
+const cellStyle = ({ column }: { column: TableColumn }) => {
   if (column.type === 'index') return { textAlign: 'center' };
   if (column.property === 'userName') return { textAlign: 'left' };
   return { textAlign: 'right' };

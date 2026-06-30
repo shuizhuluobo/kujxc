@@ -152,7 +152,7 @@ export class WikiService {
     };
   }
 
-  async findOneArticle(id: string, userId?: string) {
+  async findOneArticle(id: string, _userId?: string) {
     const article = await this.prisma.wikiArticle.findUnique({
       where: { id },
       include: {

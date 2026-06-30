@@ -179,9 +179,9 @@ export function useFeeCalculator() {
 
     // 外设安装服务（安装包含送货）
     peripheralInstallServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
-      let basePrice = s.price * s.quantity;
+      const basePrice = s.price * s.quantity;
       let terminalFee = 0;
-      let terminalCount = s.terminalCount || 0;
+      const terminalCount = s.terminalCount || 0;
       
       if (s.item.includes('复印机') && terminalCount > 5) {
         terminalFee = (terminalCount - 5) * 10 * s.quantity;
@@ -255,10 +255,10 @@ export function useFeeCalculator() {
     // 外设全流程服务
     peripheralRecycleServices.value.filter(s => s.selected && s.quantity > 0).forEach(s => {
       if (!s.item.includes('全流程')) return;
-      
-      let basePrice = s.price * s.quantity;
+
+      const basePrice = s.price * s.quantity;
       let terminalFee = 0;
-      let terminalCount = s.terminalCount || 0;
+      const terminalCount = s.terminalCount || 0;
       
       // 复印机全流程：基础含≤5台终端，超过按10元/台
       if (s.item.includes('复印机') && terminalCount > 5) {
@@ -481,7 +481,7 @@ export function useFeeCalculator() {
       await api.put(`/fee/settings/${item.id}`, { price: item.price, isActive: item.isActive });
       ElMessage.closeAll();
       ElMessage.success('设置已更新');
-    } catch (e: any) {
+    } catch {
       ElMessage.closeAll();
       ElMessage.error('更新失败');
     }
@@ -522,12 +522,13 @@ export function useFeeCalculator() {
       }
       ElMessage.closeAll();
       ElMessage.success('记录已保存');
-      loadRecords();
+      void loadRecords();
       resetCalculator();
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       ElMessage.closeAll();
-      ElMessage.error(e?.response?.data?.message || '保存失败');
+      ElMessage.error(err?.response?.data?.message || '保存失败');
       return false;
     }
   };
@@ -855,7 +856,7 @@ export function useFeeCalculator() {
           // init 成功后重新加载一次，标记 isRetrying 防止再次进入此分支
           await loadSettings(true);
           return;
-        } catch (err: any) {
+        } catch {
           ElMessage.closeAll();
           ElMessage.error('加载费用设置失败');
         }

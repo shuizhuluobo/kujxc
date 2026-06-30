@@ -11,11 +11,25 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { DingtalkService } from '../dingtalk/dingtalk.service';
 import { WorkOrderStatus, ScoreLevel } from '@prisma/client';
 
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 describe('WorkOrdersService', () => {
   let service: WorkOrdersService;
-  let mockPrisma: any;
+  let mockPrisma: {
+    workOrder: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
+    };
+    user: {
+      findUnique: jest.Mock;
+    };
+    workOrderCollaborator: {
+      createMany: jest.Mock;
+    };
+    $transaction: jest.Mock;
+  };
   let notificationsService: jest.Mocked<NotificationsService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
@@ -116,13 +130,15 @@ describe('WorkOrdersService', () => {
         detail: 'Test work order',
       };
 
-      mockPrisma.workOrder.create.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.create.mockResolvedValue(mockWorkOrder);
       notificationsService.notifyRegionEngineers.mockResolvedValue(undefined);
 
       const result = await service.create(createDto, 'user-id-1');
 
       expect(result).toEqual(mockWorkOrder);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(notificationsService.notifyRegionEngineers).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith('app.event', {
         type: 'work-order.created',
         payload: mockWorkOrder,
@@ -132,9 +148,7 @@ describe('WorkOrdersService', () => {
 
   describe('findOne', () => {
     it('should return a work order when found', async () => {
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
 
       const result = await service.findOne('wo-id-1');
 
@@ -155,10 +169,8 @@ describe('WorkOrdersService', () => {
       const updateDto = { detail: 'Updated detail' };
       const updatedOrder = { ...mockWorkOrder, detail: 'Updated detail' };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
-      mockPrisma.workOrder.update.mockResolvedValue(updatedOrder as any);
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
+      mockPrisma.workOrder.update.mockResolvedValue(updatedOrder);
 
       const result = await service.update('wo-id-1', updateDto, 'user-id-1');
 
@@ -166,9 +178,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw ForbiddenException when user is not creator', async () => {
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
 
       await expect(
         service.update('wo-id-1', { detail: 'Updated' }, 'other-user'),
@@ -178,14 +188,13 @@ describe('WorkOrdersService', () => {
 
   describe('remove', () => {
     it('should delete a work order when user is creator', async () => {
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
-      mockPrisma.workOrder.delete.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
+      mockPrisma.workOrder.delete.mockResolvedValue(mockWorkOrder);
 
       const result = await service.remove('wo-id-1', 'user-id-1');
 
       expect(result).toEqual({ message: '删除成功' });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith('app.event', {
         type: 'work-order.deleted',
         payload: { id: 'wo-id-1' },
@@ -193,9 +202,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw ForbiddenException when user is not creator', async () => {
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
 
       await expect(service.remove('wo-id-1', 'other-user')).rejects.toThrow(
         ForbiddenException,
@@ -213,10 +220,8 @@ describe('WorkOrdersService', () => {
         receiver: { id: 'user-id-2', name: 'Receiver' },
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
-      mockPrisma.workOrder.update.mockResolvedValue(receivedOrder as any);
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
+      mockPrisma.workOrder.update.mockResolvedValue(receivedOrder);
 
       const result = await service.receive('wo-id-1', 'user-id-2');
 
@@ -230,9 +235,7 @@ describe('WorkOrdersService', () => {
         status: WorkOrderStatus.COMPLETED,
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        completedOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(completedOrder);
 
       await expect(service.receive('wo-id-1', 'user-id-2')).rejects.toThrow(
         BadRequestException,
@@ -250,10 +253,8 @@ describe('WorkOrdersService', () => {
         receiver: { id: 'user-id-2', name: 'Receiver' },
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        receivedOrder as any,
-      );
-      mockPrisma.workOrder.update.mockResolvedValue(mockWorkOrder as any);
+      mockPrisma.workOrder.findUnique.mockResolvedValue(receivedOrder);
+      mockPrisma.workOrder.update.mockResolvedValue(mockWorkOrder);
 
       const result = await service.cancelReceive('wo-id-1', 'user-id-2');
 
@@ -267,9 +268,7 @@ describe('WorkOrdersService', () => {
         receiverId: 'user-id-2',
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        receivedOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(receivedOrder);
 
       await expect(
         service.cancelReceive('wo-id-1', 'other-user'),
@@ -284,7 +283,7 @@ describe('WorkOrdersService', () => {
       };
 
       mockPrisma.workOrder.findUnique.mockResolvedValue(
-        pendingOrderWithReceiver as any,
+        pendingOrderWithReceiver,
       );
 
       await expect(
@@ -311,9 +310,7 @@ describe('WorkOrdersService', () => {
         completer: { id: 'user-id-2', name: 'Completer' },
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        receivedOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(receivedOrder);
       mockPrisma.$transaction.mockImplementation(
         (
           fn: (tx: {
@@ -324,7 +321,7 @@ describe('WorkOrdersService', () => {
           const tx = {
             workOrder: {
               update: jest.fn().mockResolvedValue(undefined),
-              findUnique: jest.fn().mockResolvedValue(completedOrder as any),
+              findUnique: jest.fn().mockResolvedValue(completedOrder),
             },
             workOrderCollaborator: {
               createMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -346,9 +343,7 @@ describe('WorkOrdersService', () => {
         receiverId: 'user-id-2',
       };
 
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        receivedOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(receivedOrder);
 
       await expect(
         service.complete('wo-id-1', 'other-user', {}),
@@ -356,9 +351,7 @@ describe('WorkOrdersService', () => {
     });
 
     it('should throw BadRequestException when work order is not received', async () => {
-      mockPrisma.workOrder.findUnique.mockResolvedValue(
-        mockWorkOrder as any,
-      );
+      mockPrisma.workOrder.findUnique.mockResolvedValue(mockWorkOrder);
 
       await expect(
         service.complete('wo-id-1', 'user-id-1', {}),

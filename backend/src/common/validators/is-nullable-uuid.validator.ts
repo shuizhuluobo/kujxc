@@ -1,4 +1,8 @@
-import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
+import {
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
+} from 'class-validator';
 
 export function IsNullableUUID(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
@@ -8,17 +12,18 @@ export function IsNullableUUID(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any) {
+        validate(value: unknown) {
           if (value === null || value === undefined) {
             return true;
           }
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          return uuidRegex.test(value);
+          const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          return typeof value === 'string' && uuidRegex.test(value);
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid UUID or null`;
-        }
-      }
+        },
+      },
     });
   };
 }

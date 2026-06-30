@@ -50,7 +50,7 @@ export function useSSE() {
 
         clearRetryTimer();
         retryTimer = setTimeout(() => {
-            connect();
+            void connect();
         }, delay);
     }
 
@@ -66,8 +66,8 @@ export function useSSE() {
             disconnect(false);
 
             // 获取SSE专用token（60秒有效期）
-            const response = await api.get('/events/token');
-            const sseToken = response.data.token;
+            const response = await api.get<{ token: string }>('/events/token');
+            const sseToken: string = response.data.token;
 
             // 始终使用相对路径，通过 nginx 反向代理
             const sseUrl = `/api/events/sse?token=${encodeURIComponent(sseToken)}`;
@@ -102,7 +102,7 @@ export function useSSE() {
             // 监听通用消息
             es.onmessage = (event) => {
                 try {
-                    const data = JSON.parse(event.data) as SSEEvent;
+                    const data = JSON.parse(event.data as string) as SSEEvent;
                     // 忽略心跳消息
                     if (data.type === 'heartbeat') return;
                     // 数据结构: { type: 'work-order.created', payload: { ... } }

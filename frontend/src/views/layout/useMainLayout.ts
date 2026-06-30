@@ -44,12 +44,13 @@ export function useMainLayout() {
 
 
     // Transition hooks
-    const beforeEnter = (el: any) => {
-        el.style.opacity = 0;
-        el.style.transform = 'translateY(20px)';
+    const beforeEnter = (el: Element) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.opacity = '0';
+        htmlEl.style.transform = 'translateY(20px)';
     };
 
-    const enter = (el: any, done: any) => {
+    const enter = (el: Element, done: () => void) => {
         gsap.to(el, {
             opacity: 1,
             y: 0,
@@ -62,7 +63,7 @@ export function useMainLayout() {
         });
     };
 
-    const leave = (el: any, done: any) => {
+    const leave = (el: Element, done: () => void) => {
         gsap.to(el, {
             opacity: 0,
             y: -20,
@@ -74,26 +75,26 @@ export function useMainLayout() {
 
     function handleCommand(command: string) {
         if (command === 'logout') {
-            ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+            void ElMessageBox.confirm('确定要退出登录吗？', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning',
             }).then(() => {
                 authStore.logout();
-                router.push('/login');
+                void router.push('/login');
             });
         } else if (command === 'profile') {
-            router.push('/profile');
+            void router.push('/profile');
         }
     }
 
     function goTo(path: string) {
         showAdminMenu.value = false;
-        router.push(path);
+        void router.push(path);
     }
 
     onMounted(() => {
-        baseDataStore.fetchAll();
+        void baseDataStore.fetchAll();
     });
 
     return {

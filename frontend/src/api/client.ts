@@ -8,8 +8,9 @@ export function getBaseURL(): string {
 
     // 优先使用环境变量
     if (import.meta.env.VITE_API_URL) {
-        if (isDev) console.log('[API] Using VITE_API_URL:', import.meta.env.VITE_API_URL);
-        return import.meta.env.VITE_API_URL;
+        const url: string = import.meta.env.VITE_API_URL;
+        if (isDev) console.log('[API] Using VITE_API_URL:', url);
+        return url;
     }
 
     // Web 环境：使用相对路径
@@ -40,12 +41,12 @@ const api: AxiosInstance = axios.create({
         'Content-Type': 'application/json',
     },
     paramsSerializer: {
-        serialize: (params) => {
+        serialize: (params: Record<string, unknown>) => {
             const searchParams = new URLSearchParams();
             for (const key in params) {
                 const val = params[key];
                 if (Array.isArray(val)) {
-                    val.forEach(v => searchParams.append(key, v));
+                    val.forEach(v => searchParams.append(key, String(v)));
                 } else if (val !== undefined && val !== null) {
                     searchParams.append(key, String(val));
                 }
@@ -136,8 +137,9 @@ api.interceptors.response.use(
         const config = error.config as (InternalAxiosRequestConfig & { _retryCount?: number }) | undefined;
 
         // 如果是 403 错误且是 CSRF token 问题，刷新 CSRF token 并重试（最多重试 1 次）
+        const errorData = error.response?.data as { message?: string } | undefined;
         if (error.response?.status === 403 && config &&
-            (error.response.data as any)?.message?.includes('CSRF')) {
+            errorData?.message?.includes('CSRF')) {
             const retryCount = config._retryCount || 0;
             if (retryCount >= 1) {
                 if (import.meta.env.DEV) {

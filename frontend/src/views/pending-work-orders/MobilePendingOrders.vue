@@ -18,7 +18,7 @@
               <div 
                 class="filter-item" 
                 :class="{ active: filter.status === '' }"
-                @click="filter.status = ''"
+                @click="localFilter.status = ''"
                 title="全部工单"
               >
                 全部
@@ -26,7 +26,7 @@
               <div 
                 class="filter-item" 
                 :class="{ active: filter.status === 'PENDING' }"
-                @click="filter.status = 'PENDING'"
+                @click="localFilter.status = 'PENDING'"
                 title="待接收工单"
               >
                 待接
@@ -34,7 +34,7 @@
               <div 
                 class="filter-item" 
                 :class="{ active: filter.status === 'RECEIVED' }"
-                @click="filter.status = 'RECEIVED'"
+                @click="localFilter.status = 'RECEIVED'"
                 title="已接收工单"
               >
                 已接
@@ -71,16 +71,16 @@
               <div class="bubble-filter-label">服务类型</div>
               <div class="bubble-filter-options">
                 <van-button 
-                  :type="filter.serviceTypeId === '' ? 'primary' : 'default'"
+                  :type="localFilter.serviceTypeId === '' ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.serviceTypeId = ''"
+                  @click="localFilter.serviceTypeId = ''"
                 >全部</van-button>
                 <van-button 
                   v-for="s in baseDataStore.serviceTypes"
                   :key="s.id"
-                  :type="filter.serviceTypeId === s.id ? 'primary' : 'default'"
+                  :type="localFilter.serviceTypeId === s.id ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.serviceTypeId = s.id"
+                  @click="localFilter.serviceTypeId = s.id"
                 >{{ s.name }}</van-button>
               </div>
             </div>
@@ -88,30 +88,30 @@
               <div class="bubble-filter-label">所属区域</div>
               <div class="bubble-filter-options">
                 <van-button 
-                  :type="filter.regionId === '' ? 'primary' : 'default'"
+                  :type="localFilter.regionId === '' ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.regionId = ''"
+                  @click="localFilter.regionId = ''"
                 >全部</van-button>
                 <van-button 
                   v-for="r in baseDataStore.regions"
                   :key="r.id"
-                  :type="filter.regionId === r.id ? 'primary' : 'default'"
+                  :type="localFilter.regionId === r.id ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.regionId = r.id"
+                  @click="localFilter.regionId = r.id"
                 >{{ r.name }}</van-button>
               </div>
             </div>
             <div class="bubble-filter-section">
               <div class="bubble-filter-label">关键字</div>
               <van-search
-                v-model="filter.keyword"
+                v-model="localFilter.keyword"
                 placeholder="搜索客户、内容..."
                 shape="round"
                 background="var(--bg-color-page)"
                 show-action
               >
                 <template #action>
-                  <div @click="filter.keyword = ''">清空</div>
+                  <div @click="localFilter.keyword = ''">清空</div>
                 </template>
               </van-search>
             </div>
@@ -127,21 +127,21 @@
     <!-- 筛选状态显示 -->
     <div v-if="hasActiveFilters" class="filter-status">
       <div class="filter-status-content">
-        <div v-if="filter.status" class="filter-tag">
+        <div v-if="localFilter.status" class="filter-tag">
           {{ filter.status === 'PENDING' ? '待接收' : '已接收' }}
-          <van-icon name="cross" size="14" @click="filter.status = ''" />
+          <van-icon name="cross" size="14" @click="localFilter.status = ''" />
         </div>
-        <div v-if="filter.serviceTypeId" class="filter-tag">
+        <div v-if="localFilter.serviceTypeId" class="filter-tag">
           {{ getServiceTypeName(filter.serviceTypeId) }}
-          <van-icon name="cross" size="14" @click="filter.serviceTypeId = ''" />
+          <van-icon name="cross" size="14" @click="localFilter.serviceTypeId = ''" />
         </div>
-        <div v-if="filter.regionId && !isDefaultRegion" class="filter-tag">
+        <div v-if="localFilter.regionId && !isDefaultRegion" class="filter-tag">
           {{ getRegionName(filter.regionId) }}
-          <van-icon name="cross" size="14" @click="filter.regionId = ''" />
+          <van-icon name="cross" size="14" @click="localFilter.regionId = ''" />
         </div>
-        <div v-if="filter.keyword" class="filter-tag">
+        <div v-if="localFilter.keyword" class="filter-tag">
           关键词: {{ filter.keyword }}
-          <van-icon name="cross" size="14" @click="filter.keyword = ''" />
+          <van-icon name="cross" size="14" @click="localFilter.keyword = ''" />
         </div>
         <div class="filter-tag clear-all" @click="emit('resetFilters')">
           清除全部
@@ -184,7 +184,7 @@
     <!-- 新建/编辑工单抽屉 -->
     <el-drawer
       :model-value="formState.showDialog.value"
-      @update:model-value="(val) => formState.showDialog.value = val"
+      @update:model-value="(val) => localFormState.showDialog.value = val"
       direction="btt"
       size="85%"
       class="create-drawer"
@@ -214,7 +214,7 @@
         <div class="drawer-footer">
           <el-button 
             size="large"
-            @click="formState.showDialog.value = false"
+            @click="localFormState.showDialog.value = false"
           >
             取消
           </el-button>
@@ -243,13 +243,40 @@ import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
 import WorkOrderForm from './components/WorkOrderForm.vue';
 
 // Define Props
+interface WorkOrderFilter {
+  status: string;
+  regionId: string;
+  serviceTypeId: string;
+  keyword: string;
+}
+
+interface WorkOrderStats {
+  pending: number;
+  received: number;
+  total: number;
+}
+
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+interface WorkOrderFormState {
+  submit: () => Promise<void>;
+}
+
+interface WorkOrderFormExpose {
+  validate: () => Promise<boolean>;
+}
+
 interface Props {
   loading: boolean;
   workOrders: WorkOrder[];
-  filter: any;
-  stats: any;
-  formState: any; 
-  pagination: any;
+  filter: WorkOrderFilter;
+  stats: WorkOrderStats;
+  formState: WorkOrderFormState;
+  pagination: Pagination;
 }
 
 const props = defineProps<Props>();
@@ -270,7 +297,11 @@ const emit = defineEmits<{
 const baseDataStore = useBaseDataStore();
 const authStore = useAuthStore();
 const showFilterPopup = ref(false);
-const workOrderFormRef = ref();
+const workOrderFormRef = ref<WorkOrderFormExpose | null>(null);
+
+// Alias reactive props so v-model binds to local names (parent holds the same reactive objects by reference)
+const localFilter = props.filter;
+const localFormState = props.formState;
 
 function toggleFilterPopup() {
   showFilterPopup.value = !showFilterPopup.value;

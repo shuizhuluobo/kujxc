@@ -47,7 +47,7 @@ export function useWikiDetail() {
 
     function goToEdit() {
         if (article.value) {
-            router.push(`/wiki/edit?id=${article.value.id}`);
+            void router.push(`/wiki/edit?id=${article.value.id}`);
         }
     }
 
@@ -63,7 +63,7 @@ export function useWikiDetail() {
 
             await wikiApi.deleteArticle(article.value.id);
             ElMessage.success('删除成功');
-            router.push('/wiki');
+            void router.push('/wiki');
         } catch (e: any) {
             if (e !== 'cancel') {
                 ElMessage.error('删除失败');
@@ -89,7 +89,7 @@ export function useWikiDetail() {
                 article.value.isLiked = false;
                 ElMessage.success('已取消点赞');
             }
-        } catch (e: any) {
+        } catch {
             ElMessage.error('操作失败');
         }
     }

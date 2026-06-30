@@ -107,7 +107,10 @@ export class ThrottleGuard implements CanActivate {
 
     if (record && record.resetTime > now) {
       if (record.count >= options.limit) {
-        throw new HttpException('请求过于频繁，请稍后再试', HttpStatus.TOO_MANY_REQUESTS);
+        throw new HttpException(
+          '请求过于频繁，请稍后再试',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
       record.count++;
     } else {

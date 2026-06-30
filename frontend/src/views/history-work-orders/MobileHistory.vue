@@ -25,7 +25,7 @@
               <div 
                 class="filter-item" 
                 :class="{ active: filter.regionId === undefined }"
-                @click="filter.regionId = undefined"
+                @click="localFilter.regionId = undefined"
                 title="全部区域"
               >
                 全部区域
@@ -35,7 +35,7 @@
                 :key="r.id"
                 class="filter-item" 
                 :class="{ active: filter.regionId === r.id }"
-                @click="filter.regionId = r.id"
+                @click="localFilter.regionId = r.id"
                 :title="r.name"
               >
                 {{ r.name }}
@@ -72,22 +72,22 @@
                 <van-button 
                   :type="!filter.statuses || filter.statuses.length === 0 ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.statuses = []"
+                  @click="localFilter.statuses = []"
                 >全部</van-button>
                 <van-button 
-                  :type="filter.statuses?.includes('PENDING') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes('PENDING') ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.statuses = ['PENDING']"
+                  @click="localFilter.statuses = ['PENDING']"
                 >待接收</van-button>
                 <van-button 
-                  :type="filter.statuses?.includes('RECEIVED') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes('RECEIVED') ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.statuses = ['RECEIVED']"
+                  @click="localFilter.statuses = ['RECEIVED']"
                 >已接收</van-button>
                 <van-button 
-                  :type="filter.statuses?.includes('COMPLETED') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes('COMPLETED') ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.statuses = ['COMPLETED']"
+                  @click="localFilter.statuses = ['COMPLETED']"
                 >已完成</van-button>
               </div>
             </div>
@@ -95,16 +95,16 @@
               <div class="bubble-filter-label">服务类型</div>
               <div class="bubble-filter-options">
                 <van-button 
-                  :type="filter.serviceTypeId === undefined ? 'primary' : 'default'"
+                  :type="localFilter.serviceTypeId === undefined ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.serviceTypeId = undefined"
+                  @click="localFilter.serviceTypeId = undefined"
                 >全部</van-button>
                 <van-button 
                   v-for="s in baseDataStore.serviceTypes"
                   :key="s.id"
-                  :type="filter.serviceTypeId === s.id ? 'primary' : 'default'"
+                  :type="localFilter.serviceTypeId === s.id ? 'primary' : 'default'"
                   size="small"
-                  @click="filter.serviceTypeId = s.id"
+                  @click="localFilter.serviceTypeId = s.id"
                 >{{ s.name }}</van-button>
               </div>
             </div>
@@ -112,14 +112,14 @@
             <div class="bubble-filter-section">
               <div class="bubble-filter-label">关键字</div>
               <van-search
-                v-model="filter.keyword"
+                v-model="localFilter.keyword"
                 placeholder="搜索客户、内容..."
                 shape="round"
                 background="var(--bg-color-page)"
                 show-action
               >
                 <template #action>
-                  <div @click="filter.keyword = undefined">清空</div>
+                  <div @click="localFilter.keyword = undefined">清空</div>
                 </template>
               </van-search>
             </div>
@@ -186,25 +186,25 @@
     <!-- 筛选状态显示 -->
     <div v-if="hasActiveFilters" class="filter-status">
       <div class="filter-status-content">
-        <div v-if="filter.statuses && filter.statuses.length > 0" class="filter-status-tag">
+        <div v-if="localFilter.statuses && filter.statuses.length > 0" class="filter-status-tag">
           {{ getStatusLabel(filter.statuses[0]) }}
-          <van-icon name="cross" size="14" @click="filter.statuses = []" />
+          <van-icon name="cross" size="14" @click="localFilter.statuses = []" />
         </div>
-        <div v-if="filter.serviceTypeId" class="filter-status-tag">
+        <div v-if="localFilter.serviceTypeId" class="filter-status-tag">
           {{ getServiceTypeName(filter.serviceTypeId) }}
-          <van-icon name="cross" size="14" @click="filter.serviceTypeId = undefined" />
+          <van-icon name="cross" size="14" @click="localFilter.serviceTypeId = undefined" />
         </div>
-        <div v-if="filter.regionId" class="filter-status-tag">
+        <div v-if="localFilter.regionId" class="filter-status-tag">
           {{ getRegionName(filter.regionId) }}
-          <van-icon name="cross" size="14" @click="filter.regionId = undefined" />
+          <van-icon name="cross" size="14" @click="localFilter.regionId = undefined" />
         </div>
-        <div v-if="filter.keyword" class="filter-status-tag">
+        <div v-if="localFilter.keyword" class="filter-status-tag">
           关键词:{{ filter.keyword }}
-          <van-icon name="cross" size="14" @click="filter.keyword = undefined" />
+          <van-icon name="cross" size="14" @click="localFilter.keyword = undefined" />
         </div>
-        <div v-if="filter.completerId && !isMyOrders" class="filter-status-tag">
+        <div v-if="localFilter.completerId && !isMyOrders" class="filter-status-tag">
           {{ getCompleterName(filter.completerId) }}
-          <van-icon name="cross" size="14" @click="filter.completerId = undefined" />
+          <van-icon name="cross" size="14" @click="localFilter.completerId = undefined" />
         </div>
         <div v-if="isMyOrders" class="filter-status-tag">
           我的工单
@@ -248,13 +248,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { Filter } from '@element-plus/icons-vue';
+import { ref, watch } from 'vue';
 import { Button as VanButton, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder, WorkOrderFilterParams, User as UserType } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
-import { match } from 'pinyin-pro';
 
 const baseDataStore = useBaseDataStore();
 const showFilterDrawer = ref(false);
@@ -276,6 +274,9 @@ const props = defineProps<{
   stats?: { total: number };
   hideTitle?: boolean;
 }>();
+
+// Alias the reactive filter so v-model binds to a local name (parent holds the same reactive object by reference)
+const localFilter = props.filter;
 
 const emit = defineEmits<{
   showFilter: [];
@@ -307,17 +308,6 @@ watch([startDate, endDate], ([start, end]) => {
   } else if (!start && !end) {
     emit('update:dateRange', null);
   }
-});
-
-const filteredCompleters = computed(() => {
-  if (!completerSearchText.value) {
-    return props.allCompleters;
-  }
-  const query = completerSearchText.value.toLowerCase();
-  return props.allCompleters.filter(user => {
-    if (user.name.includes(query)) return true;
-    return match(user.name, query, { precision: 'start' });
-  });
 });
 
 // Get display names

@@ -44,7 +44,8 @@ export class FeeController {
     @Query('category') category?: string,
     @Query('isActive') isActive?: string,
   ) {
-    const isActiveBool = isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+    const isActiveBool =
+      isActive === 'true' ? true : isActive === 'false' ? false : undefined;
     return this.feeService.getSettings(category, isActiveBool);
   }
 

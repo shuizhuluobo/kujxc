@@ -114,9 +114,9 @@ export function useHistoryFilter() {
             params.endDate = dateRange.value[1];
         }
         Object.keys(params).forEach(key => {
-            // @ts-ignore
+            // @ts-expect-error 索引访问需要类型收窄
             if (params[key] === '' || params[key] === null || params[key] === undefined) {
-                // @ts-ignore
+                // @ts-expect-error 删除空值字段
                 delete params[key];
             }
         });
@@ -204,7 +204,7 @@ export function useHistoryFilter() {
         dateRange,
     ], () => {
         filter.page = 1;
-        fetchData();
+        void fetchData();
     }, { deep: true });
 
     return {

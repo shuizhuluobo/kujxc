@@ -32,7 +32,7 @@
                 type="password"
                 placeholder="密码"
                 size="large"
-                :prefix-icon="Lock"
+                :prefix-icon="LockIcon"
                 show-password
                 @keyup.enter="handleLogin"
               />
@@ -69,7 +69,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { User, Lock } from '@element-plus/icons-vue';
+import { User, Lock as LockIcon } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { hasPermission } from '@/config/permissions';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue';
@@ -125,7 +125,7 @@ async function handleLogin() {
       showPasswordDialog.value = true;
     } else {
       ElMessage.success('登录成功');
-      router.push(getRedirectPath());
+      void router.push(getRedirectPath());
     }
   } catch (error: unknown) {
     const err = error as { response?: { data?: { message?: string } } };
@@ -137,7 +137,7 @@ async function handleLogin() {
 
 function handlePasswordChangeSuccess() {
   authStore.mustChangePassword = false;
-  router.push(getRedirectPath());
+  void router.push(getRedirectPath());
 }
 </script>
 

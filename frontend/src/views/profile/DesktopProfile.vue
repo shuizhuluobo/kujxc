@@ -78,15 +78,15 @@
       size="400px"
       direction="rtl"
     >
-      <el-form ref="formRef" :model="passwordForm" :rules="passwordRules" label-width="80px">
+      <el-form ref="formRef" :model="localPasswordForm" :rules="passwordRules" label-width="80px">
         <el-form-item label="原密码" prop="oldPassword">
-          <el-input v-model="passwordForm.oldPassword" type="password" show-password />
+          <el-input v-model="localPasswordForm.oldPassword" type="password" show-password />
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="passwordForm.newPassword" type="password" show-password />
+          <el-input v-model="localPasswordForm.newPassword" type="password" show-password />
         </el-form-item>
         <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
+          <el-input v-model="localPasswordForm.confirmPassword" type="password" show-password />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -179,25 +179,29 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Camera, Plus, Check } from '@element-plus/icons-vue';
+import { Camera, Check } from '@element-plus/icons-vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import 'vue-cropper/dist/index.css';
 import { VueCropper } from 'vue-cropper';
 import type { UserStats } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 
+interface CropperInstance {
+  getCropBlob: (cb: (data: Blob) => void) => void;
+}
+
 const authStore = useAuthStore();
 const formRef = ref<FormInstance>();
 const fileInputRef = ref<HTMLInputElement>();
-const cropperRef = ref();
+const cropperRef = ref<CropperInstance>();
 const activeStatsTab = ref('monthly');
 
 watch(fileInputRef, val => emit('updateFileInput', val));
 watch(cropperRef, val => {
-  emit('updateCropper', val ? { getCropBlob: (cb: any) => val.getCropBlob(cb) } : null);
+  emit('updateCropper', val ? { getCropBlob: (cb: (data: Blob) => void) => val.getCropBlob(cb) } : null);
 });
 
-function triggerLocalFile(e: Event) {
+function triggerLocalFile(_e: Event) {
   fileInputRef.value?.click();
 }
 
@@ -240,6 +244,8 @@ const localShowAvatarDialog = ref(props.showAvatarDialog);
 const localSelectedPreset = ref(props.selectedPreset);
 const localTempImageUrl = ref(props.tempImageUrl);
 const localActiveTab = ref(props.activeTab);
+// Alias the reactive passwordForm so v-model binds to a local name (parent holds the same reactive object by reference)
+const localPasswordForm = props.passwordForm;
 
 watch(() => props.showPasswordDialog, v => localShowPasswordDialog.value = v);
 watch(() => props.showAvatarDialog, v => localShowAvatarDialog.value = v);
@@ -253,7 +259,9 @@ watch(localSelectedPreset, v => emit('update:selectedPreset', v));
 watch(localTempImageUrl, v => emit('update:tempImageUrl', v));
 watch(localActiveTab, v => emit('update:activeTab', v));
 
-const passwordComplexityValidator = (_rule: any, value: string, callback: any) => {
+type ValidatorCallback = (error?: Error) => void;
+
+const passwordComplexityValidator = (_rule: unknown, value: string, callback: ValidatorCallback) => {
   if (!value) {
     callback(new Error('请输入新密码'));
   } else if (value.length < 8) {

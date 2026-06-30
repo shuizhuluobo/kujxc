@@ -255,7 +255,7 @@ const getPermissionLabel = (permission: string): string => {
 };
 
 const removePermission = (permission: string) => {
-  const [moduleKey, actionKey] = permission.split(':');
+  const [moduleKey] = permission.split(':');
   const module = selectedPermissions[moduleKey];
   if (module) {
     const pageIndex = module.pages.indexOf(permission);
@@ -400,7 +400,7 @@ async function handleDelete(row: Role) {
   try {
     await rolesApi.delete(row.id);
     ElMessage.success('删除成功');
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '删除失败');
@@ -431,7 +431,7 @@ async function handleSubmit() {
     
     ElMessage.success(editing.value ? '更新成功' : '创建成功');
     dialogVisible.value = false;
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '操作失败');

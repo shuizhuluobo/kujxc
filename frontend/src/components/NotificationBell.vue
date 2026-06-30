@@ -133,7 +133,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 // 定时刷新未读数量
 onMounted(() => {
-  loadUnreadCount();
+  void loadUnreadCount();
   // SSE 实时监听
   const sse = useSSE();
   // 监听通知创建（仅更新未读计数，不自动弹出气泡）

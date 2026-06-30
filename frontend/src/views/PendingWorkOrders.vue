@@ -122,8 +122,8 @@ const {
 
 const formState = useWorkOrderForm(() => {
   // On form success
-  fetchData();
-  fetchStats();
+  void fetchData();
+  void fetchStats();
 });
 
 // Since we need to pass the whole formState object to child components, we keep it as is.
@@ -157,7 +157,7 @@ function handleEdit(wo: WorkOrder) {
   openEdit(wo);
 }
 
-function handleRowClick(row: WorkOrder) {
+function handleRowClick(_row: WorkOrder) {
   // Optional: functionality for row click
 }
 
@@ -165,24 +165,25 @@ async function handleReceive(wo: WorkOrder) {
   try {
     await workOrdersApi.receive(wo.id);
     ElMessage.success('接收成功');
-    fetchData(true);
-    fetchStats();
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '接收失败');
+    void fetchData(true);
+    void fetchStats();
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } };
+    ElMessage.error(err.response?.data?.message || '接收失败');
   }
 }
 
 async function handleTransfer(wo: WorkOrder) {
   try {
     await ElMessageBox.confirm(
-      `该工单已被 ${wo.receiver?.name || '其他人'} 接收，确定要转接到自己名下吗？`, 
-      '确认转接', 
+      `该工单已被 ${wo.receiver?.name || '其他人'} 接收，确定要转接到自己名下吗？`,
+      '确认转接',
       { confirmButtonText: '确认转接', cancelButtonText: '取消', type: 'warning' }
     );
     await workOrdersApi.receive(wo.id);
     ElMessage.success('转接成功');
-    fetchData(true);
-    fetchStats();
+    void fetchData(true);
+    void fetchStats();
   } catch {
     // cancelled
   }
@@ -203,8 +204,8 @@ async function handleComplete(wo: WorkOrder, collaborators: string[] = [], fee?:
         repairFee: fee,
       });
       ElMessage.success('完成成功');
-      fetchData(true);
-      fetchStats();
+      void fetchData(true);
+      void fetchStats();
     } catch {
       ElMessage.error('操作失败');
     } finally {
@@ -233,8 +234,8 @@ async function confirmComplete() {
     sameRegionEngineerIds.value = [];
     collaboratorIds.value = [];
     repairFee.value = undefined;
-    fetchData(true);
-    fetchStats();
+    void fetchData(true);
+    void fetchStats();
   } catch {
     ElMessage.error('操作失败');
   } finally {
@@ -246,16 +247,17 @@ async function handleCancelReceive(wo: WorkOrder) {
   try {
     await workOrdersApi.cancelReceive(wo.id);
     ElMessage.success('已取消接收');
-    fetchData(true);
-    fetchStats();
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '取消接收失败');
+    void fetchData(true);
+    void fetchStats();
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } };
+    ElMessage.error(err.response?.data?.message || '取消接收失败');
   }
 }
 
 function handleDelete() {
-  fetchData(true);
-  fetchStats();
+  void fetchData(true);
+  void fetchStats();
 }
 
 async function handleRefresh(done: () => void) {
@@ -270,15 +272,15 @@ async function handleRefresh(done: () => void) {
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
-    fetchData();
-    fetchStats();
-    baseDataStore.fetchRegions();
-    
+    void fetchData();
+    void fetchStats();
+    void baseDataStore.fetchRegions();
+
     const handleWorkOrderChange = () => {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            fetchData(true); // silent update
-            fetchStats();
+            void fetchData(true); // silent update
+            void fetchStats();
         }, 500);
     };
     

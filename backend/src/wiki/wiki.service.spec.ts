@@ -3,11 +3,27 @@ import { WikiService } from './wiki.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../common/services/files.service';
 
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 describe('WikiService', () => {
   let service: WikiService;
-  let mockPrisma: any;
+  let mockPrisma: {
+    wikiCategory: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+    wikiTag: {
+      findMany: jest.Mock;
+    };
+    wikiArticle: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
+    };
+  };
 
   beforeEach(async () => {
     mockPrisma = {

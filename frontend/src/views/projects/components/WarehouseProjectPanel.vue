@@ -109,7 +109,7 @@
             </el-table-column>
             <el-table-column label="项目" min-width="250">
               <template #default="{ row }">
-                <span v-for="(item: any, idx: number) in row.items" :key="idx">
+                <span v-for="(item, idx) in row.items" :key="idx">
                   {{ item.item }}×{{ item.quantity }};
                 </span>
               </template>
@@ -212,7 +212,7 @@ import FeeResult from './FeeResult.vue';
 import PrintPreview from './PrintPreview.vue';
 import { generateDocumentNo, formatPrintDate, type PrintData } from '../composables/usePrint';
 import type { User, Customer } from '@/types';
-import type { FeeSetting, FeeRecord } from '@/api';
+import type { FeeSetting, FeeRecord, FeeItem } from '@/api';
 
 const props = defineProps<{
   feeRecords: FeeRecord[];
@@ -234,7 +234,7 @@ const props = defineProps<{
   feeTransportServices: any[];
   feeSelectedResponse: string;
   feeSelectedTimeSlot: string;
-  feeSelectedItems: any[];
+  feeSelectedItems: FeeItem[];
   feeSubtotal: number;
   feeDiscount: number;
   feeActualAmount: number;
@@ -246,7 +246,7 @@ const props = defineProps<{
   activeSettingsCategories: string[];
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   'update:feeComputerCount': [value: number];
   'update:feeAdditionalFeeEnabled': [value: boolean];
   'update:feeAdditionalFeeAmount': [value: number];
@@ -271,7 +271,7 @@ const emit = defineEmits<{
 
 const activeSettingsCategoryLocal = ref('');
 
-const printPreviewRef = ref<InstanceType<typeof PrintPreview> | null>(null);
+const printPreviewRef = ref<{ open: () => void } | null>(null);
 
 // 打印数据
 const printData = computed<PrintData | null>(() => {
@@ -283,7 +283,7 @@ const printData = computed<PrintData | null>(() => {
     clientName: customer?.name || '',
     contactPerson: '',
     contactPhone: '',
-    items: props.feeSelectedItems.map((s: any, idx: number) => ({
+    items: props.feeSelectedItems.map((s, idx) => ({
       index: idx + 1,
       name: s.item,
       quantity: s.quantity,
@@ -342,11 +342,6 @@ watch(settingsByGroup, (groups) => {
     activeSettingsCategoryLocal.value = groups[0].name;
   }
 }, { immediate: true });
-
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
 
 const formatFeeDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN');

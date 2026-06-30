@@ -39,7 +39,8 @@ export class PerformanceController {
   @Get('projects')
   @Permissions('fee:view_project')
   async getProjects(@CurrentUser() user: CurrentUserData) {
-    const isAdmin = user.roleCode === 'admin' || user.roleCode === 'project_manager';
+    const isAdmin =
+      user.roleCode === 'admin' || user.roleCode === 'project_manager';
     return this.performanceService.getProjects(user.id, isAdmin);
   }
 
@@ -49,7 +50,8 @@ export class PerformanceController {
     const projectIds = ids ? ids.split(',').filter(Boolean) : undefined;
     const buffer = await this.performanceService.exportProjects(projectIds);
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('项目台账_批量导出')}.xlsx`,
     });
     res.send(buffer);
@@ -57,12 +59,19 @@ export class PerformanceController {
 
   @Get('projects/:id')
   @Permissions('fee:view_project')
-  async getProject(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
+  async getProject(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
     const project = await this.performanceService.getProject(id);
     if (!project) throw new NotFoundException('项目不存在');
-    const isAdmin = user.roleCode === 'admin' || user.roleCode === 'project_manager';
+    const isAdmin =
+      user.roleCode === 'admin' || user.roleCode === 'project_manager';
     if (!isAdmin) {
-      const isMember = await this.performanceService.isProjectMember(id, user.id);
+      const isMember = await this.performanceService.isProjectMember(
+        id,
+        user.id,
+      );
       if (!isMember) throw new ForbiddenException('您不是该项目的参与人员');
     }
     return project;
@@ -70,7 +79,10 @@ export class PerformanceController {
 
   @Post('projects')
   @Permissions('fee:create_project')
-  async createProject(@Body() data: CreateProjectDto, @CurrentUser() user: CurrentUserData) {
+  async createProject(
+    @Body() data: CreateProjectDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
     return this.performanceService.createProject(data, user.id);
   }
 
@@ -122,7 +134,12 @@ export class PerformanceController {
     @Body() data: CreateRecordDto,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.performanceService.createRecord(projectId, data, user.id, user.roleCode);
+    return this.performanceService.createRecord(
+      projectId,
+      data,
+      user.id,
+      user.roleCode,
+    );
   }
 
   @Patch('projects/:projectId/records/:recordId')
@@ -166,20 +183,42 @@ export class PerformanceController {
   @Permissions('fee:view_project')
   async createDevice(
     @Param('projectId') projectId: string,
-    @Body() data: { customerId: string; deviceName: string; expectedQuantity: number; remark?: string },
+    @Body()
+    data: {
+      customerId: string;
+      deviceName: string;
+      expectedQuantity: number;
+      remark?: string;
+    },
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.performanceService.createDevice(projectId, data, user.id, user.roleCode);
+    return this.performanceService.createDevice(
+      projectId,
+      data,
+      user.id,
+      user.roleCode,
+    );
   }
 
   @Patch('devices/:deviceId')
   @Permissions('fee:view_project')
   async updateDevice(
     @Param('deviceId') deviceId: string,
-    @Body() data: { customerId?: string; deviceName?: string; expectedQuantity?: number; remark?: string },
+    @Body()
+    data: {
+      customerId?: string;
+      deviceName?: string;
+      expectedQuantity?: number;
+      remark?: string;
+    },
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.performanceService.updateDevice(deviceId, data, user.id, user.roleCode);
+    return this.performanceService.updateDevice(
+      deviceId,
+      data,
+      user.id,
+      user.roleCode,
+    );
   }
 
   @Delete('devices/:deviceId')
@@ -188,7 +227,11 @@ export class PerformanceController {
     @Param('deviceId') deviceId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.performanceService.deleteDevice(deviceId, user.id, user.roleCode);
+    return this.performanceService.deleteDevice(
+      deviceId,
+      user.id,
+      user.roleCode,
+    );
   }
 
   @Get('projects/:projectId/stats')
@@ -208,10 +251,14 @@ export class PerformanceController {
 
   @Get('projects/:projectId/export')
   @Permissions('fee:export')
-  async exportProject(@Param('projectId') projectId: string, @Res() res: Response) {
+  async exportProject(
+    @Param('projectId') projectId: string,
+    @Res() res: Response,
+  ) {
     const buffer = await this.performanceService.exportProject(projectId);
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('项目台账')}_${projectId}.xlsx`,
     });
     res.send(buffer);
@@ -237,7 +284,16 @@ export class PerformanceController {
   @Permissions('fee:save_records')
   async saveFeeRecord(
     @Param('projectId') projectId: string,
-    @Body() data: { items: any[]; subtotal: number; discount: number; actualAmount: number; remark?: string; customerId?: string; collaboratorIds?: string[] },
+    @Body()
+    data: {
+      items: any[];
+      subtotal: number;
+      discount: number;
+      actualAmount: number;
+      remark?: string;
+      customerId?: string;
+      collaboratorIds?: string[];
+    },
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.performanceService.saveFeeRecord(projectId, data, user.id);
@@ -267,7 +323,16 @@ export class PerformanceController {
   @Post('warehouse/fee-records')
   @Permissions('fee:save_records')
   async saveWarehouseFeeRecord(
-    @Body() data: { items: any[]; subtotal: number; discount: number; actualAmount: number; remark?: string; customerId?: string; collaboratorIds?: string[] },
+    @Body()
+    data: {
+      items: any[];
+      subtotal: number;
+      discount: number;
+      actualAmount: number;
+      remark?: string;
+      customerId?: string;
+      collaboratorIds?: string[];
+    },
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.performanceService.saveFeeRecord(null, data, user.id);

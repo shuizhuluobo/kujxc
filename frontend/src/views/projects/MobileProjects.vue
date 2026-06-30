@@ -574,7 +574,7 @@ import {
   HOURS_PER_DAY,
   formatWorkHours,
 } from '@/types';
-import type { Project, WorkRecord, CustomerDevice } from '@/types';
+import type { Project, WorkRecord, CustomerDevice, PerformanceResult } from '@/types';
 import type { FeeSetting } from '@/api';
 import MobileFeeCalculator from './components/MobileFeeCalculator.vue';
 
@@ -584,7 +584,6 @@ const {
   selectedProject,
   users,
   customers,
-  loading,
   projectForm,
   canCreateProject,
   canManageProject,
@@ -632,7 +631,6 @@ const {
   getStageProgress,
   isDeviceCompleted,
   loadDevices,
-  prepareMobileStageModal,
   createDevice,
   updateDevice,
   deleteDevice,
@@ -662,7 +660,7 @@ const statsExpanded = ref(true);
 // 协作人候选列表：仅项目成员，排除当前用户（记录人本人）
 const collaboratorOptions = computed(() => {
   const memberIds = selectedProject.value?.members?.map(m => m.userId) ?? [];
-  return users.value.filter((u: any) => u?.id && memberIds.includes(u.id) && u.id !== authStore.user?.id);
+  return users.value.filter(u => u?.id && memberIds.includes(u.id) && u.id !== authStore.user?.id);
 });
 
 const expandedRecordIds = ref<Set<string>>(new Set());
@@ -728,7 +726,7 @@ const stageOptions = computed(() => {
 });
 
 const myStatsStageCount = (stageId: string) => myStats.value?.stageStats?.[stageId]?.count ?? 0;
-const statStageCount = (stat: any, stageId: string) => stat?.stageStats?.[stageId]?.count ?? 0;
+const statStageCount = (stat: PerformanceResult, stageId: string) => stat?.stageStats?.[stageId]?.count ?? 0;
 const getRecordStageName = (record: WorkRecord) => {
   if (!record.stageId) return '';
   const stage = (selectedProject.value?.stages || []).find(s => s.id === record.stageId);
@@ -971,11 +969,6 @@ const handleDeleteDevice = async (device: CustomerDevice) => {
   await deleteDevice(selectedProject.value.id, device);
 };
 
-const openStageDrawer = (device: CustomerDevice, stageId: string) => {
-  prepareMobileStageModal(device, stageId);
-  stageDrawerVisible.value = true;
-};
-
 const stageDrawerTitle = computed(() => {
   const stage = deviceStages.value.find(s => s.id === mobileStageForm.stageId);
   return `记录${stage?.name || ''}`;
@@ -1006,7 +999,7 @@ const handleDeviceChanged = (payload: unknown) => {
   // 防抖：短时间内多次变动只刷新一次
   if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
   deviceRefreshTimer = setTimeout(() => {
-    loadDevices(projectId);
+    void loadDevices(projectId);
   }, 300);
 };
 

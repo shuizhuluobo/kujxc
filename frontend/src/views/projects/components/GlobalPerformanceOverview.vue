@@ -99,7 +99,7 @@ const totalAmount = computed(() => {
 
 const loadData = async () => {
   try {
-    const params: any = {};
+    const params: { startDate?: string; endDate?: string; userId?: string } = {};
     if (dateRange.value) {
       params.startDate = dateRange.value[0];
       params.endDate = dateRange.value[1];
@@ -123,10 +123,19 @@ const loadUsers = async () => {
   }
 };
 
-const getSummary = ({ columns, data }: any) => {
+interface TableColumn {
+  property?: string;
+}
+
+interface SummaryContext {
+  columns: TableColumn[];
+  data: Record<string, unknown>[];
+}
+
+const getSummary = ({ columns, data }: SummaryContext) => {
   const sums: string[] = [];
   const numericFields = ['totalQuantity', 'totalWorkDays', 'workDaysAmount', 'totalAmount'];
-  columns.forEach((column: any, index: number) => {
+  columns.forEach((column: TableColumn, index: number) => {
     if (index === 0) {
       sums[index] = '合计';
       return;
@@ -137,7 +146,7 @@ const getSummary = ({ columns, data }: any) => {
     }
     const field = column.property;
     if (field && numericFields.includes(field)) {
-      const total = data.reduce((sum: number, item: any) => sum + (Number(item[field]) || 0), 0);
+      const total = data.reduce((sum: number, item: Record<string, unknown>) => sum + (Number(item[field]) || 0), 0);
       sums[index] = total.toFixed(2);
     } else {
       sums[index] = '';

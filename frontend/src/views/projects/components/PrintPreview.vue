@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { Printer } from '@element-plus/icons-vue';
 import PrintTemplateTriplicate from './PrintTemplateTriplicate.vue';
 import PrintTemplateA4 from './PrintTemplateA4.vue';
@@ -82,10 +82,6 @@ import { usePrint, formatPrintDate, type PrintData, type PrintTemplateType } fro
 
 const props = defineProps<{
   data: PrintData | null;
-}>();
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
 }>();
 
 const visible = ref(false);

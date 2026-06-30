@@ -8,6 +8,14 @@ import { useResponsive } from '@/composables';
 import { useRouter } from 'vue-router';
 import { resolveAssetUrl } from '@/utils/url';
 
+interface CropperInstance {
+    getCropBlob: (cb: (data: Blob) => void) => void;
+}
+
+interface CropperComponent {
+    $refs?: { cropper?: CropperInstance };
+}
+
 export function useProfile() {
     const authStore = useAuthStore();
     const router = useRouter();
@@ -40,8 +48,8 @@ export function useProfile() {
     const selectedPreset = ref('');
 
     // 剪裁相关
-    const cropper = ref();
-    const fileInput = ref<HTMLInputElement>();
+    const cropper = ref<CropperComponent | CropperInstance | null>(null);
+    const fileInput = ref<HTMLInputElement | null>(null);
     const tempImageUrl = ref('');
     const options = reactive({
         outputSize: 1,
@@ -112,7 +120,7 @@ export function useProfile() {
 
     async function handleLogout() {
         await authStore.logout();
-        router.push('/login');
+        void router.push('/login');
     }
 
     function triggerFileInput() {
@@ -150,7 +158,9 @@ export function useProfile() {
                 }
 
                 const blob: Blob = await new Promise((resolve, reject) => {
-                    const cropperInstance = cropper.value?.$refs?.cropper || cropper.value;
+                    const raw = cropper.value;
+                    const cropperInstance: CropperInstance | undefined =
+                        (raw && typeof raw === 'object' && '$refs' in raw ? raw.$refs?.cropper : raw) as CropperInstance | undefined;
                     if (!cropperInstance || typeof cropperInstance.getCropBlob !== 'function') {
                         return reject(new Error('Cropper instance not ready'));
                     }
@@ -169,16 +179,17 @@ export function useProfile() {
 
             ElMessage.success('头像更换成功');
             showAvatarDialog.value = false;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Avatar upload error:', err);
-            ElMessage.error(err.message || '更换失败，请重试');
+            const message = err instanceof Error ? err.message : '更换失败，请重试';
+            ElMessage.error(message);
         } finally {
             savingAvatar.value = false;
         }
     }
 
-    function setCropper(val: any) { cropper.value = val; }
-    function setFileInput(val: any) { fileInput.value = val; }
+    function setCropper(val: CropperComponent | CropperInstance | null) { cropper.value = val; }
+    function setFileInput(val: HTMLInputElement | null) { fileInput.value = val; }
 
     return {
         // State

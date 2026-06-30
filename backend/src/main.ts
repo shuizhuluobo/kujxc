@@ -34,7 +34,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 禁用 X-Powered-By 响应头，避免暴露后端技术栈
-  app.getHttpAdapter().getInstance().disable('x-powered-by');
+  (
+    app.getHttpAdapter().getInstance() as { disable: (name: string) => void }
+  ).disable('x-powered-by');
 
   // 注册全局异常过滤器
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -48,10 +50,12 @@ async function bootstrap() {
     'http://localhost:4173',
   ];
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // 允许无origin的请求 (如移动App)
       if (!origin) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return callback(null, true);
       }
       if (
@@ -61,7 +65,6 @@ async function bootstrap() {
         callback(null, true);
       } else {
         logger.warn(`Origin not allowed: ${origin}`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return callback(new Error('Not allowed by CORS'));
       }
     },
@@ -104,4 +107,4 @@ async function bootstrap() {
     logger.log(`API Docs: http://localhost:${port}/api/docs`);
   }
 }
-bootstrap();
+void bootstrap();

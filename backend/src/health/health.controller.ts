@@ -52,7 +52,7 @@ export class HealthController {
     const checks = await Promise.all([
       this.checkDatabase(),
       this.checkDiskSpace(),
-      this.checkMemory(),
+      Promise.resolve(this.checkMemory()),
     ]);
 
     const [database, diskSpace, memory] = checks;
@@ -134,7 +134,7 @@ export class HealthController {
     }
   }
 
-  private async checkMemory() {
+  private checkMemory() {
     try {
       const totalMem = os.totalmem();
       const freeMem = os.freemem();

@@ -8,7 +8,7 @@ import {
   IsUUID,
   Matches,
 } from 'class-validator';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNullableUUID } from '../../common/validators/is-nullable-uuid.validator';
 
@@ -90,7 +90,7 @@ export class UpdateUserDto {
 
   @ApiProperty({ description: '区域ID', required: false })
   @IsOptional()
-  @Transform(({ value }) => value === '' ? null : value)
+  @Transform(({ value }: { value: unknown }) => (value === '' ? null : value))
   @IsNullableUUID({ message: '区域ID必须是有效的UUID或为空' })
   regionId?: string | null;
 

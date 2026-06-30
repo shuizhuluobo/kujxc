@@ -107,7 +107,7 @@ export function useWorkOrderFilter() {
 
             allWorkOrders.value = data;
             applyFiltersAndPagination();
-        } catch (error) {
+        } catch {
             if (!silent) ElMessage.error('获取工单失败');
         } finally {
             if (!silent) loading.value = false;
@@ -140,8 +140,8 @@ export function useWorkOrderFilter() {
     watch(() => ({ ...filter }), (newVal, oldVal) => {
         // If region changes, we need to re-fetch
         if (newVal.regionId !== oldVal.regionId) {
-            fetchData();
-            fetchStats();
+            void fetchData();
+            void fetchStats();
         } else {
             pagination.page = 1; // Reset to first page on filter change
             applyFiltersAndPagination();

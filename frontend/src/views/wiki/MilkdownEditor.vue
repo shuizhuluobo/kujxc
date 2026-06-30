@@ -22,8 +22,14 @@ const emit = defineEmits<{
   'update:modelValue': [value: string];
 }>();
 
+interface MilkdownEditorHandle {
+  get: () => string;
+  set: (value: string) => void;
+  destroy: () => void;
+}
+
 const editorRef = ref<HTMLElement | null>(null);
-const editor = ref<Editor | null>(null);
+const editor = ref<MilkdownEditorHandle | null>(null);
 const isFullscreen = ref(false);
 
 onMounted(() => {
@@ -33,12 +39,12 @@ onMounted(() => {
     .config((ctx) => {
       ctx.set(rootCtx, editorRef.value);
       ctx.set(defaultValueCtx, props.modelValue || '');
-      
+
       // 监听内容变化
-      ctx.get(listenerCtx).markdownUpdated((ctx, markdown, prevMarkdown) => {
+      ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
         emit('update:modelValue', markdown);
       });
-      
+
       // 设置占位符
       if (props.placeholder) {
         // Milkdown 占位符配置
@@ -49,11 +55,11 @@ onMounted(() => {
     .use(gfm)
     .use(listener)
     .use(history)
-    .create();
+    .create() as unknown as MilkdownEditorHandle;
 });
 
 onBeforeUnmount(() => {
-  editor.value?.destroy();
+  void editor.value?.destroy();
 });
 
 watch(() => props.modelValue, (newValue) => {

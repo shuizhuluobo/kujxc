@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useAuthStore } from '@/stores/auth';
+import type { User } from '@/types';
 
 vi.mock('@/api', () => ({
   default: {
@@ -42,7 +43,7 @@ describe('Auth Store', () => {
         username: 'testuser',
         name: 'Test User',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
 
       store.logout();
 
@@ -60,7 +61,7 @@ describe('Auth Store', () => {
         username: 'admin',
         name: 'Admin',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
 
       expect(store.isAdmin).toBe(true);
     });
@@ -72,7 +73,7 @@ describe('Auth Store', () => {
         username: 'engineer',
         name: 'Engineer',
         role: { code: 'engineer', permissions: ['workOrder:view'] },
-      } as any;
+      } as unknown as User;
 
       expect(store.isAdmin).toBe(false);
     });
@@ -92,7 +93,7 @@ describe('Auth Store', () => {
         username: 'engineer',
         name: 'Engineer',
         role: { code: 'engineer', permissions: ['workOrder:view'] },
-      } as any;
+      } as unknown as User;
 
       expect(store.isEngineer).toBe(true);
     });
@@ -104,7 +105,7 @@ describe('Auth Store', () => {
         username: 'admin',
         name: 'Admin',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
 
       expect(store.isEngineer).toBe(false);
     });
@@ -119,7 +120,7 @@ describe('Auth Store', () => {
         username: 'testuser',
         name: 'Test User',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
       
       expect(store.isAuthenticated).toBe(true);
     });
@@ -132,7 +133,7 @@ describe('Auth Store', () => {
         username: 'testuser',
         name: 'Test User',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
       
       expect(store.isAuthenticated).toBe(false);
     });
@@ -154,7 +155,7 @@ describe('Auth Store', () => {
         username: 'admin',
         name: 'Admin',
         role: { code: 'admin', permissions: ['*'] },
-      } as any;
+      } as unknown as User;
 
       expect(store.roleCode).toBe('admin');
     });

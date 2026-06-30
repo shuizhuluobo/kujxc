@@ -12,15 +12,15 @@ const sse = useSSE();
 
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
-    sse.connect();
+    void sse.connect();
   } else {
-    sse.disconnect();
+    void sse.disconnect();
   }
 });
 
 onMounted(() => {
   if (authStore.token) {
-    sse.connect();
+    void sse.connect();
   }
 });
 

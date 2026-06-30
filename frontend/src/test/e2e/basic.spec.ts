@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
 vi.mock('@/api/client', () => ({
@@ -92,7 +92,7 @@ describe('Permission System', () => {
 
 describe('Data Validation', () => {
   it('should validate work order required fields', () => {
-    const validateWorkOrder = (data: any) => {
+    const validateWorkOrder = (data: Record<string, unknown>) => {
       const errors: string[] = [];
       if (!data.detail) errors.push('工单详情不能为空');
       if (!data.customerId) errors.push('客户不能为空');

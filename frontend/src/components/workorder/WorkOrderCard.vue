@@ -335,7 +335,7 @@ async function handleDelete() {
     await workOrdersApi.delete(props.workOrder.id);
     ElMessage.success('删除成功');
     emit('delete', props.workOrder);
-  } catch (error) {
+  } catch {
     ElMessage.error('删除失败');
   }
   showDeleteConfirm.value = false;

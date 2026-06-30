@@ -277,7 +277,6 @@ const {
   discount,
   actualAmount,
   remark,
-  allSettings,
   selectedResponse,
   selectedTimeSlot,
   additionalFeeEnabled,
@@ -388,7 +387,7 @@ const getComputerPriceText = (name: string) => {
   return `${item.priceSmall || 20}元/台`;
 };
 
-init();
+void init();
 
 // 同步当前项目ID，决定费用记录归属与客户必填
 watch(

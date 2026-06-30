@@ -55,15 +55,11 @@ const {
   showAvatarDialog,
   activeTab,
   stats,
-  notificationsEnabled,
   presetAvatars,
   selectedPreset,
-  cropper,
-  fileInput,
   tempImageUrl,
   options,
   passwordForm,
-  toggleNotifications,
   getAvatarUrl,
   formatDate,
   fetchStats,
@@ -80,11 +76,11 @@ const sse = useSSE();
 let unsubscribe: (() => void) | null = null;
 
 onMounted(() => {
-  fetchStats();
-  
+  void fetchStats();
+
   // 监听工单状态变化事件，实时更新统计
   unsubscribe = sse.on('work-order.updated', () => {
-    fetchStats();
+    void fetchStats();
   });
 });
 

@@ -231,22 +231,24 @@ const filteredUsers = computed(() => {
 
 // 分页后的用户列表
 const paginatedUsers = computed(() => {
-  // 更新总数，确保分页正确
-  total.value = filteredUsers.value.length;
-  
   const start = (pagination.page - 1) * pagination.pageSize;
   const end = start + pagination.pageSize;
   return filteredUsers.value.slice(start, end);
 });
 
-// 当搜索关键字变化时，重置分页到第一页
+// 当筛选结果变化时，更新总数；当搜索关键字变化时，重置分页到第一页
+watch(filteredUsers, (val) => {
+  total.value = val.length;
+});
 watch(searchKeyword, () => {
   pagination.page = 1;
 });
 
 const resetForm = reactive({ password: '' });
 
-const passwordValidator = (rule: any, value: string, callback: any) => {
+type ValidatorCallback = (error?: Error) => void;
+
+const passwordValidator = (_rule: unknown, value: string, callback: ValidatorCallback) => {
   if (!value) {
     callback(new Error('请输入新密码'));
   } else if (value.length < 8) {
@@ -340,7 +342,7 @@ async function handleDelete(row: User) {
   try {
     await usersApi.delete(row.id);
     ElMessage.success('删除成功');
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '删除失败');
@@ -362,7 +364,7 @@ async function handleSubmit() {
       }
       ElMessage.success(editing.value ? '更新成功' : '创建成功');
       dialogVisible.value = false;
-      fetchData(); 
+      void fetchData();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
       ElMessage.error(err.response?.data?.message || '操作失败');

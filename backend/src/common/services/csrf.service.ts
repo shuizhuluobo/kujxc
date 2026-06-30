@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
@@ -22,22 +22,22 @@ export class CsrfService {
     );
   }
 
-  async generateToken(_sessionId?: string): Promise<string> {
+  generateToken(_sessionId?: string): Promise<string> {
     const id = crypto.randomUUID();
     const timestamp = Date.now();
     const payload = `${id}:${timestamp}`;
     const signature = this.sign(payload);
-    return `${payload}:${signature}`;
+    return Promise.resolve(`${payload}:${signature}`);
   }
 
-  async validateToken(token: string): Promise<boolean> {
+  validateToken(token: string): Promise<boolean> {
     if (!token) {
-      return false;
+      return Promise.resolve(false);
     }
 
     const parts = token.split(':');
     if (parts.length !== 3) {
-      return false;
+      return Promise.resolve(false);
     }
 
     const [, timestampStr, signature] = parts;
@@ -45,7 +45,7 @@ export class CsrfService {
 
     // Check if token is expired
     if (Date.now() - timestamp > this.tokenTtl) {
-      return false;
+      return Promise.resolve(false);
     }
 
     // Verify signature (无状态验证，不依赖缓存，兼容 cluster 模式)
@@ -53,10 +53,10 @@ export class CsrfService {
     const payload = `${id}:${timestamp}`;
     const expectedSignature = this.sign(payload);
 
-    return signature === expectedSignature;
+    return Promise.resolve(signature === expectedSignature);
   }
 
-  async consumeToken(token: string): Promise<boolean> {
+  consumeToken(token: string): Promise<boolean> {
     return this.validateToken(token);
   }
 

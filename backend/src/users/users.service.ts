@@ -72,7 +72,6 @@ export class UsersService {
 
     return {
       data: users.map((user) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _password, ...rest } = user;
         return rest;
       }),
@@ -91,7 +90,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('用户不存在');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...result } = user;
     return result;
   }
@@ -203,7 +201,14 @@ export class UsersService {
     // 获取当月的起始和结束日期
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
 
     // 基础统计查询（不依赖新增字段，数据库 schema 漂移时也能正常工作）
     const [completed, received, created] = await Promise.all([
@@ -218,24 +223,39 @@ export class UsersService {
     let monthlyCreated = 0;
 
     try {
-      const [monthlyCompletedResult, monthlyReceivedResult, monthlyCreatedResult] =
-        await Promise.all([
-          this.prisma.workOrder.count({
-            where: { completerId: userId, completedAt: { gte: startOfMonth, lte: endOfMonth } },
-          }),
-          this.prisma.workOrder.count({
-            where: { receiverId: userId, receivedAt: { gte: startOfMonth, lte: endOfMonth } },
-          }),
-          this.prisma.workOrder.count({
-            where: { creatorId: userId, createdAt: { gte: startOfMonth, lte: endOfMonth } },
-          }),
-        ]);
+      const [
+        monthlyCompletedResult,
+        monthlyReceivedResult,
+        monthlyCreatedResult,
+      ] = await Promise.all([
+        this.prisma.workOrder.count({
+          where: {
+            completerId: userId,
+            completedAt: { gte: startOfMonth, lte: endOfMonth },
+          },
+        }),
+        this.prisma.workOrder.count({
+          where: {
+            receiverId: userId,
+            receivedAt: { gte: startOfMonth, lte: endOfMonth },
+          },
+        }),
+        this.prisma.workOrder.count({
+          where: {
+            creatorId: userId,
+            createdAt: { gte: startOfMonth, lte: endOfMonth },
+          },
+        }),
+      ]);
 
       monthlyCompleted = monthlyCompletedResult;
       monthlyReceived = monthlyReceivedResult;
       monthlyCreated = monthlyCreatedResult;
     } catch (error) {
-      console.error('[UsersService] getStats monthly count queries failed:', error);
+      console.error(
+        '[UsersService] getStats monthly count queries failed:',
+        error,
+      );
     }
 
     // 维修费统计（依赖 repairFee 字段，可能因 schema 漂移而失败）
@@ -261,7 +281,10 @@ export class UsersService {
       totalRepairFee = totalRepairFeeResult._sum.repairFee || 0;
       monthlyRepairFee = monthlyRepairFeeResult._sum.repairFee || 0;
     } catch (error) {
-      console.error('[UsersService] getStats repairFee aggregate queries failed:', error);
+      console.error(
+        '[UsersService] getStats repairFee aggregate queries failed:',
+        error,
+      );
     }
 
     return {

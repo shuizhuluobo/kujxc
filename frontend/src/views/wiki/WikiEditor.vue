@@ -152,11 +152,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { 
-  ArrowLeft, Check, View, EditPen, Folder, Unlock, 
-  Lock, ArrowDown, Paperclip, Plus, Document, Delete 
+import {
+  ArrowLeft, Check, View, EditPen, Folder,
+  ArrowDown, Paperclip, Plus, Document, Delete
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import type { UploadFile } from 'element-plus';
 import { MdEditor, MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { wikiApi, uploadsApi } from '@/api';
@@ -172,7 +173,14 @@ const title = ref('');
 const categoryId = ref('');
 const isPublic = ref(true);
 const content = ref('');
-const attachments = ref<any[]>([]);
+interface WikiAttachment {
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
+const attachments = ref<WikiAttachment[]>([]);
 const categories = ref<WikiCategory[]>([]);
 const submitting = ref(false);
 const isEdit = computed(() => !!route.query.id);
@@ -256,7 +264,7 @@ async function handleSave() {
       await wikiApi.createArticle(payload);
       ElMessage.success('发布成功');
     }
-    router.push('/wiki');
+    void router.push('/wiki');
   } catch (e) {
     console.error('保存文章失败:', e);
     ElMessage.error('保存失败');
@@ -278,7 +286,7 @@ async function onUploadImg(files: Array<File>, callback: (urls: Array<string>) =
   callback(res);
 }
 
-async function handleFileUpload(uploadFile: any) {
+async function handleFileUpload(uploadFile: UploadFile) {
   const file = uploadFile.raw as File;
   if (!file) return;
 

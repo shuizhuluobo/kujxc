@@ -65,7 +65,7 @@
         </div>
         <div class="header-right">
           <span v-if="selectedProject.members?.length" class="member-avatars">
-            <template v-for="(m, i) in selectedProject.members.slice(0, 3)" :key="m.userId">
+            <template v-for="m in selectedProject.members.slice(0, 3)" :key="m.userId">
               <el-avatar :size="28" class="avatar-item">{{ (m.user?.name || '未')[0] }}</el-avatar>
             </template>
             <span v-if="selectedProject.members.length > 3" class="avatar-more">+{{ selectedProject.members.length - 3 }}</span>
@@ -307,20 +307,20 @@
     <el-dialog v-model="showCreateProjectModalModel" title="新建项目" width="700px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
         <el-form-item label="项目名称" required v-shake ref="projectNameItem">
-          <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
+          <el-input v-model="localProjectForm.projectName" placeholder="请输入项目名称" />
         </el-form-item>
         <el-form-item label="计算方式" required>
-          <el-radio-group v-model="projectForm.calculationType">
+          <el-radio-group v-model="localProjectForm.calculationType">
             <el-radio :value="CalculationType.QUANTITY">按数量计算</el-radio>
             <el-radio :value="CalculationType.DAILY">按工日计算</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="设备总量" v-if="projectForm.calculationType === CalculationType.QUANTITY">
-          <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
+        <el-form-item label="设备总量" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
+          <el-input-number v-model="localProjectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="阶段配置" v-if="projectForm.calculationType === CalculationType.QUANTITY">
-          <el-table :data="projectForm.stages" border size="small" style="width: 100%">
+        <el-form-item label="阶段配置" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
+          <el-table :data="localProjectForm.stages" border size="small" style="width: 100%">
             <el-table-column label="序号" type="index" width="55" align="center" />
             <el-table-column label="阶段名称" width="80">
               <template #default="{ row }">
@@ -351,23 +351,23 @@
             </el-table-column>
             <el-table-column label="操作" width="70" align="center">
               <template #default="{ $index }">
-                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="projectForm.stages.length <= 1">删除</el-button>
+                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="localProjectForm.stages.length <= 1">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
           <el-button size="small" type="primary" link @click="addStage" style="margin-top: 8px">+ 添加阶段</el-button>
         </el-form-item>
-        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
-          <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
+        <el-form-item label="按工日单价" v-if="localProjectForm.calculationType === CalculationType.DAILY && canViewAmount">
+          <el-input-number v-model="localProjectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
         <el-form-item label="参与人员">
-          <el-select v-model="projectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
+          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
             <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="projectForm.remark" type="textarea" placeholder="请输入备注" />
+          <el-input v-model="localProjectForm.remark" type="textarea" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -380,14 +380,14 @@
     <el-dialog v-model="showEditProjectModalModel" title="编辑项目" width="700px" destroy-on-close>
       <el-form :model="projectForm" label-width="100px">
         <el-form-item label="项目名称" required v-shake ref="editProjectNameItem">
-          <el-input v-model="projectForm.projectName" placeholder="请输入项目名称" />
+          <el-input v-model="localProjectForm.projectName" placeholder="请输入项目名称" />
         </el-form-item>
-        <el-form-item label="设备总量" v-if="projectForm.calculationType === CalculationType.QUANTITY">
-          <el-input-number v-model="projectForm.totalQuantity" :min="1" style="width: 200px" />
+        <el-form-item label="设备总量" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
+          <el-input-number v-model="localProjectForm.totalQuantity" :min="1" style="width: 200px" />
           <span class="unit"> 台</span>
         </el-form-item>
-        <el-form-item label="阶段配置" v-if="projectForm.calculationType === CalculationType.QUANTITY">
-          <el-table :data="projectForm.stages" border size="small" style="width: 100%">
+        <el-form-item label="阶段配置" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
+          <el-table :data="localProjectForm.stages" border size="small" style="width: 100%">
             <el-table-column label="序号" type="index" width="55" align="center" />
             <el-table-column label="阶段名称" width="80">
               <template #default="{ row }">
@@ -418,23 +418,23 @@
             </el-table-column>
             <el-table-column label="操作" width="70" align="center">
               <template #default="{ $index }">
-                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="projectForm.stages.length <= 1">删除</el-button>
+                <el-button size="small" link type="danger" @click="removeStage($index)" :disabled="localProjectForm.stages.length <= 1">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
           <el-button size="small" type="primary" link @click="addStage" style="margin-top: 8px">+ 添加阶段</el-button>
         </el-form-item>
-        <el-form-item label="按工日单价" v-if="projectForm.calculationType === CalculationType.DAILY && canViewAmount">
-          <el-input-number v-model="projectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
+        <el-form-item label="按工日单价" v-if="localProjectForm.calculationType === CalculationType.DAILY && canViewAmount">
+          <el-input-number v-model="localProjectForm.dailyPrice" :min="0" :precision="2" style="width: 130px" />
           <span class="unit">元/天</span>
         </el-form-item>
         <el-form-item label="参与人员">
-          <el-select v-model="projectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
+          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
             <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="projectForm.remark" type="textarea" />
+          <el-input v-model="localProjectForm.remark" type="textarea" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -447,19 +447,19 @@
     <el-dialog v-model="showCreateDeviceModalModel" title="新增设备" width="500px" destroy-on-close>
       <el-form :model="deviceForm" label-width="80px">
         <el-form-item label="客户" required v-shake ref="deviceCustomerItem">
-          <el-select v-model="deviceForm.customerId" placeholder="选择客户" filterable style="width: 100%">
+          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable style="width: 100%">
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="设备名称" required v-shake ref="deviceNameItem">
-          <el-input v-model="deviceForm.deviceName" placeholder="请输入设备名称" />
+          <el-input v-model="localDeviceForm.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
         <el-form-item label="预计数量" required>
-          <el-input-number v-model="deviceForm.expectedQuantity" :min="1" style="width: 150px" />
+          <el-input-number v-model="localDeviceForm.expectedQuantity" :min="1" style="width: 150px" />
           <span class="unit"> 台</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="deviceForm.remark" placeholder="可选备注" />
+          <el-input v-model="localDeviceForm.remark" placeholder="可选备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -471,19 +471,19 @@
     <el-dialog v-model="showEditDeviceModalModel" title="编辑设备" width="500px" destroy-on-close>
       <el-form :model="deviceForm" label-width="80px">
         <el-form-item label="客户" required>
-          <el-select v-model="deviceForm.customerId" placeholder="选择客户" filterable style="width: 100%" disabled>
+          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable style="width: 100%" disabled>
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="设备名称" required v-shake ref="editDeviceNameItem">
-          <el-input v-model="deviceForm.deviceName" placeholder="请输入设备名称" />
+          <el-input v-model="localDeviceForm.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
         <el-form-item label="预计数量" required>
-          <el-input-number v-model="deviceForm.expectedQuantity" :min="1" style="width: 150px" />
+          <el-input-number v-model="localDeviceForm.expectedQuantity" :min="1" style="width: 150px" />
           <span class="unit"> 台</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="deviceForm.remark" placeholder="可选备注" />
+          <el-input v-model="localDeviceForm.remark" placeholder="可选备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -503,23 +503,23 @@
           </p>
         </div>
         <el-form-item label="工作日期" required v-shake ref="stageDateItem">
-          <el-date-picker v-model="stageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker v-model="localStageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="数量" required>
-          <el-input-number v-model="stageForm.quantity" :min="1" :max="stageMaxQuantity" style="width: 160px" />
+          <el-input-number v-model="localStageForm.quantity" :min="1" :max="stageMaxQuantity" style="width: 160px" />
           <span class="unit">台</span>
         </el-form-item>
         <el-form-item label="协作人员">
-          <el-select v-model="stageForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
+          <el-select v-model="localStageForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
             <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
-          <el-switch v-model="stageForm.includeRecorder" />
+          <el-switch v-model="localStageForm.includeRecorder" />
           <span class="switch-hint">关闭后记录人不参与工作量分润</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="stageForm.remark" placeholder="可选备注" />
+          <el-input v-model="localStageForm.remark" placeholder="可选备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -532,59 +532,59 @@
     <el-dialog v-model="showRecordModalModel" :title="editingRecord ? '编辑工作记录' : '新增工作记录'" width="540px" destroy-on-close>
       <el-form :model="recordForm" label-width="90px">
         <el-form-item label="日期" required v-shake ref="recordDateItem">
-          <el-date-picker v-model="recordForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker v-model="localRecordForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="阶段" required v-shake ref="recordStageItem" v-if="selectedProject?.calculationType === CalculationType.QUANTITY">
-          <el-select v-model="recordForm.stageId" placeholder="选择阶段" style="width: 100%" @change="onRecordStageChange">
+          <el-select v-model="localRecordForm.stageId" placeholder="选择阶段" style="width: 100%" @change="onRecordStageChange">
             <el-option v-for="stage in quantityStages" :key="stage.id" :label="stage.name" :value="stage.id" />
           </el-select>
         </el-form-item>
         <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY && currentSelectedStage?.trackingMode === StageTrackingMode.DEVICE">
           <el-form-item label="客户" required v-shake ref="recordCustomerItem">
-            <el-select v-model="recordForm.customerId" placeholder="选择客户" clearable filterable style="width: 100%" @change="onRecordCustomerChange">
+            <el-select v-model="localRecordForm.customerId" placeholder="选择客户" clearable filterable style="width: 100%" @change="onRecordCustomerChange">
               <el-option v-for="customer in filteredCustomersForRecord" :key="customer.id" :label="customer.shortName ? `${customer.shortName} (${customer.name})` : customer.name" :value="customer.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="关联设备" required v-shake ref="recordDeviceItem">
-            <el-select v-model="recordForm.deviceId" placeholder="先选择客户" filterable style="width: 100%" :disabled="!recordForm.customerId">
+            <el-select v-model="localRecordForm.deviceId" placeholder="先选择客户" filterable style="width: 100%" :disabled="!recordForm.customerId">
               <el-option v-for="d in filteredDevicesForRecord" :key="d.id" :label="`${d.customer?.shortName || d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="数量" required>
-            <el-input-number v-model="recordForm.quantity" :min="1" :max="maxQuantityForRecord" style="width: 140px" />
+            <el-input-number v-model="localRecordForm.quantity" :min="1" :max="maxQuantityForRecord" style="width: 140px" />
             <span class="unit"> 台</span>
             <span v-if="maxQuantityForRecord < Infinity" class="max-hint">（剩余可填：{{ maxQuantityForRecord }} 台）</span>
           </el-form-item>
         </template>
         <template v-if="selectedProject?.calculationType === CalculationType.QUANTITY && currentSelectedStage?.trackingMode === StageTrackingMode.PROJECT">
           <el-form-item label="数量" required>
-            <el-input-number v-model="recordForm.quantity" :min="1" style="width: 140px" />
+            <el-input-number v-model="localRecordForm.quantity" :min="1" style="width: 140px" />
             <span class="unit"> 台</span>
           </el-form-item>
         </template>
         <template v-if="selectedProject?.calculationType === CalculationType.DAILY">
           <el-form-item label="工作时长" required>
-            <el-input-number v-model="recordForm.workDuration" :min="0.5" :step="0.5" style="width: 120px" />
-            <el-select v-model="recordForm.workUnit" style="width: 80px; margin-left: 8px;">
+            <el-input-number v-model="localRecordForm.workDuration" :min="0.5" :step="0.5" style="width: 120px" />
+            <el-select v-model="localRecordForm.workUnit" style="width: 80px; margin-left: 8px;">
               <el-option :value="WorkUnit.DAY" :label="'工日'" />
               <el-option :value="WorkUnit.HOUR" :label="'小时'" />
             </el-select>
           </el-form-item>
           <el-form-item label="工作描述">
-            <el-input v-model="recordForm.description" type="textarea" :rows="3" placeholder="描述工作内容..." />
+            <el-input v-model="localRecordForm.description" type="textarea" :rows="3" placeholder="描述工作内容..." />
           </el-form-item>
         </template>
         <el-form-item label="协作人员">
-          <el-select v-model="recordForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
+          <el-select v-model="localRecordForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
             <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
-          <el-switch v-model="recordForm.includeRecorder" />
+          <el-switch v-model="localRecordForm.includeRecorder" />
           <span class="switch-hint">关闭后记录人不参与工作量分润</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="recordForm.remark" placeholder="可选备注" />
+          <el-input v-model="localRecordForm.remark" placeholder="可选备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -605,7 +605,7 @@
         accept=".xlsx,.xls,.csv"
         :auto-upload="false"
         :limit="1"
-        :on-change="(file: any) => $emit('fileChange', file)"
+        :on-change="(file: UploadFile) => $emit('fileChange', file)"
         :on-remove="() => { /* 父组件处理 */ }"
       >
         <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
@@ -642,7 +642,7 @@
             <el-table-column prop="name" label="导入客户名" width="180" />
             <el-table-column label="选择已有客户">
               <template #default="{ row }">
-                <el-select v-model="importCustomerMap[row.name].matchedId" placeholder="选择客户" filterable size="small" style="width: 100%">
+                <el-select v-model="localImportCustomerMap[row.name].matchedId" placeholder="选择客户" filterable size="small" style="width: 100%">
                   <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
               </template>
@@ -650,7 +650,7 @@
             <el-table-column label="建议" width="200">
               <template #default="{ row }">
                 <div v-if="row.suggestions.length > 0" class="suggestions">
-                  <el-tag v-for="s in row.suggestions" :key="s.id" size="small" class="suggestion-tag" @click="importCustomerMap[row.name].matchedId = s.id">
+                  <el-tag v-for="s in row.suggestions" :key="s.id" size="small" class="suggestion-tag" @click="localImportCustomerMap[row.name].matchedId = s.id">
                     {{ s.name }}
                   </el-tag>
                 </div>
@@ -674,6 +674,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Download, EditPen, Delete, UploadFilled, ArrowRight, ArrowDown } from '@element-plus/icons-vue';
+import type { UploadFile } from 'element-plus';
 import StatsTable from './StatsTable.vue';
 import {
   CalculationType,
@@ -684,10 +685,54 @@ import {
   HOURS_PER_DAY,
   formatWorkHours,
 } from '@/types';
-import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats, ProjectStage } from '@/types';
+import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats, ProjectStage, StageInput } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
+
+interface ProjectForm {
+  projectName: string;
+  calculationType: CalculationType;
+  totalQuantity: number;
+  stages: StageInput[];
+  dailyPrice: number;
+  remark: string;
+  memberIds: string[];
+  editingId: string;
+}
+
+interface RecordForm {
+  date: string;
+  stageId: string;
+  quantity: number;
+  customerId: string;
+  deviceId: string;
+  workDuration: number;
+  workUnit: WorkUnit;
+  description: string;
+  collaboratorIds: string[];
+  includeRecorder: boolean;
+  remark: string;
+}
+
+interface DeviceForm {
+  customerId: string;
+  deviceName: string;
+  expectedQuantity: number;
+  remark: string;
+}
+
+interface StageForm {
+  date: string;
+  quantity: number;
+  collaboratorIds: string[];
+  includeRecorder: boolean;
+  remark: string;
+}
+
+interface ShakeableComponent {
+  $el?: HTMLElement & { __shake?: () => void };
+}
 
 const props = defineProps<{
   projects: Project[];
@@ -706,13 +751,13 @@ const props = defineProps<{
   loading: boolean;
   currentPage: number;
   pageSize: number;
-  projectForm: any;
-  recordForm: any;
+  projectForm: ProjectForm;
+  recordForm: RecordForm;
   editingRecord: WorkRecord | null;
-  deviceForm: any;
+  deviceForm: DeviceForm;
   editingDevice: CustomerDevice | null;
   currentStage: ProjectStage | undefined;
-  stageForm: any;
+  stageForm: StageForm;
   stageMaxQuantity: number;
   stageModalTitle: string;
   importData: Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>;
@@ -749,7 +794,7 @@ const emit = defineEmits<{
   removeStage: [index: number];
   importDevice: [];
   downloadTemplate: [];
-  fileChange: [file: any];
+  fileChange: [file: UploadFile];
   confirmImport: [];
   createAllUnmatched: [];
   applyAllSuggestions: [];
@@ -764,6 +809,13 @@ const emit = defineEmits<{
   updateShowStageModal: [value: boolean];
   updateShowImportModal: [value: boolean];
 }>();
+
+// Alias reactive props so v-model binds to local names (parent holds the same reactive objects by reference)
+const localProjectForm = props.projectForm;
+const localRecordForm = props.recordForm;
+const localDeviceForm = props.deviceForm;
+const localStageForm = props.stageForm;
+const localImportCustomerMap = props.importCustomerMap;
 
 // v-model 代理
 const currentPageModel = computed({
@@ -795,26 +847,25 @@ const previewData = computed(() => {
 });
 
 // 记录表单校验：摇晃提示
-const recordDateItem = ref<any>(null);
-const recordStageItem = ref<any>(null);
-const recordCustomerItem = ref<any>(null);
-const recordDeviceItem = ref<any>(null);
+const recordDateItem = ref<ShakeableComponent | null>(null);
+const recordStageItem = ref<ShakeableComponent | null>(null);
+const recordCustomerItem = ref<ShakeableComponent | null>(null);
+const recordDeviceItem = ref<ShakeableComponent | null>(null);
 
 // 设备表单校验：摇晃提示
-const deviceCustomerItem = ref<any>(null);
-const deviceNameItem = ref<any>(null);
-const editDeviceNameItem = ref<any>(null);
+const deviceCustomerItem = ref<ShakeableComponent | null>(null);
+const deviceNameItem = ref<ShakeableComponent | null>(null);
+const editDeviceNameItem = ref<ShakeableComponent | null>(null);
 
 // 阶段记录表单校验
-const stageDateItem = ref<any>(null);
+const stageDateItem = ref<ShakeableComponent | null>(null);
 
 // 项目表单校验
-const projectNameItem = ref<any>(null);
-const editProjectNameItem = ref<any>(null);
+const projectNameItem = ref<ShakeableComponent | null>(null);
+const editProjectNameItem = ref<ShakeableComponent | null>(null);
 
-const shakeItem = (itemRef: any) => {
-  const el = itemRef?.$el || itemRef;
-  el?.__shake?.();
+const shakeItem = (itemRef: ShakeableComponent | null | undefined) => {
+  itemRef?.$el?.__shake?.();
 };
 
 const handleCreateProject = () => {
@@ -940,10 +991,6 @@ const filteredRecords = computed(() => {
   });
 });
 
-const resetRecordFilter = () => {
-  recordFilter.value = { customerId: '', stageId: '' };
-};
-
 // 当前所选阶段对象
 const currentSelectedStage = computed<ProjectStage | undefined>(() => {
   if (!props.recordForm.stageId) return undefined;
@@ -952,13 +999,13 @@ const currentSelectedStage = computed<ProjectStage | undefined>(() => {
 
 // 更改阶段时清空客户和设备
 const onRecordStageChange = () => {
-  props.recordForm.customerId = '';
-  props.recordForm.deviceId = '';
+  localRecordForm.customerId = '';
+  localRecordForm.deviceId = '';
 };
 
 // 更改客户时清除关联设备
 const onRecordCustomerChange = () => {
-  props.recordForm.deviceId = '';
+  localRecordForm.deviceId = '';
 };
 
 // 获取设备在指定阶段的已记录数量
@@ -1050,13 +1097,8 @@ const getRecordStageName = (record: WorkRecord): string => {
 
 // 统计卡：某阶段我的记录数
 const myStatsStageCount = (stageId: string): number => {
-  const stats = props.myStats as any;
-  if (!stats) return 0;
-  // 优先使用 stageCounts 映射
-  if (stats.stageCounts && typeof stats.stageCounts === 'object') {
-    return stats.stageCounts[stageId] || 0;
-  }
-  return 0;
+  if (!props.myStats) return 0;
+  return props.myStats.stageStats[stageId]?.count || 0;
 };
 
 // 阶段配置操作

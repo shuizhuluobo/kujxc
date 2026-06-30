@@ -92,7 +92,9 @@ const form = reactive({
   confirmPassword: '',
 });
 
-const validatePass2 = (rule: any, value: string, callback: any) => {
+type ValidatorCallback = (error?: Error | string) => void;
+
+const validatePass2 = (_rule: unknown, value: string, callback: ValidatorCallback) => {
   if (value === '') {
     callback(new Error('请再次输入密码'));
   } else if (value !== form.newPassword) {
@@ -102,7 +104,7 @@ const validatePass2 = (rule: any, value: string, callback: any) => {
   }
 };
 
-const passwordComplexityValidator = (rule: any, value: string, callback: any) => {
+const passwordComplexityValidator = (_rule: unknown, value: string, callback: ValidatorCallback) => {
   if (!value) {
     callback(new Error('请输入新密码'));
   } else if (value.length < 8) {

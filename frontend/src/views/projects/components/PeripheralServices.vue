@@ -115,9 +115,6 @@ const emit = defineEmits<{
   itemChange: [];
 }>();
 
-// 设备类型映射（用于匹配同一设备）
-const deviceTypes = ['复印机', '打印机', '扫描仪', '碎纸机', '投影机'];
-
 // 获取回收单项服务（非全流程服务）
 const recycleSingleServices = computed(() => {
   return props.peripheralRecycleServices.filter(s => !s.item.includes('全流程'));

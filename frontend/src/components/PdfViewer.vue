@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 // Worker setup is tricky in Vite. We use the CDN or local worker.
 // Standard way: import worker from 'pdfjs-dist/build/pdf.worker.entry';
 // But often needs explicit path setting.
@@ -49,8 +50,8 @@ const loading = ref(false);
 const error = ref('');
 const isPasswordRequired = ref(false);
 const passwordInput = ref('');
-const pdfDoc = ref<any>(null);
-const pages = ref<any[]>([]);
+const pdfDoc = ref<PDFDocumentProxy | null>(null);
+const pages = ref<{ pageIndex: number }[]>([]);
 const pageRefs = ref<Record<number, HTMLCanvasElement>>({});
 const textLayerRefs = ref<Record<number, HTMLElement>>({});
 
@@ -68,7 +69,7 @@ const loadDocument = async (password?: string) => {
       cMapPacked: true,
     });
 
-    loadingTask.onPassword = (updatePassword: (password: string) => void, reason: number) => {
+    loadingTask.onPassword = (_updatePassword: (password: string) => void, _reason: number) => {
       loading.value = false;
       isPasswordRequired.value = true;
       // User must input password via UI which triggers this function again logic
@@ -79,22 +80,22 @@ const loadDocument = async (password?: string) => {
     };
 
     pdfDoc.value = await loadingTask.promise;
-    
+
     // Render all pages (lazy loading is better for large docs, but linear for MVP)
     const numPages = pdfDoc.value.numPages;
     for (let i = 1; i <= numPages; i++) {
        pages.value.push({ pageIndex: i });
     }
-    
-    await nextTick();
-    renderPages();
 
-  } catch (err: any) {
+    await nextTick();
+    void renderPages();
+
+  } catch (err: unknown) {
     console.error(err);
-    if (err.name === 'PasswordException') {
+    if (err instanceof Error && err.name === 'PasswordException') {
         isPasswordRequired.value = true;
     } else {
-        error.value = err.message;
+        error.value = err instanceof Error ? err.message : String(err);
     }
   } finally {
     if (!isPasswordRequired.value) loading.value = false;
@@ -105,7 +106,7 @@ const renderPages = async () => {
     if (!pdfDoc.value) return;
 
     for (const pageItem of pages.value) {
-        const page = await pdfDoc.value.getPage(pageItem.pageIndex);
+        const page: PDFPageProxy = await pdfDoc.value.getPage(pageItem.pageIndex);
         const canvas = pageRefs.value[pageItem.pageIndex];
         const context = canvas?.getContext('2d');
         if (!canvas || !context) continue;
@@ -118,8 +119,9 @@ const renderPages = async () => {
             canvasContext: context,
             viewport: viewport,
         };
-        await page.render(renderContext).promise;
-        
+        const renderTask: RenderTask = page.render(renderContext);
+        await renderTask.promise;
+
         // TODO: Render Text Layer for search highlighting
     }
 };
@@ -127,11 +129,11 @@ const renderPages = async () => {
 const retry = () => loadDocument();
 
 onMounted(() => {
-    if (props.url) loadDocument();
+    if (props.url) void loadDocument();
 });
 
 watch(() => props.url, () => {
-    loadDocument();
+    void loadDocument();
 });
 </script>
 

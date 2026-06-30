@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
+import type { WorkOrder } from '@/types';
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -141,6 +142,7 @@ describe('WorkOrderCard', () => {
       },
     });
 
-    expect(wrapper.props('workOrder').status).toBe('RECEIVED');
+    const workOrder = wrapper.props('workOrder') as WorkOrder;
+    expect(workOrder.status).toBe('RECEIVED');
   });
 });

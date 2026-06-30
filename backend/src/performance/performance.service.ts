@@ -1,8 +1,61 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CalculationType, RecordType, ProjectMemberRole, StageTrackingMode, Prisma } from '@prisma/client';
+import {
+  CalculationType,
+  Prisma,
+  ProjectMemberRole,
+  StageTrackingMode,
+} from '@prisma/client';
 import * as ExcelJS from 'exceljs';
+
+// Raw SQL 查询结果类型（PostgreSQL 列名保留大小写，但代码中部分以小写访问）
+interface CustomerDeviceRow {
+  id: string;
+  projectId: string;
+  customerId: string;
+  deviceName: string;
+  devicename: string;
+  expectedQuantity: number;
+  expectedquantity: number;
+  remark: string | null;
+  createdAt: Date;
+  creatorId: string;
+}
+
+interface DeviceStageProgressRow {
+  id: string;
+  deviceId: string;
+  stageId: string;
+  quantity: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 全局统计用户聚合类型
+interface GlobalUserStats {
+  userId: string;
+  userName: string;
+  totalQuantity: number;
+  totalAmount: number;
+  totalWorkDays: number;
+  workDaysAmount: number;
+  projectCount: Set<string>;
+}
+
+// 导出统计行类型（动态阶段列通过索引签名）
+interface StatsExportRow {
+  userName: string;
+  totalWorkDays: string;
+  workDaysAmount: string;
+  totalAmount: string;
+  [key: string]: string;
+}
 
 export interface StageInput {
   id?: string;
@@ -80,9 +133,27 @@ export interface MyPerformanceStats {
 
 // 默认阶段模板
 export const DEFAULT_STAGES: StageInput[] = [
-  { name: '送货', code: 'delivery', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 0 },
-  { name: '安装', code: 'install', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 1 },
-  { name: '调试', code: 'debug', trackingMode: StageTrackingMode.DEVICE, unitPrice: 0, sortOrder: 2 },
+  {
+    name: '送货',
+    code: 'delivery',
+    trackingMode: StageTrackingMode.DEVICE,
+    unitPrice: 0,
+    sortOrder: 0,
+  },
+  {
+    name: '安装',
+    code: 'install',
+    trackingMode: StageTrackingMode.DEVICE,
+    unitPrice: 0,
+    sortOrder: 1,
+  },
+  {
+    name: '调试',
+    code: 'debug',
+    trackingMode: StageTrackingMode.DEVICE,
+    unitPrice: 0,
+    sortOrder: 2,
+  },
 ];
 
 @Injectable()
@@ -110,12 +181,9 @@ export class PerformanceService {
 
   // ============ 项目查询 ============
   async getProjects(userId?: string, isAdmin?: boolean) {
-    const where: any = {};
+    const where: Prisma.PerformanceProjectWhereInput = {};
     if (userId && !isAdmin) {
-      where.OR = [
-        { creatorId: userId },
-        { members: { some: { userId } } },
-      ];
+      where.OR = [{ creatorId: userId }, { members: { some: { userId } } }];
     }
     return this.prisma.performanceProject.findMany({
       where,
@@ -158,7 +226,11 @@ export class PerformanceService {
     return !!member;
   }
 
-  async assertProjectMember(projectId: string, userId: string, roleCode?: string) {
+  async assertProjectMember(
+    projectId: string,
+    userId: string,
+    roleCode?: string,
+  ) {
     if (roleCode === 'admin') return;
     const isMember = await this.isProjectMember(projectId, userId);
     if (!isMember) {
@@ -166,7 +238,11 @@ export class PerformanceService {
     }
   }
 
-  async assertProjectManager(projectId: string, userId: string, roleCode?: string) {
+  async assertProjectManager(
+    projectId: string,
+    userId: string,
+    roleCode?: string,
+  ) {
     if (roleCode === 'admin') return;
     const project = await this.prisma.performanceProject.findUnique({
       where: { id: projectId },
@@ -182,7 +258,9 @@ export class PerformanceService {
   async createProject(data: CreateProjectDto, creatorId: string) {
     const { memberIds, stages, ...projectData } = data;
     const members = memberIds || [];
-    const uniqueMemberIds = [...new Set(members.filter(id => id !== creatorId))];
+    const uniqueMemberIds = [
+      ...new Set(members.filter((id) => id !== creatorId)),
+    ];
 
     // 按量项目校验阶段
     if (projectData.calculationType === CalculationType.QUANTITY) {
@@ -198,23 +276,27 @@ export class PerformanceService {
         members: {
           create: [
             { userId: creatorId, role: ProjectMemberRole.OWNER },
-            ...uniqueMemberIds.map(userId => ({
+            ...uniqueMemberIds.map((userId) => ({
               userId,
               role: ProjectMemberRole.MEMBER,
             })),
           ],
         },
-        stages: projectData.calculationType === CalculationType.QUANTITY
-          ? {
-              create: (stages && stages.length > 0 ? stages : DEFAULT_STAGES).map((s, idx) => ({
-                name: s.name,
-                code: s.code,
-                trackingMode: s.trackingMode,
-                unitPrice: s.unitPrice,
-                sortOrder: s.sortOrder ?? idx,
-              })),
-            }
-          : undefined,
+        stages:
+          projectData.calculationType === CalculationType.QUANTITY
+            ? {
+                create: (stages && stages.length > 0
+                  ? stages
+                  : DEFAULT_STAGES
+                ).map((s, idx) => ({
+                  name: s.name,
+                  code: s.code,
+                  trackingMode: s.trackingMode,
+                  unitPrice: s.unitPrice,
+                  sortOrder: s.sortOrder ?? idx,
+                })),
+              }
+            : undefined,
       },
       include: {
         creator: { select: { id: true, name: true } },
@@ -240,13 +322,17 @@ export class PerformanceService {
       // 成员同步
       if (memberIds !== undefined) {
         await tx.projectMember.deleteMany({ where: { projectId: id } });
-        const project = await tx.performanceProject.findUnique({ where: { id } });
+        const project = await tx.performanceProject.findUnique({
+          where: { id },
+        });
         const creatorId = project?.creatorId || '';
-        const uniqueMemberIds = [...new Set(memberIds.filter(uid => uid !== creatorId))];
+        const uniqueMemberIds = [
+          ...new Set(memberIds.filter((uid) => uid !== creatorId)),
+        ];
         await tx.projectMember.createMany({
           data: [
             { projectId: id, userId: creatorId, role: ProjectMemberRole.OWNER },
-            ...uniqueMemberIds.map(userId => ({
+            ...uniqueMemberIds.map((userId) => ({
               projectId: id,
               userId,
               role: ProjectMemberRole.MEMBER,
@@ -257,12 +343,14 @@ export class PerformanceService {
 
       // 阶段同步（增删改）
       if (stages !== undefined) {
-        const existing = await tx.projectStage.findMany({ where: { projectId: id } });
-        const existingMap = new Map(existing.map(s => [s.id, s]));
-        const keepIds = new Set(stages.filter(s => s.id).map(s => s.id!));
+        const existing = await tx.projectStage.findMany({
+          where: { projectId: id },
+        });
+        const existingMap = new Map(existing.map((s) => [s.id, s]));
+        const keepIds = new Set(stages.filter((s) => s.id).map((s) => s.id!));
 
         // 删除不再存在的阶段（关联记录 stageId 置空）
-        const toDelete = existing.filter(s => !keepIds.has(s.id));
+        const toDelete = existing.filter((s) => !keepIds.has(s.id));
         for (const s of toDelete) {
           await tx.projectStage.delete({ where: { id: s.id } });
         }
@@ -325,20 +413,32 @@ export class PerformanceService {
       include: {
         creator: { select: { id: true, name: true } },
         customer: { select: { id: true, name: true, shortName: true } },
-        stage: { select: { id: true, name: true, code: true, trackingMode: true, unitPrice: true } },
+        stage: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            trackingMode: true,
+            unitPrice: true,
+          },
+        },
       },
     });
 
-    const allCollaboratorIds = [...new Set(records.flatMap(r => r.collaboratorIds))];
+    const allCollaboratorIds = [
+      ...new Set(records.flatMap((r) => r.collaboratorIds)),
+    ];
     const collaborators = await this.prisma.user.findMany({
       where: { id: { in: allCollaboratorIds } },
       select: { id: true, name: true },
     });
-    const collaboratorMap = new Map(collaborators.map(c => [c.id, c]));
+    const collaboratorMap = new Map(collaborators.map((c) => [c.id, c]));
 
-    return records.map(record => ({
+    return records.map((record) => ({
       ...record,
-      collaborators: record.collaboratorIds.map(id => collaboratorMap.get(id) || { id, name: '未知' }),
+      collaborators: record.collaboratorIds.map(
+        (id) => collaboratorMap.get(id) || { id, name: '未知' },
+      ),
     }));
   }
 
@@ -353,7 +453,12 @@ export class PerformanceService {
   }
 
   // ============ 记录创建（统一入口，支持动态阶段）============
-  async createRecord(projectId: string, data: CreateRecordDto, creatorId: string, roleCode?: string) {
+  async createRecord(
+    projectId: string,
+    data: CreateRecordDto,
+    creatorId: string,
+    roleCode?: string,
+  ) {
     await this.assertProjectMember(projectId, creatorId, roleCode);
 
     const project = await this.prisma.performanceProject.findUnique({
@@ -365,41 +470,44 @@ export class PerformanceService {
     // 按量项目：必须有阶段
     if (project.calculationType === CalculationType.QUANTITY) {
       if (!data.stageId) throw new BadRequestException('请选择阶段');
-      const stage = project.stages.find(s => s.id === data.stageId);
+      const stage = project.stages.find((s) => s.id === data.stageId);
       if (!stage) throw new BadRequestException('阶段不存在');
 
       // DEVICE 模式：必须关联设备
       if (stage.trackingMode === StageTrackingMode.DEVICE) {
         if (!data.deviceId) throw new BadRequestException('该阶段需关联设备');
-        if (!data.quantity || data.quantity <= 0) throw new BadRequestException('数量必须大于0');
+        if (!data.quantity || data.quantity <= 0)
+          throw new BadRequestException('数量必须大于0');
       }
     }
 
     const record = await this.prisma.$transaction(async (tx) => {
       // DEVICE 模式阶段：校验设备上限并更新进度
       if (data.stageId && data.deviceId && data.quantity) {
-        const stage = project.stages.find(s => s.id === data.stageId);
+        const stage = project.stages.find((s) => s.id === data.stageId);
         if (stage && stage.trackingMode === StageTrackingMode.DEVICE) {
           // 加行锁
-          const [lockedDevice] = await tx.$queryRaw<any[]>`
+          const [lockedDevice] = await tx.$queryRaw<CustomerDeviceRow[]>`
             SELECT * FROM "CustomerDevice" WHERE id = ${data.deviceId} FOR UPDATE
           `;
           if (!lockedDevice) throw new NotFoundException('设备不存在');
 
           const customer = lockedDevice.customerId
-            ? await tx.customer.findUnique({ where: { id: lockedDevice.customerId } })
+            ? await tx.customer.findUnique({
+                where: { id: lockedDevice.customerId },
+              })
             : null;
 
           // 当前阶段已记录数量
-          const [progress] = await tx.$queryRaw<any[]>`
+          const [progress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
             SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${data.deviceId} AND "stageId" = ${data.stageId} FOR UPDATE
           `;
           const currentQty = progress?.quantity || 0;
-          const newQty = currentQty + data.quantity!;
+          const newQty = currentQty + data.quantity;
 
           if (newQty > lockedDevice.expectedQuantity) {
             throw new BadRequestException(
-              `${stage.name}数量超出限制：${customer?.name || '该客户'}的${lockedDevice.devicename}应${lockedDevice.expectedquantity}台，已记录${currentQty}台，本次提交${data.quantity}台将超出总量`
+              `${stage.name}数量超出限制：${customer?.name || '该客户'}的${lockedDevice.devicename}应${lockedDevice.expectedquantity}台，已记录${currentQty}台，本次提交${data.quantity}台将超出总量`,
             );
           }
 
@@ -412,8 +520,8 @@ export class PerformanceService {
           } else {
             await tx.deviceStageProgress.create({
               data: {
-                deviceId: data.deviceId!,
-                stageId: data.stageId!,
+                deviceId: data.deviceId,
+                stageId: data.stageId,
                 quantity: newQty,
               },
             });
@@ -440,7 +548,15 @@ export class PerformanceService {
         include: {
           creator: { select: { id: true, name: true } },
           customer: { select: { id: true, name: true, shortName: true } },
-          stage: { select: { id: true, name: true, code: true, trackingMode: true, unitPrice: true } },
+          stage: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              trackingMode: true,
+              unitPrice: true,
+            },
+          },
         },
       });
     });
@@ -453,20 +569,26 @@ export class PerformanceService {
   }
 
   // ============ 记录更新 ============
-  async updateRecord(projectId: string, recordId: string, data: UpdateRecordDto) {
+  async updateRecord(
+    projectId: string,
+    recordId: string,
+    data: UpdateRecordDto,
+  ) {
     const oldRecord = await this.prisma.performanceRecord.findUnique({
       where: { id: recordId },
     });
     if (!oldRecord) throw new NotFoundException('记录不存在');
 
-    const qtyChanged = data.quantity !== undefined && data.quantity !== oldRecord.quantity;
-    const stageChanged = data.stageId !== undefined && data.stageId !== oldRecord.stageId;
+    const qtyChanged =
+      data.quantity !== undefined && data.quantity !== oldRecord.quantity;
+    const stageChanged =
+      data.stageId !== undefined && data.stageId !== oldRecord.stageId;
     const deviceId = oldRecord.deviceId;
 
     // 涉及设备进度变动，需事务同步
     if (deviceId && (qtyChanged || stageChanged) && oldRecord.stageId) {
       const result = await this.prisma.$transaction(async (tx) => {
-        const [device] = await tx.$queryRaw<any[]>`
+        const [device] = await tx.$queryRaw<CustomerDeviceRow[]>`
           SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
         `;
         if (!device) {
@@ -476,7 +598,15 @@ export class PerformanceService {
             include: {
               creator: { select: { id: true, name: true } },
               customer: { select: { id: true, name: true, shortName: true } },
-              stage: { select: { id: true, name: true, code: true, trackingMode: true, unitPrice: true } },
+              stage: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  trackingMode: true,
+                  unitPrice: true,
+                },
+              },
             },
           });
         }
@@ -485,7 +615,7 @@ export class PerformanceService {
         const oldStageId = oldRecord.stageId;
         const oldQty = oldRecord.quantity || 0;
         if (oldQty > 0) {
-          const [oldProgress] = await tx.$queryRaw<any[]>`
+          const [oldProgress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
             SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${deviceId} AND "stageId" = ${oldStageId} FOR UPDATE
           `;
           if (oldProgress) {
@@ -499,19 +629,22 @@ export class PerformanceService {
 
         // 2. 增加新阶段进度（如果新阶段也是 DEVICE 模式）
         const newStageId = data.stageId ?? oldRecord.stageId;
-        const newQty = data.quantity !== undefined ? data.quantity : oldRecord.quantity || 0;
+        const newQty =
+          data.quantity !== undefined ? data.quantity : oldRecord.quantity || 0;
 
         if (newStageId && newQty > 0) {
-          const stage = await tx.projectStage.findUnique({ where: { id: newStageId } });
+          const stage = await tx.projectStage.findUnique({
+            where: { id: newStageId },
+          });
           if (stage && stage.trackingMode === StageTrackingMode.DEVICE) {
-            const [newProgress] = await tx.$queryRaw<any[]>`
+            const [newProgress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
               SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${deviceId} AND "stageId" = ${newStageId} FOR UPDATE
             `;
             const currentQty = newProgress?.quantity || 0;
             const finalQty = currentQty + newQty;
             if (finalQty > device.expectedQuantity) {
               throw new BadRequestException(
-                `${stage.name}数量超出限制：${device.devicename}应${device.expectedquantity}台，本次提交${newQty}台将超出总量`
+                `${stage.name}数量超出限制：${device.devicename}应${device.expectedquantity}台，本次提交${newQty}台将超出总量`,
               );
             }
             if (newProgress) {
@@ -533,7 +666,15 @@ export class PerformanceService {
           include: {
             creator: { select: { id: true, name: true } },
             customer: { select: { id: true, name: true, shortName: true } },
-            stage: { select: { id: true, name: true, code: true, trackingMode: true, unitPrice: true } },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                trackingMode: true,
+                unitPrice: true,
+              },
+            },
           },
         });
       });
@@ -547,7 +688,15 @@ export class PerformanceService {
       include: {
         creator: { select: { id: true, name: true } },
         customer: { select: { id: true, name: true, shortName: true } },
-        stage: { select: { id: true, name: true, code: true, trackingMode: true, unitPrice: true } },
+        stage: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            trackingMode: true,
+            unitPrice: true,
+          },
+        },
       },
     });
   }
@@ -562,7 +711,7 @@ export class PerformanceService {
     if (record.deviceId && record.stageId && record.quantity) {
       const deviceId = record.deviceId;
       await this.prisma.$transaction(async (tx) => {
-        const [device] = await tx.$queryRaw<any[]>`
+        const [device] = await tx.$queryRaw<CustomerDeviceRow[]>`
           SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
         `;
         if (!device) {
@@ -571,11 +720,14 @@ export class PerformanceService {
         }
 
         // 回退阶段进度
-        const [progress] = await tx.$queryRaw<any[]>`
+        const [progress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
           SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${deviceId} AND "stageId" = ${record.stageId} FOR UPDATE
         `;
         if (progress) {
-          const backQty = Math.max(0, progress.quantity - (record.quantity || 0));
+          const backQty = Math.max(
+            0,
+            progress.quantity - (record.quantity || 0),
+          );
           await tx.deviceStageProgress.update({
             where: { id: progress.id },
             data: { quantity: backQty },
@@ -607,12 +759,17 @@ export class PerformanceService {
     });
   }
 
-  async createDevice(projectId: string, data: {
-    customerId: string;
-    deviceName: string;
-    expectedQuantity: number;
-    remark?: string;
-  }, creatorId: string, roleCode?: string) {
+  async createDevice(
+    projectId: string,
+    data: {
+      customerId: string;
+      deviceName: string;
+      expectedQuantity: number;
+      remark?: string;
+    },
+    creatorId: string,
+    roleCode?: string,
+  ) {
     await this.assertProjectManager(projectId, creatorId, roleCode);
     const device = await this.prisma.customerDevice.create({
       data: {
@@ -630,12 +787,17 @@ export class PerformanceService {
     return device;
   }
 
-  async updateDevice(deviceId: string, data: {
-    customerId?: string;
-    deviceName?: string;
-    expectedQuantity?: number;
-    remark?: string;
-  }, userId?: string, roleCode?: string) {
+  async updateDevice(
+    deviceId: string,
+    data: {
+      customerId?: string;
+      deviceName?: string;
+      expectedQuantity?: number;
+      remark?: string;
+    },
+    userId?: string,
+    roleCode?: string,
+  ) {
     let projectId: string | undefined;
     if (userId) {
       const device = await this.prisma.customerDevice.findUnique({
@@ -722,19 +884,30 @@ export class PerformanceService {
       const userCount = allUserIds.length || 1;
 
       allUserIds.forEach((userId) => {
-        const stats = ensureUser(userId, userId === record.creatorId ? record.creator.name : '');
+        const stats = ensureUser(
+          userId,
+          userId === record.creatorId ? record.creator.name : '',
+        );
 
-        if (project.calculationType === CalculationType.QUANTITY && record.quantity && record.stageId) {
-          const stage = project.stages.find(s => s.id === record.stageId);
+        if (
+          project.calculationType === CalculationType.QUANTITY &&
+          record.quantity &&
+          record.stageId
+        ) {
+          const stage = project.stages.find((s) => s.id === record.stageId);
           if (stage) {
             const quantityPerUser = record.quantity / userCount;
             if (!stats.stageStats[stage.id]) {
               stats.stageStats[stage.id] = { count: 0, amount: 0 };
             }
             stats.stageStats[stage.id].count += quantityPerUser;
-            stats.stageStats[stage.id].amount += quantityPerUser * stage.unitPrice;
+            stats.stageStats[stage.id].amount +=
+              quantityPerUser * stage.unitPrice;
           }
-        } else if (project.calculationType === CalculationType.DAILY && record.workHours) {
+        } else if (
+          project.calculationType === CalculationType.DAILY &&
+          record.workHours
+        ) {
           const totalWorkDays = record.workHours / 8;
           stats.totalWorkDays += totalWorkDays;
           stats.workDaysAmount += totalWorkDays * project.dailyPrice;
@@ -754,7 +927,7 @@ export class PerformanceService {
 
     return Array.from(userStats.values()).map((stat) => {
       let stageTotal = 0;
-      Object.values(stat.stageStats).forEach(s => stageTotal += s.amount);
+      Object.values(stat.stageStats).forEach((s) => (stageTotal += s.amount));
       return {
         ...stat,
         totalAmount: Math.round((stageTotal + stat.workDaysAmount) * 100) / 100,
@@ -763,7 +936,10 @@ export class PerformanceService {
   }
 
   // ============ 统计：我的 ============
-  async getMyStats(projectId: string, userId: string): Promise<MyPerformanceStats> {
+  async getMyStats(
+    projectId: string,
+    userId: string,
+  ): Promise<MyPerformanceStats> {
     const project = await this.prisma.performanceProject.findUnique({
       where: { id: projectId },
       include: { stages: { orderBy: { sortOrder: 'asc' } } },
@@ -793,23 +969,33 @@ export class PerformanceService {
       if (record.includeRecorder) allUserIds.push(record.creatorId);
       const userCount = allUserIds.length || 1;
 
-      if (project.calculationType === CalculationType.QUANTITY && record.quantity && record.stageId) {
-        const stage = project.stages.find(s => s.id === record.stageId);
+      if (
+        project.calculationType === CalculationType.QUANTITY &&
+        record.quantity &&
+        record.stageId
+      ) {
+        const stage = project.stages.find((s) => s.id === record.stageId);
         if (stage) {
           const quantityPerUser = record.quantity / userCount;
-          if (!result.stageStats[stage.id]) result.stageStats[stage.id] = { count: 0, amount: 0 };
+          if (!result.stageStats[stage.id])
+            result.stageStats[stage.id] = { count: 0, amount: 0 };
           result.stageStats[stage.id].count += quantityPerUser;
-          result.stageStats[stage.id].amount += quantityPerUser * stage.unitPrice;
+          result.stageStats[stage.id].amount +=
+            quantityPerUser * stage.unitPrice;
         }
-      } else if (project.calculationType === CalculationType.DAILY && record.workHours) {
+      } else if (
+        project.calculationType === CalculationType.DAILY &&
+        record.workHours
+      ) {
         result.totalWorkDays += record.workHours / 8;
         result.totalAmount += (record.workHours / 8) * project.dailyPrice;
       }
     });
 
     let stageTotal = 0;
-    Object.values(result.stageStats).forEach(s => stageTotal += s.amount);
-    result.totalAmount = Math.round((stageTotal + result.totalWorkDays * 0) * 100) / 100;
+    Object.values(result.stageStats).forEach((s) => (stageTotal += s.amount));
+    result.totalAmount =
+      Math.round((stageTotal + result.totalWorkDays * 0) * 100) / 100;
     // 注意：DAILY 项目的 totalAmount 已在循环中累加；QUANTITY 的金额在 stageStats 中
     // 统一：totalAmount = 阶段金额合计 + 日结金额
     let workDaysAmount = 0;
@@ -818,8 +1004,7 @@ export class PerformanceService {
         if (record.workHours) {
           const allUserIds: string[] = [...record.collaboratorIds];
           if (record.includeRecorder) allUserIds.push(record.creatorId);
-          const userCount = allUserIds.length || 1;
-          workDaysAmount += (record.workHours / 8) * project.dailyPrice / 1;
+          workDaysAmount += ((record.workHours / 8) * project.dailyPrice) / 1;
         }
       });
     }
@@ -854,17 +1039,33 @@ export class PerformanceService {
     ];
     infoSheet.getRow(1).font = { bold: true };
     infoSheet.addRow({ label: '项目名称', value: project.projectName });
-    infoSheet.addRow({ label: '计算方式', value: project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算' });
-    infoSheet.addRow({ label: '设备总量', value: project.totalQuantity || '-' });
+    infoSheet.addRow({
+      label: '计算方式',
+      value:
+        project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
+    });
+    infoSheet.addRow({
+      label: '设备总量',
+      value: project.totalQuantity || '-',
+    });
     if (project.calculationType === 'QUANTITY') {
-      project.stages.forEach(s => {
-        infoSheet.addRow({ label: `${s.name}单价`, value: `${s.unitPrice}元/台` });
+      project.stages.forEach((s) => {
+        infoSheet.addRow({
+          label: `${s.name}单价`,
+          value: `${s.unitPrice}元/台`,
+        });
       });
     }
-    infoSheet.addRow({ label: '日结单价', value: `${project.dailyPrice}元/人/工日` });
+    infoSheet.addRow({
+      label: '日结单价',
+      value: `${project.dailyPrice}元/人/工日`,
+    });
     infoSheet.addRow({ label: '备注', value: project.remark || '-' });
     infoSheet.addRow({ label: '创建人', value: project.creator?.name || '-' });
-    infoSheet.addRow({ label: '创建时间', value: new Date(project.createdAt).toLocaleString('zh-CN') });
+    infoSheet.addRow({
+      label: '创建时间',
+      value: new Date(project.createdAt).toLocaleString('zh-CN'),
+    });
 
     // 工作记录
     const recordSheet = workbook.addWorksheet('工作记录');
@@ -879,14 +1080,21 @@ export class PerformanceService {
       { header: '记录人', key: 'creator', width: 12 },
     ];
     recordSheet.getRow(1).font = { bold: true };
-    recordSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    recordSheet.getRow(1).alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+    };
 
     const collaborators = await this.prisma.user.findMany({
-      where: { id: { in: [...new Set(project.records.flatMap(r => r.collaboratorIds))] } },
+      where: {
+        id: {
+          in: [...new Set(project.records.flatMap((r) => r.collaboratorIds))],
+        },
+      },
     });
-    const collaboratorMap = new Map(collaborators.map(c => [c.id, c.name]));
+    const collaboratorMap = new Map(collaborators.map((c) => [c.id, c.name]));
 
-    project.records.forEach(record => {
+    project.records.forEach((record) => {
       const quantityOrHours = record.quantity
         ? `${record.quantity}台`
         : record.workHours
@@ -897,7 +1105,9 @@ export class PerformanceService {
         stage: record.stage?.name || '-',
         quantity: quantityOrHours,
         customer: record.customer?.name || '-',
-        collaborators: record.collaboratorIds.map(id => collaboratorMap.get(id) || id).join(', '),
+        collaborators: record.collaboratorIds
+          .map((id) => collaboratorMap.get(id) || id)
+          .join(', '),
         includeRecorder: record.includeRecorder ? '是' : '否',
         description: record.description || record.remark || '-',
         creator: record.creator?.name || '-',
@@ -907,11 +1117,21 @@ export class PerformanceService {
     // 工作量统计（动态阶段列）
     const stats = await this.getStats(projectId);
     const statsSheet = workbook.addWorksheet('工作量统计');
-    const statsColumns: any[] = [{ header: '参与人员', key: 'userName', width: 15 }];
+    const statsColumns: Partial<ExcelJS.Column>[] = [
+      { header: '参与人员', key: 'userName', width: 15 },
+    ];
     if (project.calculationType === 'QUANTITY') {
-      project.stages.forEach(s => {
-        statsColumns.push({ header: `${s.name}数量`, key: `${s.id}_count`, width: 12 });
-        statsColumns.push({ header: `${s.name}金额`, key: `${s.id}_amount`, width: 12 });
+      project.stages.forEach((s) => {
+        statsColumns.push({
+          header: `${s.name}数量`,
+          key: `${s.id}_count`,
+          width: 12,
+        });
+        statsColumns.push({
+          header: `${s.name}金额`,
+          key: `${s.id}_amount`,
+          width: 12,
+        });
       });
     }
     statsColumns.push({ header: '工日数', key: 'totalWorkDays', width: 12 });
@@ -919,12 +1139,15 @@ export class PerformanceService {
     statsColumns.push({ header: '合计金额', key: 'totalAmount', width: 12 });
     statsSheet.columns = statsColumns;
     statsSheet.getRow(1).font = { bold: true };
-    statsSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    statsSheet.getRow(1).alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+    };
 
-    stats.forEach(stat => {
-      const row: any = { userName: stat.userName };
+    stats.forEach((stat) => {
+      const row: StatsExportRow = { userName: stat.userName } as StatsExportRow;
       if (project.calculationType === 'QUANTITY') {
-        project.stages.forEach(s => {
+        project.stages.forEach((s) => {
           const ss = stat.stageStats[s.id];
           row[`${s.id}_count`] = ss ? ss.count.toFixed(2) : '0.00';
           row[`${s.id}_amount`] = ss ? `${ss.amount.toFixed(2)}元` : '0.00元';
@@ -937,14 +1160,19 @@ export class PerformanceService {
     });
 
     // 合计行
-    const totalRow: any = { userName: '合计' };
+    const totalRow: StatsExportRow = { userName: '合计' } as StatsExportRow;
     if (project.calculationType === 'QUANTITY') {
-      project.stages.forEach(s => {
-        totalRow[`${s.id}_count`] = stats.reduce((sum, st) => sum + (st.stageStats[s.id]?.count || 0), 0).toFixed(2);
-        totalRow[`${s.id}_amount`] = `${stats.reduce((sum, st) => sum + (st.stageStats[s.id]?.amount || 0), 0).toFixed(2)}元`;
+      project.stages.forEach((s) => {
+        totalRow[`${s.id}_count`] = stats
+          .reduce((sum, st) => sum + (st.stageStats[s.id]?.count || 0), 0)
+          .toFixed(2);
+        totalRow[`${s.id}_amount`] =
+          `${stats.reduce((sum, st) => sum + (st.stageStats[s.id]?.amount || 0), 0).toFixed(2)}元`;
       });
     }
-    totalRow.totalWorkDays = stats.reduce((sum, s) => sum + s.totalWorkDays, 0).toFixed(2);
+    totalRow.totalWorkDays = stats
+      .reduce((sum, s) => sum + s.totalWorkDays, 0)
+      .toFixed(2);
     totalRow.workDaysAmount = `${stats.reduce((sum, s) => sum + s.workDaysAmount, 0).toFixed(2)}元`;
     totalRow.totalAmount = `${stats.reduce((sum, s) => sum + s.totalAmount, 0).toFixed(2)}元`;
     const tRow = statsSheet.addRow(totalRow);
@@ -955,7 +1183,8 @@ export class PerformanceService {
 
   // ============ 导出：多项目 ============
   async exportProjects(projectIds?: string[]): Promise<Buffer> {
-    const where = projectIds && projectIds.length > 0 ? { id: { in: projectIds } } : {};
+    const where =
+      projectIds && projectIds.length > 0 ? { id: { in: projectIds } } : {};
     const projects = await this.prisma.performanceProject.findMany({
       where,
       include: {
@@ -978,14 +1207,24 @@ export class PerformanceService {
     ];
     summarySheet.getRow(1).font = { bold: true };
 
-    const allUserIds = [...new Set(projects.flatMap(p => [p.creatorId, ...p.records.flatMap(r => r.collaboratorIds)]))];
-    const users = await this.prisma.user.findMany({ where: { id: { in: allUserIds } } });
-    const userMap = new Map(users.map(u => [u.id, u.name]));
+    const allUserIds = [
+      ...new Set(
+        projects.flatMap((p) => [
+          p.creatorId,
+          ...p.records.flatMap((r) => r.collaboratorIds),
+        ]),
+      ),
+    ];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: allUserIds } },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u.name]));
 
-    projects.forEach(project => {
+    projects.forEach((project) => {
       summarySheet.addRow({
         projectName: project.projectName,
-        calculationType: project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
+        calculationType:
+          project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
         totalQuantity: project.totalQuantity || '-',
         recordCount: project.records.length,
         creator: userMap.get(project.creatorId) || '-',
@@ -993,7 +1232,9 @@ export class PerformanceService {
       });
 
       const detailSheet = workbook.addWorksheet(
-        project.projectName.length > 30 ? project.projectName.substring(0, 30) : project.projectName
+        project.projectName.length > 30
+          ? project.projectName.substring(0, 30)
+          : project.projectName,
       );
       detailSheet.columns = [
         { header: '日期', key: 'date', width: 12 },
@@ -1005,25 +1246,42 @@ export class PerformanceService {
       ];
       detailSheet.getRow(1).font = { bold: true };
 
-      const stageMap = new Map(project.stages.map(s => [s.id, s]));
+      const stageMap = new Map(project.stages.map((s) => [s.id, s]));
 
-      project.records.forEach(record => {
+      project.records.forEach((record) => {
         let amount = 0;
-        if (project.calculationType === CalculationType.QUANTITY && record.quantity && record.stageId) {
+        if (
+          project.calculationType === CalculationType.QUANTITY &&
+          record.quantity &&
+          record.stageId
+        ) {
           const stage = stageMap.get(record.stageId);
           if (stage) {
-            const userCount = [...record.collaboratorIds, ...(record.includeRecorder ? [record.creatorId] : [])].length || 1;
+            const userCount =
+              [
+                ...record.collaboratorIds,
+                ...(record.includeRecorder ? [record.creatorId] : []),
+              ].length || 1;
             amount = (record.quantity / userCount) * stage.unitPrice;
           }
-        } else if (project.calculationType === CalculationType.DAILY && record.workHours) {
+        } else if (
+          project.calculationType === CalculationType.DAILY &&
+          record.workHours
+        ) {
           amount = (record.workHours / 8) * project.dailyPrice;
         }
         detailSheet.addRow({
           date: new Date(record.date).toLocaleDateString('zh-CN'),
           stage: record.stage?.name || '-',
-          quantity: record.quantity ? `${record.quantity}台` : record.workHours ? `${record.workHours}小时` : '-',
+          quantity: record.quantity
+            ? `${record.quantity}台`
+            : record.workHours
+              ? `${record.workHours}小时`
+              : '-',
           customer: record.customer?.name || '-',
-          collaborators: record.collaboratorIds.map(id => userMap.get(id) || id).join(', '),
+          collaborators: record.collaboratorIds
+            .map((id) => userMap.get(id) || id)
+            .join(', '),
           amount: `${amount.toFixed(2)}元`,
         });
       });
@@ -1044,20 +1302,24 @@ export class PerformanceService {
     });
   }
 
-  async saveFeeRecord(projectId: string | null, data: {
-    items: any[];
-    subtotal: number;
-    discount: number;
-    actualAmount: number;
-    remark?: string;
-    customerId?: string;
-    collaboratorIds?: string[];
-  }, creatorId: string) {
+  async saveFeeRecord(
+    projectId: string | null,
+    data: {
+      items: any[];
+      subtotal: number;
+      discount: number;
+      actualAmount: number;
+      remark?: string;
+      customerId?: string;
+      collaboratorIds?: string[];
+    },
+    creatorId: string,
+  ) {
     return this.prisma.feeRecord.create({
       data: {
         projectId: projectId || null,
         customerId: data.customerId,
-        items: data.items as unknown as Prisma.InputJsonValue,
+        items: data.items,
         subtotal: data.subtotal,
         discount: data.discount,
         actualAmount: data.actualAmount,
@@ -1074,7 +1336,9 @@ export class PerformanceService {
 
   async deleteFeeRecord(projectId: string | null, recordId: string) {
     const record = await this.prisma.feeRecord.findFirst({
-      where: projectId ? { id: recordId, projectId } : { id: recordId, projectId: null },
+      where: projectId
+        ? { id: recordId, projectId }
+        : { id: recordId, projectId: null },
     });
     if (!record) throw new NotFoundException('费用记录不存在');
     return this.prisma.feeRecord.delete({ where: { id: recordId } });
@@ -1082,10 +1346,10 @@ export class PerformanceService {
 
   // ============ 全局统计（跨项目，阶段不跨项目对齐，仅汇总总数量/金额）============
   async getGlobalStats(startDate?: string, endDate?: string, userId?: string) {
-    const dateFilter: any = {};
+    const dateFilter: Prisma.StringFilter = {};
     if (startDate) dateFilter.gte = startDate;
     if (endDate) dateFilter.lte = endDate;
-    const recordWhere: any = {};
+    const recordWhere: Prisma.PerformanceRecordWhereInput = {};
     if (startDate || endDate) recordWhere.date = dateFilter;
 
     const projects = await this.prisma.performanceProject.findMany({
@@ -1098,10 +1362,10 @@ export class PerformanceService {
       },
     });
 
-    const userStats = new Map<string, any>();
+    const userStats = new Map<string, GlobalUserStats>();
 
     for (const project of projects) {
-      const stageMap = new Map(project.stages.map(s => [s.id, s]));
+      const stageMap = new Map(project.stages.map((s) => [s.id, s]));
       for (const record of project.records) {
         const allUserIds: string[] = [...record.collaboratorIds];
         if (record.includeRecorder) allUserIds.push(record.creatorId);
@@ -1123,14 +1387,21 @@ export class PerformanceService {
           const stats = userStats.get(uid)!;
           stats.projectCount.add(project.id);
 
-          if (project.calculationType === CalculationType.QUANTITY && record.quantity && record.stageId) {
+          if (
+            project.calculationType === CalculationType.QUANTITY &&
+            record.quantity &&
+            record.stageId
+          ) {
             const stage = stageMap.get(record.stageId);
             if (stage) {
               const quantityPerUser = record.quantity / userCount;
               stats.totalQuantity += quantityPerUser;
               stats.totalAmount += quantityPerUser * stage.unitPrice;
             }
-          } else if (project.calculationType === CalculationType.DAILY && record.workHours) {
+          } else if (
+            project.calculationType === CalculationType.DAILY &&
+            record.workHours
+          ) {
             const totalWorkDays = record.workHours / 8;
             stats.totalWorkDays += totalWorkDays;
             stats.workDaysAmount += totalWorkDays * project.dailyPrice;
@@ -1155,7 +1426,8 @@ export class PerformanceService {
       totalQuantity: Math.round(stat.totalQuantity * 100) / 100,
       totalWorkDays: Math.round(stat.totalWorkDays * 100) / 100,
       workDaysAmount: Math.round(stat.workDaysAmount * 100) / 100,
-      totalAmount: Math.round((stat.totalAmount + stat.workDaysAmount) * 100) / 100,
+      totalAmount:
+        Math.round((stat.totalAmount + stat.workDaysAmount) * 100) / 100,
     }));
   }
 }

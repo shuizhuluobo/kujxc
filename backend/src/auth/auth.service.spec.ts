@@ -8,11 +8,15 @@ import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/unbound-method */
 
 describe('AuthService', () => {
   let service: AuthService;
-  let mockPrisma: any;
+  let mockPrisma: {
+    user: {
+      findUnique: jest.Mock;
+    };
+  };
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
 

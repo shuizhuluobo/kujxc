@@ -1,14 +1,14 @@
 <template>
   <el-form
     ref="formRef"
-    :model="modelValue"
+    :model="localModelValue"
     :rules="rules"
     :label-position="labelPosition"
     :label-width="labelWidth"
   >
     <el-form-item label="客户" prop="customerId">
       <el-select
-        v-model="modelValue.customerId"
+        v-model="localModelValue.customerId"
         filterable
         remote
         :remote-method="onSearch"
@@ -30,7 +30,7 @@
     </el-form-item>
 
     <el-form-item label="区域" prop="regionId">
-      <el-radio-group v-model="modelValue.regionId" :class="{ 'radio-group-inline': isMobile }">
+      <el-radio-group v-model="localModelValue.regionId" :class="{ 'radio-group-inline': isMobile }">
         <el-radio
           v-for="r in baseDataStore.regions"
           :key="r.id"
@@ -43,7 +43,7 @@
     </el-form-item>
 
     <el-form-item label="服务类型" prop="serviceTypeId">
-      <el-select v-model="modelValue.serviceTypeId" placeholder="选择服务类型" style="width: 100%">
+      <el-select v-model="localModelValue.serviceTypeId" placeholder="选择服务类型" style="width: 100%">
         <el-option
           v-for="s in baseDataStore.serviceTypes"
           :key="s.id"
@@ -55,7 +55,7 @@
 
     <el-form-item label="详情" prop="detail">
       <el-input
-        v-model="modelValue.detail"
+        v-model="localModelValue.detail"
         type="textarea"
         :rows="4"
         placeholder="请输入工单详情"
@@ -65,7 +65,7 @@
     </el-form-item>
 
     <el-form-item label="分值" prop="scoreLevel">
-      <el-radio-group v-model="modelValue.scoreLevel" :class="{ 'radio-group-inline': isMobile }">
+      <el-radio-group v-model="localModelValue.scoreLevel" :class="{ 'radio-group-inline': isMobile }">
         <el-radio value="SIMPLE" :class="{ 'radio-item-inline': isMobile }">
           简单 {{ !isMobile ? '(0.5)' : '' }}
         </el-radio>
@@ -100,16 +100,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 const baseDataStore = useBaseDataStore();
 const formRef = ref<FormInstance>();
+// Alias the reactive modelValue so v-model binds to a local name (parent holds the same reactive object by reference)
+const localModelValue = props.modelValue;
 
 const labelPosition = props.isMobile ? 'top' : 'right';
 const labelWidth = props.isMobile ? 'auto' : '80px';
 
 // Expose validate methods
+type FormValidateCallback = (isValid: boolean) => void;
+type FormItemProp = string | string[];
+
 defineExpose({
-  validate: (callback?: any) => formRef.value?.validate(callback),
-  validateField: (props?: any, callback?: any) => formRef.value?.validateField(props, callback),
+  validate: (callback?: FormValidateCallback) => formRef.value?.validate(callback),
+  validateField: (props?: FormItemProp, callback?: FormValidateCallback) => formRef.value?.validateField(props, callback),
   resetFields: () => formRef.value?.resetFields(),
-  clearValidate: (props?: any) => formRef.value?.clearValidate(props),
+  clearValidate: (props?: FormItemProp) => formRef.value?.clearValidate(props),
 });
 </script>
 

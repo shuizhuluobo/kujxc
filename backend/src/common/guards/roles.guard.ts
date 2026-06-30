@@ -23,8 +23,10 @@ export class RolesGuard implements CanActivate {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { user } = context.switchToHttp().getRequest();
+    const roleCode =
+      (user as { roleCode?: string } | undefined)?.roleCode ?? '';
 
-    if (!user || !requiredRoles.includes(user.roleCode)) {
+    if (!user || !requiredRoles.includes(roleCode)) {
       throw new ForbiddenException('权限不足');
     }
 

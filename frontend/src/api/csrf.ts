@@ -20,7 +20,7 @@ export function useCsrf() {
 
         fetchPromise = (async () => {
             try {
-                const response = await api.get('/security/csrf-token');
+                const response = await api.get<{ token: string }>('/security/csrf-token');
                 const token: string = response.data.token;
                 csrfToken.value = token;
                 tokenTimestamp = Date.now();

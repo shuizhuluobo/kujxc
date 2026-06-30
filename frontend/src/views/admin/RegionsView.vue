@@ -144,7 +144,7 @@ function handleEdit(row: Region) { editing.value = row; Object.assign(form, { na
 
 async function handleDelete(row: Region) {
   await ElMessageBox.confirm('确定删除此区域吗？', '提示', { type: 'warning' });
-  try { await regionsApi.delete(row.id); ElMessage.success('删除成功'); fetchData(); }
+  try { await regionsApi.delete(row.id); ElMessage.success('删除成功'); void fetchData(); }
   catch (e: unknown) { const err = e as { response?: { data?: { message?: string } } }; ElMessage.error(err.response?.data?.message || '删除失败'); }
 }
 
@@ -158,7 +158,7 @@ async function handleSubmit() {
     else { await regionsApi.create(form); }
     ElMessage.success(editing.value ? '更新成功' : '创建成功');
     dialogVisible.value = false;
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '操作失败');

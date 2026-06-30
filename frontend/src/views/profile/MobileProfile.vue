@@ -94,7 +94,7 @@
       <van-form @submit="$emit('changePassword')">
         <van-cell-group inset>
           <van-field
-            v-model="passwordForm.oldPassword"
+            v-model="localPasswordForm.oldPassword"
             type="password"
             name="oldPassword"
             label="原密码"
@@ -102,7 +102,7 @@
             :rules="[{ required: true, message: '请填写原密码' }]"
           />
           <van-field
-            v-model="passwordForm.newPassword"
+            v-model="localPasswordForm.newPassword"
             type="password"
             name="newPassword"
             label="新密码"
@@ -110,12 +110,12 @@
             :rules="[{ required: true, message: '请填写新密码' }, { validator: (val) => val.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(val), message: '至少8位，含大小写字母、数字和特殊字符(@$!%*?&)' }]"
           />
           <van-field
-            v-model="passwordForm.confirmPassword"
+            v-model="localPasswordForm.confirmPassword"
             type="password"
             name="confirmPassword"
             label="确认密码"
             placeholder="请再次输入新密码"
-            :rules="[{ required: true, message: '请确认新密码' }, { validator: (val) => val === passwordForm.newPassword, message: '两次密码不一致' }]"
+            :rules="[{ required: true, message: '请确认新密码' }, { validator: (val) => val === localPasswordForm.newPassword, message: '两次密码不一致' }]"
           />
         </van-cell-group>
         <div style="margin: 30px 16px 16px;">
@@ -228,7 +228,6 @@ import {
   Field as VanField,
   Tabs as VanTabs,
   Tab as VanTab,
-  Switch as VanSwitch
 } from 'vant';
 import 'vue-cropper/dist/index.css';
 import { VueCropper } from 'vue-cropper';
@@ -237,16 +236,20 @@ import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
 
+interface CropperInstance {
+  getCropBlob: (cb: (data: Blob) => void) => void;
+}
+
 const fileInputRef = ref<HTMLInputElement>();
-const cropperRef = ref();
+const cropperRef = ref<CropperInstance>();
 const activeStatsTab = ref('monthly');
 
 watch(fileInputRef, val => emit('updateFileInput', val));
 watch(cropperRef, val => {
-  emit('updateCropper', val ? { getCropBlob: (cb: any) => val.getCropBlob(cb) } : null);
+  emit('updateCropper', val ? { getCropBlob: (cb: (data: Blob) => void) => val.getCropBlob(cb) } : null);
 });
 
-function triggerLocalFile(e: Event) {
+function triggerLocalFile(_e: Event) {
   fileInputRef.value?.click();
 }
 
@@ -290,6 +293,8 @@ const localShowAvatarDialog = ref(props.showAvatarDialog);
 const localSelectedPreset = ref(props.selectedPreset);
 const localTempImageUrl = ref(props.tempImageUrl);
 const localActiveTab = ref(props.activeTab);
+// Alias the reactive passwordForm so v-model binds to a local name (parent holds the same reactive object by reference)
+const localPasswordForm = props.passwordForm;
 
 // Sync parent → local
 watch(() => props.showPasswordDialog, v => localShowPasswordDialog.value = v);

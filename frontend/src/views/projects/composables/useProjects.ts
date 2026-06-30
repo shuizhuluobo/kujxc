@@ -194,8 +194,9 @@ export function useProjects() {
       });
       ElMessage.success('创建成功');
       await loadProjects();
-    } catch (e: any) {
-      ElMessage.error(e?.response?.data?.message || e?.message || '创建失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      ElMessage.error(err?.response?.data?.message || err?.message || '创建失败');
       throw e;
     }
   };
@@ -228,8 +229,9 @@ export function useProjects() {
           projectName: data.projectName || selectedProject.value.projectName,
         };
       }
-    } catch (e: any) {
-      ElMessage.error(e?.response?.data?.message || '更新失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      ElMessage.error(err?.response?.data?.message || '更新失败');
       throw e;
     }
   };
@@ -266,7 +268,7 @@ export function useProjects() {
   const exportAllProjects = async () => {
     try {
       const res = await performanceApi.exportProjects();
-      const blob = res.data;
+      const blob = res.data as Blob;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -281,7 +283,7 @@ export function useProjects() {
   const exportProject = async (project: Project) => {
     try {
       const res = await performanceApi.exportProject(project.id);
-      const blob = res.data;
+      const blob = res.data as Blob;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

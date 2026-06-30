@@ -83,15 +83,14 @@ const {
   handleExport,
   STATUS_LABELS,
   SCORE_VALUES,
-  WorkOrderStatus,
 } = useHistoryFilter();
 
 onMounted(() => {
-  fetchData();
-  
+  void fetchData();
+
   // 监听工单状态变化事件，实时更新历史工单列表
   const handleHistoryChange = () => {
-    fetchData();
+    void fetchData();
   };
   sse.on('work-order.created', handleHistoryChange);
   sse.on('work-order.updated', handleHistoryChange);

@@ -150,8 +150,8 @@
         <!-- 分页 -->
         <div class="pagination-container" v-if="total > pagination.pageSize">
           <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.pageSize"
+            v-model:current-page="localPagination.page"
+            v-model:page-size="localPagination.pageSize"
             :page-sizes="[10, 20, 30]"
             layout="prev, pager, next"
             :total="total"
@@ -165,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { Reading, Search, Edit, Document, Folder, Calendar, View } from '@element-plus/icons-vue';
+import { Search, Edit, Document, Folder, Calendar, View } from '@element-plus/icons-vue';
 import type { WikiArticle, WikiCategory } from '@/types';
 import { resolveAssetUrl } from '@/utils/url';
 import { stripMarkdown } from '@/utils/string';
@@ -181,6 +181,9 @@ const props = defineProps<{
   has: (perm: string) => boolean;
   getCurrentCategoryName: () => string;
 }>();
+
+// Alias the reactive pagination so v-model binds to a local name (parent holds the same reactive object by reference)
+const localPagination = props.pagination;
 
 defineEmits<{
   search: [];

@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import type { Customer } from '@/types';
@@ -262,7 +262,7 @@ function handleEdit(row: Customer) {
 
 async function handleDelete(row: Customer) {
   await ElMessageBox.confirm('确定删除此客户吗？', '提示', { type: 'warning' });
-  try { await customersApi.delete(row.id); ElMessage.success('删除成功'); fetchData(); }
+  try { await customersApi.delete(row.id); ElMessage.success('删除成功'); void fetchData(); }
   catch (e: unknown) { const err = e as { response?: { data?: { message?: string } } }; ElMessage.error(err.response?.data?.message || '删除失败'); }
 }
 
@@ -276,7 +276,7 @@ async function handleSubmit() {
     else { await customersApi.create(form); }
     ElMessage.success(editing.value ? '更新成功' : '创建成功');
     dialogVisible.value = false;
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '操作失败');

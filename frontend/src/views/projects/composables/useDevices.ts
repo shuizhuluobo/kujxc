@@ -1,6 +1,7 @@
 import { ref, reactive, computed } from 'vue';
 import type { Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { UploadFile, UploadInstance } from 'element-plus';
 import { performanceApi, customersApi } from '@/api';
 import type { Project, Customer, CustomerDevice, ProjectStage } from '@/types';
 import { StageTrackingMode } from '@/types';
@@ -163,8 +164,9 @@ export function useDevices(project?: Ref<Project | null>) {
       ElMessage.success('设备已新增');
       await loadDevices(projectId);
       return true;
-    } catch (e: any) {
-      ElMessage.error(e?.response?.data?.message || '新增失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      ElMessage.error(err?.response?.data?.message || '新增失败');
       return false;
     }
   };
@@ -180,8 +182,9 @@ export function useDevices(project?: Ref<Project | null>) {
       ElMessage.success('更新成功');
       await loadDevices(projectId);
       return true;
-    } catch (e: any) {
-      ElMessage.error(e?.response?.data?.message || '更新失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      ElMessage.error(err?.response?.data?.message || '更新失败');
       return false;
     }
   };
@@ -242,10 +245,11 @@ export function useDevices(project?: Ref<Project | null>) {
       ElMessage.success('记录成功');
       await loadDevices(projectId);
       return true;
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || '记录失败';
-      if (e?.response?.status === 400) {
-        ElMessageBox.alert(msg, '无法记录', { type: 'warning', confirmButtonText: '知道了' });
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { message?: string } } };
+      const msg = err?.response?.data?.message || '记录失败';
+      if (err?.response?.status === 400) {
+        void ElMessageBox.alert(msg, '无法记录', { type: 'warning', confirmButtonText: '知道了' });
       } else {
         ElMessage.error(msg);
       }
@@ -255,7 +259,7 @@ export function useDevices(project?: Ref<Project | null>) {
 
   // ============ Excel 导入 ============
   const importData = ref<Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>>([]);
-  const uploadRef = ref();
+  const uploadRef = ref<UploadInstance | null>(null);
 
   // 导入客户匹配分析：customerName -> { matchedId: string | null, suggestions: Customer[] }
   const importCustomerMap = ref<Record<string, { matchedId: string | null; suggestions: Customer[] }>>({});
@@ -315,7 +319,7 @@ export function useDevices(project?: Ref<Project | null>) {
     XLSX.writeFile(wb, '设备导入模板.xlsx');
   };
 
-  const handleFileChange = (file: any, customers?: Customer[]) => {
+  const handleFileChange = (file: UploadFile, customers?: Customer[]) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {

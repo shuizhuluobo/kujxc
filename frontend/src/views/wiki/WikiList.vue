@@ -103,8 +103,8 @@ const {
 } = useWikiCategory(fetchCategories);
 
 onMounted(() => {
-  fetchCategories();
-  fetchArticles();
+  void fetchCategories();
+  void fetchArticles();
 });
 </script>
 

@@ -180,7 +180,6 @@ const {
   canViewAmount,
   loadProjects,
   selectProject,
-  deselectProject,
   createProject,
   updateProject,
   deleteProject,
@@ -203,7 +202,6 @@ const {
   loadRecords,
   loadStats,
   loadMyStats,
-  resetRecordForm,
   fillRecordFormForEdit,
   prepareNewRecord,
   saveRecord,
@@ -211,7 +209,6 @@ const {
 } = useWorkRecords();
 
 const {
-  devices,
   deviceForm,
   editingDevice,
   showCreateDeviceModal,
@@ -226,7 +223,6 @@ const {
   loadDevices,
   resetDeviceForm,
   fillDeviceFormForEdit,
-  resetStageForm,
   prepareStageModal,
   createDevice,
   updateDevice,
@@ -271,7 +267,6 @@ const {
   selectTimeSlot: feeSelectTimeSlot,
   updateSetting: feeUpdateSetting,
   resetCalculator: feeResetCalculator,
-  loadSettings: feeLoadSettings,
   init: feeInit,
 } = useFeeCalculator();
 
@@ -283,7 +278,6 @@ const {
   loadGlobalFeeRecords,
   saveGlobalFeeRecord,
   deleteGlobalFeeRecord,
-  formatFeeDate,
 } = useFeeRecords(feeAllSettings);
 
 // ============ 弹窗状态 ============
@@ -493,7 +487,7 @@ const handleDeviceChanged = (payload: unknown) => {
   // 防抖：短时间内多次变动只刷新一次
   if (deviceRefreshTimer) clearTimeout(deviceRefreshTimer);
   deviceRefreshTimer = setTimeout(() => {
-    loadDevices(projectId);
+    void loadDevices(projectId);
   }, 300);
 };
 

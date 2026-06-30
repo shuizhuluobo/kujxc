@@ -20,12 +20,12 @@
 
     <!-- 筛选栏 -->
     <div class="filter-bar card-premium">
-      <el-select v-model="filter.status" placeholder="状态" clearable class="filter-item">
+      <el-select v-model="localFilter.status" placeholder="状态" clearable class="filter-item">
         <el-option label="待接收" value="PENDING" />
         <el-option label="已接收" value="RECEIVED" />
       </el-select>
 
-      <el-select v-model="filter.serviceTypeId" placeholder="服务类型" clearable class="filter-item">
+      <el-select v-model="localFilter.serviceTypeId" placeholder="服务类型" clearable class="filter-item">
         <el-option 
           v-for="s in baseDataStore.serviceTypes" 
           :key="s.id" 
@@ -34,7 +34,7 @@
         />
       </el-select>
 
-      <el-select v-model="filter.regionId" placeholder="区域" clearable class="filter-item">
+      <el-select v-model="localFilter.regionId" placeholder="区域" clearable class="filter-item">
         <el-option 
           v-for="r in baseDataStore.regions" 
           :key="r.id" 
@@ -44,7 +44,7 @@
       </el-select>
 
       <el-input 
-        v-model="filter.keyword" 
+        v-model="localFilter.keyword" 
         placeholder="搜索客户、工单号..." 
         :prefix-icon="Search"
         clearable
@@ -181,8 +181,8 @@
 
     <div class="pagination-container" v-if="pagination.total > 0">
       <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
+        v-model:current-page="localPagination.page"
+        v-model:page-size="localPagination.pageSize"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         :total="pagination.total"
@@ -194,7 +194,7 @@
     <!-- 新建/编辑工单对话框 -->
     <el-dialog
       :model-value="formState.showDialog.value"
-      @update:model-value="(val) => formState.showDialog.value = val"
+      @update:model-value="(val) => localFormState.showDialog.value = val"
       :title="formState.editingWorkOrder.value ? '编辑工单' : '新建工单'"
       width="500px"
       @closed="workOrderFormRef?.clearValidate()"
@@ -208,7 +208,7 @@
       />
       
       <template #footer>
-        <el-button @click="formState.showDialog.value = false">取消</el-button>
+        <el-button @click="localFormState.showDialog.value = false">取消</el-button>
         <el-button type="primary" :loading="formState.submitting.value" @click="handleDialogSubmit">
           {{ formState.editingWorkOrder.value ? '保存' : '创建' }}
         </el-button>
@@ -218,11 +218,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, type Ref } from 'vue';
 import { Plus, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import Sortable from 'sortablejs';
-import type { WorkOrder, WorkOrderStatus } from '@/types';
+import type { WorkOrder, WorkOrderStatus, Customer } from '@/types';
 import { STATUS_LABELS } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 import { useBaseDataStore } from '@/stores/baseData';
@@ -233,13 +233,46 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import { workOrdersApi } from '@/api';
 
 // Define Props
+interface WorkOrderFilter {
+  status: string;
+  regionId: string;
+  serviceTypeId: string;
+  keyword: string;
+}
+
+interface WorkOrderStats {
+  pending: number;
+  received: number;
+  total: number;
+}
+
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+interface WorkOrderFormState {
+  showDialog: Ref<boolean>;
+  submitting: Ref<boolean>;
+  editingWorkOrder: Ref<WorkOrder | null>;
+  filteredCustomers: Ref<Customer[]>;
+  customerFilterMethod: (query: string) => void;
+  submit: () => Promise<void>;
+}
+
+interface WorkOrderFormExpose {
+  validate: () => Promise<boolean>;
+  clearValidate: () => void;
+}
+
 interface Props {
   loading: boolean;
   workOrders: WorkOrder[];
-  filter: any;
-  pagination: any;
-  stats: any;
-  formState: any; // ReturnType<typeof useWorkOrderForm>
+  filter: WorkOrderFilter;
+  pagination: Pagination;
+  stats: WorkOrderStats;
+  formState: WorkOrderFormState;
 }
 
 const props = defineProps<Props>();
@@ -263,7 +296,12 @@ const authStore = useAuthStore();
 const baseDataStore = useBaseDataStore();
 const { has: hasPermission } = usePermission();
 
-const workOrderFormRef = ref();
+const workOrderFormRef = ref<WorkOrderFormExpose | null>(null);
+
+// Alias reactive props so v-model binds to local names (parent holds the same reactive objects by reference)
+const localFilter = props.filter;
+const localPagination = props.pagination;
+const localFormState = props.formState;
 
 const hasActiveFilters = computed(() => {
   return props.filter.status !== '' || props.filter.serviceTypeId !== '' || props.filter.regionId !== '' || props.filter.keyword !== '';
@@ -307,7 +345,7 @@ function formatDate(date: string) {
   return dayjs(date).format('MM/DD HH:mm');
 }
 
-function tableRowClassName({ row }: { row: WorkOrder }) {
+function tableRowClassName({ row: _row }: { row: WorkOrder }) {
   // If we want to support highlighting new rows, we'd need to pass that state down too.
   // For now simple stripping.
   return '';
@@ -329,7 +367,7 @@ onMounted(() => {
     Sortable.create(el as HTMLElement, {
       animation: 150,
       ghostClass: 'sortable-ghost',
-      onEnd: (evt) => {
+      onEnd: (_evt) => {
         // Handle column reordering if needed (persisting or internal state)
       }
     });

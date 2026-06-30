@@ -130,7 +130,7 @@ function handleEdit(row: ServiceType) { editing.value = row; Object.assign(form,
 
 async function handleDelete(row: ServiceType) {
   await ElMessageBox.confirm('确定删除此类型吗？', '提示', { type: 'warning' });
-  try { await serviceTypesApi.delete(row.id); ElMessage.success('删除成功'); fetchData(); }
+  try { await serviceTypesApi.delete(row.id); ElMessage.success('删除成功'); void fetchData(); }
   catch (e: unknown) { const err = e as { response?: { data?: { message?: string } } }; ElMessage.error(err.response?.data?.message || '删除失败'); }
 }
 
@@ -144,7 +144,7 @@ async function handleSubmit() {
     else { await serviceTypesApi.create(form); }
     ElMessage.success(editing.value ? '更新成功' : '创建成功');
     dialogVisible.value = false;
-    fetchData();
+    void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
     ElMessage.error(err.response?.data?.message || '操作失败');

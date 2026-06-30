@@ -177,10 +177,11 @@ export function useWorkRecords() {
         ElMessage.success('添加成功');
       }
       return true;
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || '保存失败';
-      if (e?.response?.status === 400) {
-        ElMessageBox.alert(msg, '无法保存', { type: 'warning', confirmButtonText: '知道了' });
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { message?: string } } };
+      const msg = err?.response?.data?.message || '保存失败';
+      if (err?.response?.status === 400) {
+        void ElMessageBox.alert(msg, '无法保存', { type: 'warning', confirmButtonText: '知道了' });
       } else {
         ElMessage.error(msg);
       }

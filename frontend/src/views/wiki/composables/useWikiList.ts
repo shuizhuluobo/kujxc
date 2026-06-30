@@ -2,13 +2,11 @@ import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { wikiApi } from '@/api';
-import { useAuthStore } from '@/stores/auth';
 import { useResponsive, usePermission } from '@/composables';
-import type { WikiArticle, WikiCategory } from '@/types';
+import type { WikiArticle, WikiCategory, WikiArticleFilterParams } from '@/types';
 
 export function useWikiList() {
     const router = useRouter();
-    const authStore = useAuthStore();
     const { has } = usePermission();
     const { isMobile } = useResponsive();
 
@@ -57,20 +55,18 @@ export function useWikiList() {
             loading.value = true;
         }
         try {
-            const params: any = {
+            const params: WikiArticleFilterParams = {
                 page: pagination.page,
                 pageSize: pagination.pageSize,
                 keyword: searchKeyword.value || undefined,
                 categoryId: activeCategoryId.value === 'all' ? undefined : activeCategoryId.value,
             };
 
-            Object.keys(params).forEach(key => {
-                if (params[key] === '' || params[key] === null || params[key] === undefined) {
-                    delete params[key];
-                }
-            });
+            const cleanedParams = Object.fromEntries(
+                Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined),
+            ) as WikiArticleFilterParams;
 
-            const res = await wikiApi.getArticles(params);
+            const res = await wikiApi.getArticles(cleanedParams);
             if (append) {
                 articles.value.push(...res.data.data);
             } else {
@@ -112,26 +108,26 @@ export function useWikiList() {
 
     function handlePageChange(page: number) {
         pagination.page = page;
-        fetchArticles();
+        void fetchArticles();
     }
 
     function handleSearch() {
         pagination.page = 1;
-        fetchArticles();
+        void fetchArticles();
     }
 
     function handleCategorySelect(id: string) {
         activeCategoryId.value = id;
         pagination.page = 1;
-        fetchArticles();
+        void fetchArticles();
     }
 
     function handleCreate() {
-        router.push('/wiki/edit');
+        void router.push('/wiki/edit');
     }
 
     function viewDetail(id: string) {
-        router.push(`/wiki/${id}`);
+        void router.push(`/wiki/${id}`);
     }
 
     return {

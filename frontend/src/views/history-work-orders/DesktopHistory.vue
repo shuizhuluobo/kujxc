@@ -2,12 +2,12 @@
   <div>
     <!-- 筛选栏 -->
     <div class="filter-bar card-premium">
-      <el-checkbox-group v-model="filter.statuses" size="default" class="status-checkbox-group">
+      <el-checkbox-group v-model="localFilter.statuses" size="default" class="status-checkbox-group">
         <el-checkbox-button value="PENDING">待接收</el-checkbox-button>
         <el-checkbox-button value="RECEIVED">已接收</el-checkbox-button>
         <el-checkbox-button value="COMPLETED">已完成</el-checkbox-button>
       </el-checkbox-group>
-      <el-select v-model="filter.regionId" placeholder="区域" clearable size="default" style="width: 120px">
+      <el-select v-model="localFilter.regionId" placeholder="区域" clearable size="default" style="width: 120px">
         <el-option 
           v-for="r in baseDataStore.regions" 
           :key="r.id" 
@@ -15,7 +15,7 @@
           :value="r.id" 
         />
       </el-select>
-      <el-select v-model="filter.serviceTypeId" placeholder="服务类型" clearable size="default" style="width: 120px">
+      <el-select v-model="localFilter.serviceTypeId" placeholder="服务类型" clearable size="default" style="width: 120px">
         <el-option 
           v-for="s in baseDataStore.serviceTypes" 
           :key="s.id" 
@@ -24,7 +24,7 @@
         />
       </el-select>
       <el-select 
-        v-model="filter.completerId" 
+        v-model="localFilter.completerId" 
         placeholder="完成人" 
         clearable 
         filterable 
@@ -51,7 +51,7 @@
         style="width: 240px"
       />
       <el-input
-        v-model="filter.keyword"
+        v-model="localFilter.keyword"
         placeholder="搜索"
         :prefix-icon="Search"
         clearable
@@ -107,7 +107,7 @@
           <template v-if="row.collaborators?.length">
             <div class="collaborator-list">
               <span 
-                v-for="(collaborator, index) in row.collaborators" 
+                v-for="collaborator in row.collaborators"
                 :key="collaborator.id"
                 class="collaborator-tag"
               >
@@ -128,8 +128,8 @@
     <!-- 分页 -->
     <div class="pagination-container" v-if="total > 0">
       <el-pagination
-        v-model:current-page="filter.page"
-        v-model:page-size="filter.pageSize"
+        v-model:current-page="localFilter.page"
+        v-model:page-size="localFilter.pageSize"
         :page-sizes="[20, 50, 100]"
         :total="total"
         layout="total, sizes, prev, pager, next"
@@ -180,6 +180,9 @@ const emit = defineEmits<{
 const localDateRange = ref(props.dateRange);
 watch(() => props.dateRange, v => localDateRange.value = v);
 watch(localDateRange, v => emit('update:dateRange', v));
+
+// Alias the reactive filter so v-model binds to a local name (parent holds the same reactive object by reference)
+const localFilter = props.filter;
 </script>
 
 <style scoped>

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma, FeeSetting, FeeRecord } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -34,7 +39,10 @@ export interface FeeStatsResult {
 export class FeeService {
   constructor(private prisma: PrismaService) {}
 
-  async getSettings(category?: string, isActive?: boolean): Promise<FeeSetting[]> {
+  async getSettings(
+    category?: string,
+    isActive?: boolean,
+  ): Promise<FeeSetting[]> {
     const where: Prisma.FeeSettingWhereInput = {};
     if (category) where.category = category;
     if (isActive !== undefined) where.isActive = isActive;
@@ -81,7 +89,9 @@ export class FeeService {
       where: { category: data.category, item: data.item },
     });
     if (existing) {
-      throw new BadRequestException(`分类"${data.category}"下已存在项目"${data.item}"`);
+      throw new BadRequestException(
+        `分类"${data.category}"下已存在项目"${data.item}"`,
+      );
     }
     return this.prisma.feeSetting.create({ data });
   }
@@ -225,7 +235,15 @@ export class FeeService {
     projectId?: string;
     customerId?: string;
   }): Promise<FeeRecordsResult> {
-    const { limit = 20, offset = 0, startDate, endDate, creatorId, projectId, customerId } = params;
+    const {
+      limit = 20,
+      offset = 0,
+      startDate,
+      endDate,
+      creatorId,
+      projectId,
+      customerId,
+    } = params;
 
     const where: Prisma.FeeRecordWhereInput = {};
     if (startDate || endDate) {
@@ -254,7 +272,11 @@ export class FeeService {
     return { data, total };
   }
 
-  async deleteRecord(id: string, userId: string, isAdmin: boolean): Promise<FeeRecord> {
+  async deleteRecord(
+    id: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<FeeRecord> {
     const record = await this.prisma.feeRecord.findUnique({ where: { id } });
     if (!record) throw new NotFoundException('费用记录不存在');
 
@@ -308,14 +330,22 @@ export class FeeService {
       }
     }
 
-    return { totalRecords, totalAmount, totalDiscount, totalActual, byCategory };
+    return {
+      totalRecords,
+      totalAmount,
+      totalDiscount,
+      totalActual,
+      byCategory,
+    };
   }
 
   async initDefaultSettings(): Promise<void> {
     const existing = await this.prisma.feeSetting.findMany({
       select: { category: true, item: true },
     });
-    const existingKeys = new Set(existing.map(e => `${e.category}:${e.item}`));
+    const existingKeys = new Set(
+      existing.map((e) => `${e.category}:${e.item}`),
+    );
 
     const defaults = [
       // 计算机服务 - 出库（使用与现有数据库一致的类别名）
