@@ -220,6 +220,17 @@ export interface UpdateWorkRecordDto {
     remark?: string;
 }
 
+// 批量记录（多选设备一次性提交）
+export interface CreateWorkRecordsDto {
+    stageId: string;
+    deviceIds: string[];
+    quantity: number;
+    date: string;
+    collaboratorIds: string[];
+    includeRecorder: boolean;
+    remark?: string;
+}
+
 export function formatWorkHours(hours: number): string {
     if (hours <= 0) return '0小时';
     // 先四舍五入到合理精度，避免浮点数精度问题（如 13.04 % 8 = 5.039999999999999）

@@ -98,6 +98,17 @@ export interface CreateRecordDto {
   deviceId?: string;
 }
 
+// 批量记录（多选设备一次性提交同一阶段/数量）
+export interface CreateRecordsDto {
+  stageId: string;
+  deviceIds: string[];
+  quantity: number;
+  date: string;
+  collaboratorIds: string[];
+  includeRecorder: boolean;
+  remark?: string;
+}
+
 export interface UpdateRecordDto {
   stageId?: string;
   quantity?: number;
@@ -566,6 +577,125 @@ export class PerformanceService {
       this.emitDeviceChanged(projectId, record.deviceId);
     }
     return record;
+  }
+
+  // ============ 批量记录（多选设备，一次性提交）============
+  // 业务逻辑：每台设备按相同数量记录；超过该设备本阶段剩余量（应送量-已记）的部分
+  // 不计入设备进度，而是单独生成一条「超额」记录，确保数据不丢失。
+  async createRecords(
+    projectId: string,
+    dto: CreateRecordsDto,
+    creatorId: string,
+    roleCode?: string,
+  ) {
+    if (!Array.isArray(dto.deviceIds) || dto.deviceIds.length === 0) {
+      throw new BadRequestException('请至少选择一台设备');
+    }
+    if (!dto.quantity || dto.quantity < 1) {
+      throw new BadRequestException('数量必须大于0');
+    }
+    await this.assertProjectMember(projectId, creatorId, roleCode);
+
+    const project = await this.prisma.performanceProject.findUnique({
+      where: { id: projectId },
+      include: { stages: { orderBy: { sortOrder: 'asc' } } },
+    });
+    if (!project) throw new NotFoundException('项目不存在');
+    if (project.calculationType !== CalculationType.QUANTITY) {
+      throw new BadRequestException('仅按量项目支持批量记录');
+    }
+    const stage = project.stages.find((s) => s.id === dto.stageId);
+    if (!stage) throw new BadRequestException('阶段不存在');
+    if (stage.trackingMode !== StageTrackingMode.DEVICE) {
+      throw new BadRequestException('该阶段非设备跟踪模式，不支持批量记录');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const created: Array<{ id: string; deviceId?: string | null }> = [];
+      const summary = { applied: 0, excess: 0, skipped: 0 };
+
+      for (const deviceId of dto.deviceIds) {
+        // 加行锁，避免并发下超额
+        const [lockedDevice] = await tx.$queryRaw<CustomerDeviceRow[]>`
+          SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
+        `;
+        if (!lockedDevice) {
+          summary.skipped += 1;
+          continue;
+        }
+
+        const [progress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
+          SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${deviceId} AND "stageId" = ${dto.stageId} FOR UPDATE
+        `;
+        const currentQty = progress?.quantity || 0;
+        const remaining = lockedDevice.expectedquantity - currentQty;
+        const applied = Math.max(0, Math.min(dto.quantity, remaining));
+        const excess = Math.max(0, dto.quantity - applied);
+
+        // 计入设备进度的部分
+        if (applied > 0) {
+          if (progress) {
+            await tx.deviceStageProgress.update({
+              where: { id: progress.id },
+              data: { quantity: currentQty + applied },
+            });
+          } else {
+            await tx.deviceStageProgress.create({
+              data: {
+                deviceId,
+                stageId: dto.stageId,
+                quantity: applied,
+              },
+            });
+          }
+          const rec = await tx.performanceRecord.create({
+            data: {
+              projectId,
+              stageId: dto.stageId,
+              quantity: applied,
+              customerId: lockedDevice.customerId,
+              date: dto.date,
+              collaboratorIds: dto.collaboratorIds,
+              includeRecorder: dto.includeRecorder,
+              remark: dto.remark,
+              deviceId,
+              creatorId,
+            },
+          });
+          created.push(rec);
+          summary.applied += applied;
+        }
+
+        // 超出设备剩余量的部分：单独记录，不计入设备进度
+        if (excess > 0) {
+          const excessRemark = `${dto.remark ? dto.remark + '；' : ''}超额记录：本批申请${dto.quantity}台，设备应送${lockedDevice.expectedquantity}台，已记${currentQty}台，超出${excess}台`;
+          const rec = await tx.performanceRecord.create({
+            data: {
+              projectId,
+              stageId: dto.stageId,
+              quantity: excess,
+              customerId: lockedDevice.customerId,
+              date: dto.date,
+              collaboratorIds: dto.collaboratorIds,
+              includeRecorder: dto.includeRecorder,
+              remark: excessRemark,
+              deviceId,
+              creatorId,
+            },
+          });
+          created.push(rec);
+          summary.excess += excess;
+        }
+      }
+
+      return { created, summary };
+    });
+
+    // SSE 通知
+    result.created.forEach((r) => {
+      if (r.deviceId) this.emitDeviceChanged(projectId, r.deviceId);
+    });
+    return result;
   }
 
   // ============ 记录更新 ============

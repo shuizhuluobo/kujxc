@@ -281,6 +281,39 @@ export function useDevices(project?: Ref<Project | null>) {
     }
   };
 
+  // ============ 批量阶段记录（多选设备一次性提交）============
+  const submitBatchStage = async (
+    projectId: string,
+    dto: {
+      stageId: string;
+      deviceIds: string[];
+      quantity: number;
+      date: string;
+      collaboratorIds: string[];
+      includeRecorder: boolean;
+      remark?: string;
+    },
+  ) => {
+    if (!dto.stageId || dto.deviceIds.length === 0 || !dto.quantity || dto.quantity < 1) {
+      ElMessage.warning('请选择阶段、至少一台设备，并填写大于0的数量');
+      return null;
+    }
+    try {
+      const { data } = await performanceApi.createRecords(projectId, dto);
+      const s = data.summary || { applied: 0, excess: 0, skipped: 0 };
+      let msg = `批量记录完成：计入进度 ${s.applied} 台`;
+      if (s.excess) msg += `，超额单独记录 ${s.excess} 台`;
+      if (s.skipped) msg += `，跳过 ${s.skipped} 台`;
+      ElMessage.success(msg);
+      await loadDevices(projectId);
+      return data;
+    } catch (e: any) {
+      console.error('Failed to batch record stage:', e);
+      ElMessage.error(e?.response?.data?.message || '批量记录失败');
+      return null;
+    }
+  };
+
   // ============ Excel 导入 ============
   const importData = ref<Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>>([]);
   const uploadRef = ref<UploadInstance | null>(null);
@@ -477,6 +510,7 @@ export function useDevices(project?: Ref<Project | null>) {
     // 阶段记录
     submitStage,
     submitMobileStage,
+    submitBatchStage,
     // Excel 导入
     downloadTemplate,
     handleFileChange,

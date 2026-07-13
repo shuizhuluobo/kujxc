@@ -25,6 +25,7 @@ import type {
   CreateProjectDto,
   UpdateProjectDto,
   CreateRecordDto,
+  CreateRecordsDto,
   UpdateRecordDto,
 } from './performance.service';
 
@@ -135,6 +136,21 @@ export class PerformanceController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.performanceService.createRecord(
+      projectId,
+      data,
+      user.id,
+      user.roleCode,
+    );
+  }
+
+  @Post('projects/:projectId/records/batch')
+  @Permissions('fee:view_project')
+  async createRecords(
+    @Param('projectId') projectId: string,
+    @Body() data: CreateRecordsDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.performanceService.createRecords(
       projectId,
       data,
       user.id,

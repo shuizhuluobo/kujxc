@@ -103,6 +103,12 @@
         <div class="panel-header collapsible" @click="devicePanelCollapsed = !devicePanelCollapsed">
           <h3>客户设备清单 <el-icon class="collapse-icon" :class="{ collapsed: devicePanelCollapsed }"><ArrowRight /></el-icon></h3>
           <div class="panel-actions" @click.stop>
+            <el-button
+              size="small"
+              type="success"
+              :disabled="selectedDevices.length === 0"
+              @click="openBatchStageModal"
+            >批量记录{{ selectedDevices.length ? `(${selectedDevices.length})` : '' }}</el-button>
             <el-button size="small" type="primary" @click="$emit('createDevice')">+ 新增</el-button>
             <el-button size="small" @click="$emit('importDevice')">导入</el-button>
           </div>
@@ -110,13 +116,20 @@
         <div class="panel-body" v-show="!devicePanelCollapsed">
           <el-table
             v-if="devices.length > 0"
+            ref="deviceTableRef"
             :data="devices"
             stripe
             size="small"
             :row-class-name="getDeviceRowClass"
             show-summary
             :summary-method="getDeviceSummary"
+            @selection-change="onDeviceSelectionChange"
           >
+            <el-table-column
+              v-if="selectedProject?.calculationType === CalculationType.QUANTITY"
+              type="selection"
+              width="40"
+            />
             <el-table-column label="#" type="index" width="45" />
             <el-table-column label="客户" min-width="100">
               <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
@@ -532,6 +545,47 @@
       </template>
     </el-dialog>
 
+    <!-- 批量记录弹窗 -->
+    <el-dialog v-model="showBatchStageModal" title="批量记录阶段" width="520px" destroy-on-close>
+      <el-form :model="batchStageForm" label-width="90px">
+        <div class="confirm-info">
+          <p><strong>已选设备：</strong>{{ selectedDevices.length }} 台</p>
+          <p v-if="batchExcessCount > 0" class="excess-tip">
+            其中 {{ batchExcessCount }} 台申请数量超出其本阶段剩余量，超出部分将单独记录，不计入设备进度。
+          </p>
+        </div>
+        <el-form-item label="阶段" required>
+          <el-select v-model="batchStageForm.stageId" placeholder="选择阶段" style="width: 100%">
+            <el-option v-for="stage in deviceStages" :key="stage.id" :label="stage.name" :value="stage.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="数量" required>
+          <el-input-number v-model="batchStageForm.quantity" :min="1" style="width: 160px" />
+          <span class="unit">台</span>
+          <span class="max-hint">每台设备统一记录此数量</span>
+        </el-form-item>
+        <el-form-item label="工作日期" required>
+          <el-date-picker v-model="batchStageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="协作人员">
+          <el-select v-model="batchStageForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
+            <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="包含记录人">
+          <el-switch v-model="batchStageForm.includeRecorder" />
+          <span class="switch-hint">关闭后记录人不参与工作量分润</span>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="batchStageForm.remark" placeholder="可选备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchStageModal = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitBatchClick">确定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 工作记录弹窗 -->
     <el-dialog v-model="showRecordModalModel" :title="editingRecord ? '编辑工作记录' : '新增工作记录'" width="540px" destroy-on-close>
       <el-form :model="recordForm" label-width="90px">
@@ -676,9 +730,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, reactive } from 'vue';
 import { Download, EditPen, Delete, UploadFilled, ArrowRight, ArrowDown } from '@element-plus/icons-vue';
 import type { UploadFile } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import StatsTable from './StatsTable.vue';
 import {
   CalculationType,
@@ -798,6 +853,15 @@ const emit = defineEmits<{
   deleteDevice: [device: CustomerDevice];
   recordStage: [device: CustomerDevice, stageId: string];
   submitStage: [];
+  submitBatchStage: [payload: {
+    stageId: string;
+    deviceIds: string[];
+    quantity: number;
+    date: string;
+    collaboratorIds: string[];
+    includeRecorder: boolean;
+    remark?: string;
+  }];
   addStage: [];
   removeStage: [index: number];
   importDevice: [];
@@ -898,6 +962,75 @@ const handleSubmitStageClick = () => {
     return;
   }
   emit('submitStage');
+};
+
+// ============ 批量记录（多选设备一次性提交）============
+const deviceTableRef = ref();
+const selectedDevices = ref<CustomerDevice[]>([]);
+
+const onDeviceSelectionChange = (rows: CustomerDevice[]) => {
+  selectedDevices.value = rows;
+};
+
+const showBatchStageModal = ref(false);
+const batchStageForm = reactive({
+  stageId: '',
+  quantity: 1,
+  date: new Date().toISOString().slice(0, 10),
+  collaboratorIds: [] as string[],
+  includeRecorder: true,
+  remark: '',
+});
+
+const resetBatchStageForm = () => {
+  batchStageForm.stageId = '';
+  batchStageForm.quantity = 1;
+  batchStageForm.date = new Date().toISOString().slice(0, 10);
+  batchStageForm.collaboratorIds = [];
+  batchStageForm.includeRecorder = true;
+  batchStageForm.remark = '';
+};
+
+// 已选设备中，申请数量超出其本阶段剩余量的台数
+const batchExcessCount = computed(() => {
+  if (!batchStageForm.stageId || batchStageForm.quantity < 1) return 0;
+  return selectedDevices.value.filter((d) => {
+    const remaining = (d.expectedQuantity || 0) - stageProgress(d, batchStageForm.stageId);
+    return batchStageForm.quantity > remaining;
+  }).length;
+});
+
+const openBatchStageModal = () => {
+  resetBatchStageForm();
+  showBatchStageModal.value = true;
+};
+
+const handleSubmitBatchClick = () => {
+  if (!batchStageForm.stageId) {
+    ElMessage.warning('请选择阶段');
+    return;
+  }
+  if (!batchStageForm.quantity || batchStageForm.quantity < 1) {
+    ElMessage.warning('数量必须大于0');
+    return;
+  }
+  if (selectedDevices.value.length === 0) {
+    ElMessage.warning('请至少选择一台设备');
+    return;
+  }
+  const payload = {
+    stageId: batchStageForm.stageId,
+    deviceIds: selectedDevices.value.map((d) => d.id),
+    quantity: batchStageForm.quantity,
+    date: batchStageForm.date,
+    collaboratorIds: batchStageForm.collaboratorIds,
+    includeRecorder: batchStageForm.includeRecorder,
+    remark: batchStageForm.remark || undefined,
+  };
+  emit('submit-batch-stage', payload);
+  showBatchStageModal.value = false;
+  selectedDevices.value = [];
+  deviceTableRef.value?.clearSelection();
 };
 
 const handleSaveDeviceClick = () => {
@@ -1126,7 +1259,7 @@ const getDeviceSummary = (params: { columns: Array<{ property?: string; label: s
   const { columns } = params;
   const sums: string[] = [];
   columns.forEach((column, index) => {
-    if (index === 0) {
+    if (column.label === '客户') {
       sums[index] = '合计';
       return;
     }

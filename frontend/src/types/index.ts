@@ -327,6 +327,7 @@ export type {
     CreateProjectDto,
     UpdateProjectDto,
     CreateWorkRecordDto,
+    CreateWorkRecordsDto,
     UpdateWorkRecordDto,
     StageInput,
     ProjectStage,

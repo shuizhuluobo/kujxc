@@ -67,6 +67,7 @@
           @delete-device="handleDeleteDevice"
           @record-stage="openStageModal"
           @submit-stage="handleSubmitStage"
+          @submit-batch-stage="handleSubmitBatchStage"
           @add-stage="addStage"
           @remove-stage="removeStage"
           @import-device="openImportModal"
@@ -232,6 +233,7 @@ const {
   updateDevice,
   deleteDevice,
   submitStage,
+  submitBatchStage,
   downloadTemplate,
   handleFileChange,
   handleImport,
@@ -429,6 +431,22 @@ const handleSubmitStage = async () => {
   const ok = await submitStage(selectedProject.value.id);
   if (ok) {
     showStageModal.value = false;
+    await loadMyStats(selectedProject.value.id);
+  }
+};
+
+const handleSubmitBatchStage = async (payload: {
+  stageId: string;
+  deviceIds: string[];
+  quantity: number;
+  date: string;
+  collaboratorIds: string[];
+  includeRecorder: boolean;
+  remark?: string;
+}) => {
+  if (!selectedProject.value) return;
+  const res = await submitBatchStage(selectedProject.value.id, payload);
+  if (res) {
     await loadMyStats(selectedProject.value.id);
   }
 };
