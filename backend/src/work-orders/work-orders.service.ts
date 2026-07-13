@@ -446,26 +446,36 @@ export class WorkOrdersService {
     headerRow.height = 22;
 
     let totalScore = 0;
-    let processedCount = 0;
-    let hasMore = true;
 
-    // 分批查询和写入数据
-    while (hasMore && processedCount < totalCount) {
+    // 先按业务排序取出全部 id（加 id tiebreaker 确保分页稳定，避免 offset 在并发写入下重复/遗漏）
+    const orderedIds = await this.prisma.workOrder.findMany({
+      where,
+      select: { id: true },
+      orderBy: [
+        { completer: { name: 'asc' } },
+        { createdAt: 'desc' },
+        { id: 'asc' },
+      ],
+    });
+
+    // 分批按 id 拉取完整数据（主键 in 查询，避免 offset 扫描跳过的行）
+    for (let i = 0; i < orderedIds.length; i += BATCH_SIZE) {
+      const batchIds = orderedIds
+        .slice(i, i + BATCH_SIZE)
+        .map((item) => item.id);
       const batch = await this.prisma.workOrder.findMany({
-        where,
+        where: { id: { in: batchIds } },
         include: this.includeRelations,
-        orderBy: [{ completer: { name: 'asc' } }, { createdAt: 'desc' }],
-        skip: processedCount,
-        take: BATCH_SIZE,
       });
 
-      if (batch.length === 0) {
-        hasMore = false;
-        break;
-      }
+      // findMany 不保证返回顺序，按 batchIds 顺序还原业务排序
+      const batchMap = new Map(batch.map((wo) => [wo.id, wo]));
+      const orderedBatch = batchIds
+        .map((id) => batchMap.get(id))
+        .filter((wo): wo is NonNullable<typeof wo> => wo !== undefined);
 
       // 批量处理数据并写入工作表
-      const rows = batch.map((wo) => {
+      const rows = orderedBatch.map((wo) => {
         // 累积分值（排除复杂类型）
         if (
           wo.status === WorkOrderStatus.COMPLETED &&
@@ -496,12 +506,6 @@ export class WorkOrdersService {
 
       // 批量添加行
       worksheet.addRows(rows);
-      processedCount += batch.length;
-
-      // 如果达到限制，停止处理
-      if (processedCount >= MAX_EXPORT_LIMIT) {
-        break;
-      }
     }
 
     // 设置所有行（包括表头和数据行）的样式

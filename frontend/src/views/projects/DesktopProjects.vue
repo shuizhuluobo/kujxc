@@ -39,6 +39,10 @@
           :import-data="importData"
           :import-customer-map="importCustomerMap"
           :unmatched-count="getUnmatchedCount"
+          :total-quantity="totalQuantity"
+          :completed-quantity="completedQuantity"
+          :in-progress-quantity="inProgressQuantity"
+          :stage-stats="stageStats"
           :show-create-project-modal="showCreateProjectModal"
           :show-edit-project-modal="showEditProjectModal"
           :show-record-modal="showRecordModal"
@@ -235,7 +239,11 @@ const {
   getUnmatchedCount,
   createAllUnmatched,
   applyAllSuggestions,
-} = useDevices();
+  totalQuantity,
+  completedQuantity,
+  inProgressQuantity,
+  stageStats,
+} = useDevices(selectedProject);
 
 const {
   computerCount: feeComputerCount,

@@ -156,12 +156,10 @@ import {
 } from 'vant';
 
 const { isMobile } = useResponsive();
-import { match } from 'pinyin-pro';
 
 const loading = ref(false);
 const submitting = ref(false);
 const dialogVisible = ref(false);
-const allCustomers = ref<Customer[]>([]);
 const customers = ref<Customer[]>([]);
 const searchKeyword = ref('');
 const total = ref(0);
@@ -180,70 +178,32 @@ const rules: FormRules = { name: [{ required: true, message: '请输入客户名
 async function fetchData() {
   loading.value = true;
   try {
-    // Fetch all customers for client-side filtering
-    const { data } = await customersApi.getAll({ page: 1, pageSize: 10000 });
-    allCustomers.value = data.data;
-    applyFiltersAndPagination();
+    const { data } = await customersApi.getAll({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: searchKeyword.value || undefined,
+    });
+    customers.value = data.data;
+    total.value = data.total;
   } finally {
     loading.value = false;
   }
 }
 
-function applyFiltersAndPagination() {
-    let result = allCustomers.value;
-
-    if (searchKeyword.value) {
-        const query = searchKeyword.value.toLowerCase();
-        result = result.filter(c => {
-            // 优先匹配客户简称
-            if (c.shortName?.toLowerCase().includes(query)) return true;
-            if (match(c.shortName || '', query, { precision: 'start' })) return true;
-            // 然后匹配客户名称
-            if (c.name.toLowerCase().includes(query)) return true;
-            if (match(c.name, query, { precision: 'start' })) return true;
-            // 最后匹配联系人和电话
-            if (c.contact?.toLowerCase().includes(query)) return true;
-            if (c.phone?.includes(query)) return true;
-            return false;
-        });
-        
-        // 按优先级排序：shortName 精确匹配 > shortName 包含 > name 匹配
-        result.sort((a, b) => {
-            const aShortExact = a.shortName?.toLowerCase() === query;
-            const bShortExact = b.shortName?.toLowerCase() === query;
-            if (aShortExact && !bShortExact) return -1;
-            if (!aShortExact && bShortExact) return 1;
-            
-            const aShortContains = a.shortName?.toLowerCase().includes(query);
-            const bShortContains = b.shortName?.toLowerCase().includes(query);
-            if (aShortContains && !bShortContains) return -1;
-            if (!aShortContains && bShortContains) return 1;
-            
-            return 0;
-        });
-    }
-
-    total.value = result.length;
-
-    const start = (pagination.page - 1) * pagination.pageSize;
-    const end = start + pagination.pageSize;
-    customers.value = result.slice(start, end);
-}
-
 function handlePageChange(page: number) {
   pagination.page = page;
-  applyFiltersAndPagination();
+  void fetchData();
 }
 
 function handleSizeChange(size: number) {
   pagination.pageSize = size;
   pagination.page = 1;
-  applyFiltersAndPagination();
+  void fetchData();
 }
 
 function handleSearch() {
   pagination.page = 1;
-  applyFiltersAndPagination();
+  void fetchData();
 }
 
 function handleCreate() { editing.value = null; Object.assign(form, { name: '', shortName: '', contact: '', phone: '', address: '' }); dialogVisible.value = true; }

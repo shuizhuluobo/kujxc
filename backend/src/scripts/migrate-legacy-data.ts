@@ -3,6 +3,7 @@ import { PrismaClient, WorkOrderStatus, ScoreLevel } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as iconv from 'iconv-lite';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -116,9 +117,14 @@ async function main() {
   const userMap = new Map<string, string>(); // username -> userId
   let userCount = 0;
 
+  // 默认口令：CSV 缺口令时使用，统一哈希后入库；生产环境应通过 DEFAULT_PASSWORD 环境变量
+  // 配置同一口令，登录时 AuthService 会标记 isDefaultPassword 强制改密。
+  const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
+  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
+
   for (const row of usersData) {
     const username = row['glydh']?.trim();
-    const password = row['glymm']?.trim() || '123456';
+    const rawPassword = row['glymm']?.trim();
     const name = row['glyname']?.trim();
 
     if (!username || !name) continue;
@@ -131,11 +137,16 @@ async function main() {
       continue;
     }
 
+    // CSV 自带口令逐个哈希；缺失则用统一的默认口令哈希
+    const hashed = rawPassword
+      ? await bcrypt.hash(rawPassword, 12)
+      : passwordHash;
+
     try {
       const user = await prisma.user.create({
         data: {
           username,
-          password, // 注意：实际使用时应该加密
+          password: hashed,
           name,
           roleId: engineerRole.id,
           isActive: row['ifuse'] === '1',

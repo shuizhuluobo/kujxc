@@ -54,7 +54,7 @@
               {{ CALCULATION_TYPE_LABELS[selectedProject.calculationType] }}
             </el-tag>
             <span v-if="selectedProject.calculationType === CalculationType.QUANTITY" class="header-meta">
-              总量 {{ selectedProject.totalQuantity || 0 }} 台
+              总量 {{ props.totalQuantity || 0 }} 台
             </span>
             <span v-if="canViewPerformance" class="header-meta">
               {{ selectedProject.calculationType === CalculationType.QUANTITY
@@ -114,6 +114,8 @@
             stripe
             size="small"
             :row-class-name="getDeviceRowClass"
+            show-summary
+            :summary-method="getDeviceSummary"
           >
             <el-table-column label="#" type="index" width="45" />
             <el-table-column label="客户" min-width="100">
@@ -316,8 +318,9 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="设备总量" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
-          <el-input-number v-model="localProjectForm.totalQuantity" :min="1" style="width: 200px" />
+          <el-input-number :model-value="props.totalQuantity" :min="0" :disabled="true" style="width: 200px" />
           <span class="unit"> 台</span>
+          <span class="max-hint">（根据设备清单自动计算）</span>
         </el-form-item>
         <el-form-item label="阶段配置" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
           <el-table :data="localProjectForm.stages" border size="small" style="width: 100%">
@@ -383,8 +386,9 @@
           <el-input v-model="localProjectForm.projectName" placeholder="请输入项目名称" />
         </el-form-item>
         <el-form-item label="设备总量" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
-          <el-input-number v-model="localProjectForm.totalQuantity" :min="1" style="width: 200px" />
+          <el-input-number :model-value="props.totalQuantity" :min="0" :disabled="true" style="width: 200px" />
           <span class="unit"> 台</span>
+          <span class="max-hint">（根据设备清单自动计算）</span>
         </el-form-item>
         <el-form-item label="阶段配置" v-if="localProjectForm.calculationType === CalculationType.QUANTITY">
           <el-table :data="localProjectForm.stages" border size="small" style="width: 100%">
@@ -763,6 +767,10 @@ const props = defineProps<{
   importData: Array<{ customerName: string; deviceName: string; expectedQuantity: number; remark?: string }>;
   importCustomerMap: Record<string, { matchedId: string | null; suggestions: Customer[] }>;
   unmatchedCount: number;
+  totalQuantity: number;
+  completedQuantity: number;
+  inProgressQuantity: number;
+  stageStats: Record<string, number>;
   showCreateProjectModal: boolean;
   showEditProjectModal: boolean;
   showRecordModal: boolean;
@@ -1113,6 +1121,40 @@ const formatDate = (dateStr: string) => {
 const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
   return deviceCompleted(row) ? 'completed-row' : '';
 };
+
+const getDeviceSummary = (params: { columns: Array<{ property?: string; label: string }> }) => {
+  const { columns } = params;
+  const sums: string[] = [];
+  columns.forEach((column, index) => {
+    if (index === 0) {
+      sums[index] = '合计';
+      return;
+    }
+    if (column.property === 'deviceName') {
+      sums[index] = '';
+      return;
+    }
+    if (column.label === '应送') {
+      sums[index] = props.totalQuantity.toString();
+      return;
+    }
+    const stage = deviceStages.value.find(s => s.name === column.label);
+    if (stage) {
+      sums[index] = (props.stageStats[stage.id] || 0).toString();
+      return;
+    }
+    if (column.label === '状态') {
+      sums[index] = `${props.completedQuantity}台完成 / ${props.inProgressQuantity}台进行中`;
+      return;
+    }
+    if (column.label === '操作') {
+      sums[index] = '';
+      return;
+    }
+    sums[index] = '';
+  });
+  return sums;
+};
 </script>
 
 <style scoped>
@@ -1228,6 +1270,15 @@ const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
 .confirm-info p { margin: 4px 0; color: #475569; }
 .completed-row { background-color: #f0fdf4 !important; }
 .completed-row:hover > td { background-color: #dcfce7 !important; }
+
+:deep(.el-table__footer-wrapper) {
+  font-weight: 600;
+  background-color: #f8fafc;
+}
+:deep(.el-table__footer-wrapper td) {
+  background-color: #f8fafc;
+  border-top: 2px solid #e2e8f0;
+}
 
 .import-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .import-header .import-tip { font-size: 12px; color: var(--text-secondary, #999); }

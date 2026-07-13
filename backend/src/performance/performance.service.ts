@@ -771,17 +771,21 @@ export class PerformanceService {
     roleCode?: string,
   ) {
     await this.assertProjectManager(projectId, creatorId, roleCode);
-    const device = await this.prisma.customerDevice.create({
-      data: {
-        ...data,
-        projectId,
-        creatorId,
-      },
-      include: {
-        creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true, shortName: true } },
-        stageProgress: true,
-      },
+    const device = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.customerDevice.create({
+        data: {
+          ...data,
+          projectId,
+          creatorId,
+        },
+        include: {
+          creator: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
+          stageProgress: true,
+        },
+      });
+      await this.recalculateProjectTotalQuantity(tx, projectId);
+      return created;
     });
     this.emitDeviceChanged(projectId, device.id);
     return device;
@@ -809,14 +813,20 @@ export class PerformanceService {
         await this.assertProjectManager(device.projectId, userId, roleCode);
       }
     }
-    const result = await this.prisma.customerDevice.update({
-      where: { id: deviceId },
-      data,
-      include: {
-        creator: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true, shortName: true } },
-        stageProgress: true,
-      },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.customerDevice.update({
+        where: { id: deviceId },
+        data,
+        include: {
+          creator: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true, shortName: true } },
+          stageProgress: true,
+        },
+      });
+      if (projectId) {
+        await this.recalculateProjectTotalQuantity(tx, projectId);
+      }
+      return updated;
     });
     if (projectId) this.emitDeviceChanged(projectId, deviceId);
     return result;
@@ -834,8 +844,14 @@ export class PerformanceService {
         await this.assertProjectManager(device.projectId, userId, roleCode);
       }
     }
-    const result = await this.prisma.customerDevice.delete({
-      where: { id: deviceId },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.customerDevice.delete({
+        where: { id: deviceId },
+      });
+      if (projectId) {
+        await this.recalculateProjectTotalQuantity(tx, projectId);
+      }
+      return deleted;
     });
     if (projectId) this.emitDeviceChanged(projectId, deviceId);
     return result;
@@ -846,6 +862,22 @@ export class PerformanceService {
     this.eventEmitter.emit('app.event', {
       type: 'performance.device.changed',
       payload: { projectId, deviceId },
+    });
+  }
+
+  // 根据设备清单重新计算项目总量
+  private async recalculateProjectTotalQuantity(
+    tx: Prisma.TransactionClient,
+    projectId: string,
+  ) {
+    const result = await tx.customerDevice.aggregate({
+      where: { projectId },
+      _sum: { expectedQuantity: true },
+    });
+    const total = result._sum.expectedQuantity || 0;
+    await tx.performanceProject.update({
+      where: { id: projectId },
+      data: { totalQuantity: total },
     });
   }
 

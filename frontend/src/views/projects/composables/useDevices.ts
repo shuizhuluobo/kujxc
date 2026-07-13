@@ -142,7 +142,7 @@ export function useDevices(project?: Ref<Project | null>) {
     }
   };
 
-  // ============ 排序与样式 ============
+  // 设备排序
   const sortedDevices = computed(() => {
     return [...devices.value].sort((a, b) => a.customer?.name?.localeCompare(b.customer?.name || '') ?? 0);
   });
@@ -150,6 +150,30 @@ export function useDevices(project?: Ref<Project | null>) {
   const getDeviceRowClass = ({ row }: { row: CustomerDevice }) => {
     return isDeviceCompleted(row) ? 'completed-row' : '';
   };
+
+  // 设备总数统计
+  const totalQuantity = computed(() => {
+    return devices.value.reduce((sum, d) => sum + (d.expectedQuantity || 0), 0);
+  });
+
+  // 已完成设备数量
+  const completedQuantity = computed(() => {
+    return devices.value.filter(d => isDeviceCompleted(d)).reduce((sum, d) => sum + (d.expectedQuantity || 0), 0);
+  });
+
+  // 进行中设备数量
+  const inProgressQuantity = computed(() => {
+    return totalQuantity.value - completedQuantity.value;
+  });
+
+  // 各阶段完成数量统计
+  const stageStats = computed(() => {
+    const stats: Record<string, number> = {};
+    deviceStages.value.forEach(stage => {
+      stats[stage.id] = devices.value.reduce((sum, d) => sum + getStageProgress(d, stage.id), 0);
+    });
+    return stats;
+  });
 
   // ============ 设备 CRUD ============
   const createDevice = async (projectId: string) => {
@@ -307,7 +331,7 @@ export function useDevices(project?: Ref<Project | null>) {
   });
 
   const downloadTemplate = async () => {
-    const XLSX = await import('xlsx');
+    const XLSX = await import('xlsx-prototype-pollution-fixed');
     const data = [
       { '客户名称': '示例客户A', '设备名称': '示例设备型号', '数量': 10, '备注': '可留空' },
       { '客户名称': '示例客户B', '设备名称': '另一型号', '数量': 5, '备注': '' },
@@ -323,7 +347,7 @@ export function useDevices(project?: Ref<Project | null>) {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const XLSX = await import('xlsx');
+        const XLSX = await import('xlsx-prototype-pollution-fixed');
         const workbook = XLSX.read(e.target?.result, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -433,6 +457,11 @@ export function useDevices(project?: Ref<Project | null>) {
     importCustomerMap,
     getUnmatchedCount,
     uploadRef,
+    // 统计
+    totalQuantity,
+    completedQuantity,
+    inProgressQuantity,
+    stageStats,
     // 数据加载
     loadDevices,
     // 表单操作
