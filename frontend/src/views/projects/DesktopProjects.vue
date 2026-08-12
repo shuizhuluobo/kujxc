@@ -436,9 +436,8 @@ const handleSubmitStage = async () => {
 };
 
 const handleSubmitBatchStage = async (payload: {
-  stageId: string;
-  deviceIds: string[];
-  quantity: number;
+  deviceId: string;
+  entries: { stageId: string; quantity: number }[];
   date: string;
   collaboratorIds: string[];
   includeRecorder: boolean;

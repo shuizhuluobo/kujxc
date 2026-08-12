@@ -106,9 +106,9 @@
             <el-button
               size="small"
               type="success"
-              :disabled="selectedDevices.length === 0"
+              :disabled="devices.length === 0"
               @click="openBatchStageModal"
-            >批量记录{{ selectedDevices.length ? `(${selectedDevices.length})` : '' }}</el-button>
+            >批量记录</el-button>
             <el-button size="small" type="primary" @click="$emit('createDevice')">+ 新增</el-button>
             <el-button size="small" @click="$emit('importDevice')">导入</el-button>
           </div>
@@ -116,20 +116,13 @@
         <div class="panel-body" v-show="!devicePanelCollapsed">
           <el-table
             v-if="devices.length > 0"
-            ref="deviceTableRef"
             :data="devices"
             stripe
             size="small"
             :row-class-name="getDeviceRowClass"
             show-summary
             :summary-method="getDeviceSummary"
-            @selection-change="onDeviceSelectionChange"
           >
-            <el-table-column
-              v-if="selectedProject?.calculationType === CalculationType.QUANTITY"
-              type="selection"
-              width="40"
-            />
             <el-table-column label="#" type="index" width="45" />
             <el-table-column label="客户" min-width="100">
               <template #default="{ row }">{{ row.customer?.shortName || row.customer?.name || '-' }}</template>
@@ -545,39 +538,55 @@
       </template>
     </el-dialog>
 
-    <!-- 批量记录弹窗 -->
+    <!-- 批量记录弹窗（单设备 + 多选阶段，每个阶段单独数量） -->
     <el-dialog v-model="showBatchStageModal" title="批量记录阶段" width="520px" destroy-on-close>
-      <el-form :model="batchStageForm" label-width="90px">
-        <div class="confirm-info">
-          <p><strong>已选设备：</strong>{{ selectedDevices.length }} 台</p>
-          <p v-if="batchExcessCount > 0" class="excess-tip">
-            其中 {{ batchExcessCount }} 台申请数量超出其本阶段剩余量，超出部分将单独记录，不计入设备进度。
-          </p>
-        </div>
-        <el-form-item label="阶段" required>
-          <el-select v-model="batchStageForm.stageId" placeholder="选择阶段" style="width: 100%">
-            <el-option v-for="stage in deviceStages" :key="stage.id" :label="stage.name" :value="stage.id" />
+      <el-form :model="batchForm" label-width="90px">
+        <el-form-item label="设备" required>
+          <el-select v-model="batchForm.deviceId" placeholder="选择设备" filterable style="width: 100%" @change="onBatchDeviceChange">
+            <el-option
+              v-for="d in devices"
+              :key="d.id"
+              :label="`${d.customer?.shortName || d.customer?.name || '未知'} - ${d.deviceName}`"
+              :value="d.id"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="数量" required>
-          <el-input-number v-model="batchStageForm.quantity" :min="1" style="width: 160px" />
-          <span class="unit">台</span>
-          <span class="max-hint">每台设备统一记录此数量</span>
-        </el-form-item>
         <el-form-item label="工作日期" required>
-          <el-date-picker v-model="batchStageForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker v-model="batchForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="阶段与数量" required>
+          <div class="batch-stage-list">
+            <el-checkbox-group v-model="batchForm.selectedStages" class="batch-stage-group">
+              <div v-for="stage in deviceStages" :key="stage.id" class="batch-stage-row">
+                <el-checkbox :value="stage.id" :disabled="batchStageMax(stage.id) <= 0">
+                  {{ stage.name }}
+                  <span class="muted">（待 {{ batchStageMax(stage.id) }} 台）</span>
+                </el-checkbox>
+                <el-input-number
+                  v-if="batchForm.selectedStages.includes(stage.id)"
+                  v-model="batchForm.quantities[stage.id]"
+                  :min="1"
+                  :max="batchStageMax(stage.id)"
+                  size="small"
+                  style="width: 120px"
+                />
+                <span v-else-if="batchStageMax(stage.id) <= 0" class="done-tag">已完成</span>
+              </div>
+            </el-checkbox-group>
+            <p v-if="deviceStages.length === 0" class="muted">该项目未配置设备跟踪阶段</p>
+          </div>
         </el-form-item>
         <el-form-item label="协作人员">
-          <el-select v-model="batchStageForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
+          <el-select v-model="batchForm.collaboratorIds" multiple placeholder="选择协作人员" style="width: 100%">
             <el-option v-for="user in collaboratorOptions" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="包含记录人">
-          <el-switch v-model="batchStageForm.includeRecorder" />
+          <el-switch v-model="batchForm.includeRecorder" />
           <span class="switch-hint">关闭后记录人不参与工作量分润</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="batchStageForm.remark" placeholder="可选备注" />
+          <el-input v-model="batchForm.remark" placeholder="可选备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -730,7 +739,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive } from 'vue';
+import { computed, ref, reactive, watch } from 'vue';
 import { Download, EditPen, Delete, UploadFilled, ArrowRight, ArrowDown } from '@element-plus/icons-vue';
 import type { UploadFile } from 'element-plus';
 import { ElMessage } from 'element-plus';
@@ -854,9 +863,8 @@ const emit = defineEmits<{
   recordStage: [device: CustomerDevice, stageId: string];
   submitStage: [];
   submitBatchStage: [payload: {
-    stageId: string;
-    deviceIds: string[];
-    quantity: number;
+    deviceId: string;
+    entries: { stageId: string; quantity: number }[];
     date: string;
     collaboratorIds: string[];
     includeRecorder: boolean;
@@ -964,73 +972,87 @@ const handleSubmitStageClick = () => {
   emit('submitStage');
 };
 
-// ============ 批量记录（多选设备一次性提交）============
-const deviceTableRef = ref();
-const selectedDevices = ref<CustomerDevice[]>([]);
-
-const onDeviceSelectionChange = (rows: CustomerDevice[]) => {
-  selectedDevices.value = rows;
-};
-
+// ============ 批量记录（单设备 + 多选阶段，每个阶段单独数量）============
 const showBatchStageModal = ref(false);
-const batchStageForm = reactive({
-  stageId: '',
-  quantity: 1,
+const batchForm = reactive({
+  deviceId: '',
+  selectedStages: [] as string[],
+  quantities: {} as Record<string, number>,
   date: new Date().toISOString().slice(0, 10),
   collaboratorIds: [] as string[],
   includeRecorder: true,
   remark: '',
 });
 
-const resetBatchStageForm = () => {
-  batchStageForm.stageId = '';
-  batchStageForm.quantity = 1;
-  batchStageForm.date = new Date().toISOString().slice(0, 10);
-  batchStageForm.collaboratorIds = [];
-  batchStageForm.includeRecorder = true;
-  batchStageForm.remark = '';
+// 某阶段对当前所选设备的剩余可填数量
+const batchStageMax = (stageId: string): number => {
+  if (!batchForm.deviceId) return 0;
+  const device = props.devices.find((d) => d.id === batchForm.deviceId);
+  if (!device) return 0;
+  return Math.max(0, device.expectedQuantity - stageProgress(device, stageId));
 };
 
-// 已选设备中，申请数量超出其本阶段剩余量的台数
-const batchExcessCount = computed(() => {
-  if (!batchStageForm.stageId || batchStageForm.quantity < 1) return 0;
-  return selectedDevices.value.filter((d) => {
-    const remaining = (d.expectedQuantity || 0) - stageProgress(d, batchStageForm.stageId);
-    return batchStageForm.quantity > remaining;
-  }).length;
-});
+// 勾选阶段时同步数量默认值，并清理未勾选项
+watch(
+  () => batchForm.selectedStages,
+  (sel) => {
+    const q = batchForm.quantities;
+    sel.forEach((sid) => {
+      const max = batchStageMax(sid);
+      if (q[sid] == null || q[sid] < 1 || q[sid] > max) q[sid] = 1;
+    });
+    Object.keys(q).forEach((sid) => {
+      if (!sel.includes(sid)) delete q[sid];
+    });
+  },
+);
+
+// 切换设备时清空已选阶段（不同设备剩余量不同）
+const onBatchDeviceChange = () => {
+  batchForm.selectedStages = [];
+  batchForm.quantities = {};
+};
 
 const openBatchStageModal = () => {
-  resetBatchStageForm();
+  batchForm.deviceId = '';
+  batchForm.selectedStages = [];
+  batchForm.quantities = {};
+  batchForm.date = new Date().toISOString().slice(0, 10);
+  batchForm.collaboratorIds = [];
+  batchForm.includeRecorder = true;
+  batchForm.remark = '';
   showBatchStageModal.value = true;
 };
 
 const handleSubmitBatchClick = () => {
-  if (!batchStageForm.stageId) {
-    ElMessage.warning('请选择阶段');
+  if (!batchForm.deviceId) {
+    ElMessage.warning('请选择设备');
     return;
   }
-  if (!batchStageForm.quantity || batchStageForm.quantity < 1) {
-    ElMessage.warning('数量必须大于0');
+  if (!batchForm.date) {
+    ElMessage.warning('请选择工作日期');
     return;
   }
-  if (selectedDevices.value.length === 0) {
-    ElMessage.warning('请至少选择一台设备');
+  const entries = batchForm.selectedStages
+    .map((sid) => ({
+      stageId: sid,
+      quantity: Math.min(batchForm.quantities[sid] ?? 1, batchStageMax(sid)),
+    }))
+    .filter((e) => e.quantity >= 1);
+  if (entries.length === 0) {
+    ElMessage.warning('请至少勾选一个阶段并填写有效数量');
     return;
   }
   const payload = {
-    stageId: batchStageForm.stageId,
-    deviceIds: selectedDevices.value.map((d) => d.id),
-    quantity: batchStageForm.quantity,
-    date: batchStageForm.date,
-    collaboratorIds: batchStageForm.collaboratorIds,
-    includeRecorder: batchStageForm.includeRecorder,
-    remark: batchStageForm.remark || undefined,
+    deviceId: batchForm.deviceId,
+    entries,
+    date: batchForm.date,
+    collaboratorIds: batchForm.collaboratorIds,
+    includeRecorder: batchForm.includeRecorder,
+    remark: batchForm.remark || undefined,
   };
   emit('submit-batch-stage', payload);
   showBatchStageModal.value = false;
-  selectedDevices.value = [];
-  deviceTableRef.value?.clearSelection();
 };
 
 const handleSaveDeviceClick = () => {
@@ -1401,6 +1423,11 @@ const getDeviceSummary = (params: { columns: Array<{ property?: string; label: s
 .switch-hint { margin-left: 10px; font-size: 12px; color: #94a3b8; }
 .confirm-info { background: #f8fafc; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-size: 13px; border: 1px solid #e2e8f0; }
 .confirm-info p { margin: 4px 0; color: #475569; }
+.batch-stage-list { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+.batch-stage-group { display: flex; flex-direction: column; gap: 8px; }
+.batch-stage-row { display: flex; align-items: center; gap: 12px; }
+.muted { color: #94a3b8; font-size: 12px; }
+.done-tag { color: #10b981; font-size: 12px; }
 .completed-row { background-color: #f0fdf4 !important; }
 .completed-row:hover > td { background-color: #dcfce7 !important; }
 

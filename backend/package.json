@@ -122,11 +122,5 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
-  },
-  "pnpm": {
-    "overrides": {
-      "minimatch": "^10.2.3",
-      "glob": "^10.5.0"
-    }
   }
 }

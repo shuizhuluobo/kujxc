@@ -220,11 +220,10 @@ export interface UpdateWorkRecordDto {
     remark?: string;
 }
 
-// 批量记录（多选设备一次性提交）
+// 批量记录（单设备 + 多选阶段，每个阶段单独数量）
 export interface CreateWorkRecordsDto {
-    stageId: string;
-    deviceIds: string[];
-    quantity: number;
+    deviceId: string;
+    entries: { stageId: string; quantity: number }[];
     date: string;
     collaboratorIds: string[];
     includeRecorder: boolean;

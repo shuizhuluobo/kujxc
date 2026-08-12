@@ -240,7 +240,7 @@ export const performanceApi = {
     createRecord: (projectId: string, data: CreateWorkRecordDto) =>
         api.post<WorkRecord>(`/performance/projects/${projectId}/records`, data),
     createRecords: (projectId: string, data: CreateWorkRecordsDto) =>
-        api.post<{ created: WorkRecord[]; summary: { applied: number; excess: number; skipped: number } }>(`/performance/projects/${projectId}/records/batch`, data),
+        api.post<{ created: WorkRecord[]; summary: { recorded: number; applied: number; skipped: number } }>(`/performance/projects/${projectId}/records/batch`, data),
     updateRecord: (projectId: string, recordId: string, data: UpdateWorkRecordDto) =>
         api.patch<WorkRecord>(`/performance/projects/${projectId}/records/${recordId}`, data),
     deleteRecord: (projectId: string, recordId: string) =>

@@ -98,11 +98,12 @@ export interface CreateRecordDto {
   deviceId?: string;
 }
 
-// 批量记录（多选设备一次性提交同一阶段/数量）
+// 批量记录（单设备 + 多选阶段，每个阶段单独数量，受设备剩余量限制）
+// 例如：设备应送5台、已送2台（送货剩3），批量勾选 送货/安装/调试，
+// 送货最多填3，安装/调试各自最多填5；超出剩余量的部分不自动记录，需手动单选补记。
 export interface CreateRecordsDto {
-  stageId: string;
-  deviceIds: string[];
-  quantity: number;
+  deviceId: string;
+  entries: { stageId: string; quantity: number }[];
   date: string;
   collaboratorIds: string[];
   includeRecorder: boolean;
@@ -517,8 +518,12 @@ export class PerformanceService {
           const newQty = currentQty + data.quantity;
 
           if (newQty > lockedDevice.expectedQuantity) {
+            const expectedQuantity =
+              lockedDevice.expectedQuantity ??
+              lockedDevice.expectedquantity ??
+              0;
             throw new BadRequestException(
-              `${stage.name}数量超出限制：${customer?.name || '该客户'}的${lockedDevice.devicename}应${lockedDevice.expectedquantity}台，已记录${currentQty}台，本次提交${data.quantity}台将超出总量`,
+              `${stage.name}数量超出限制：${customer?.name || '该客户'}的${lockedDevice.deviceName || lockedDevice.devicename}应${expectedQuantity}台，已记录${currentQty}台，本次提交${data.quantity}台将超出总量`,
             );
           }
 
@@ -579,20 +584,31 @@ export class PerformanceService {
     return record;
   }
 
-  // ============ 批量记录（多选设备，一次性提交）============
-  // 业务逻辑：每台设备按相同数量记录；超过该设备本阶段剩余量（应送量-已记）的部分
-  // 不计入设备进度，而是单独生成一条「超额」记录，确保数据不丢失。
+  // ============ 批量记录（单设备 + 多选阶段，每个阶段单独数量）============
+  // 业务逻辑：针对单台设备，勾选多个阶段并分别填写数量；每个阶段的数量不得超过
+  // 该设备在该阶段的剩余量（应送量-已记）。前端已限制每个阶段的数量上限，后端再做兜底：
+  // 超出剩余量的部分不自动记录，需用户手动单选补记；剩余量为 0 或数量无效的阶段直接跳过。
   async createRecords(
     projectId: string,
     dto: CreateRecordsDto,
     creatorId: string,
     roleCode?: string,
   ) {
-    if (!Array.isArray(dto.deviceIds) || dto.deviceIds.length === 0) {
-      throw new BadRequestException('请至少选择一台设备');
+    if (!dto.deviceId) {
+      throw new BadRequestException('请选择设备');
     }
-    if (!dto.quantity || dto.quantity < 1) {
-      throw new BadRequestException('数量必须大于0');
+    if (!Array.isArray(dto.entries) || dto.entries.length === 0) {
+      throw new BadRequestException('请至少选择一个阶段');
+    }
+    // 按阶段去重，避免同一阶段被重复记录
+    const seenStages = new Set<string>();
+    const entries = dto.entries.filter((e) => {
+      if (!e || !e.stageId || seenStages.has(e.stageId)) return false;
+      seenStages.add(e.stageId);
+      return true;
+    });
+    if (entries.length === 0) {
+      throw new BadRequestException('请至少选择一个有效阶段');
     }
     await this.assertProjectMember(projectId, creatorId, roleCode);
 
@@ -604,88 +620,79 @@ export class PerformanceService {
     if (project.calculationType !== CalculationType.QUANTITY) {
       throw new BadRequestException('仅按量项目支持批量记录');
     }
-    const stage = project.stages.find((s) => s.id === dto.stageId);
-    if (!stage) throw new BadRequestException('阶段不存在');
-    if (stage.trackingMode !== StageTrackingMode.DEVICE) {
-      throw new BadRequestException('该阶段非设备跟踪模式，不支持批量记录');
-    }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const created: Array<{ id: string; deviceId?: string | null }> = [];
-      const summary = { applied: 0, excess: 0, skipped: 0 };
+      // 加行锁锁定设备，获取客户与应送量
+      const [lockedDevice] = await tx.$queryRaw<CustomerDeviceRow[]>`
+        SELECT * FROM "CustomerDevice" WHERE id = ${dto.deviceId} FOR UPDATE
+      `;
+      if (!lockedDevice) {
+        throw new NotFoundException('设备不存在');
+      }
 
-      for (const deviceId of dto.deviceIds) {
-        // 加行锁，避免并发下超额
-        const [lockedDevice] = await tx.$queryRaw<CustomerDeviceRow[]>`
-          SELECT * FROM "CustomerDevice" WHERE id = ${deviceId} FOR UPDATE
-        `;
-        if (!lockedDevice) {
+      const created: Array<{ id: string; deviceId?: string | null }> = [];
+      const summary = { recorded: 0, applied: 0, skipped: 0 };
+
+      for (const entry of entries) {
+        const stage = project.stages.find((s) => s.id === entry.stageId);
+        // 阶段不存在或非设备跟踪模式，跳过
+        if (!stage || stage.trackingMode !== StageTrackingMode.DEVICE) {
+          summary.skipped += 1;
+          continue;
+        }
+
+        const qty = Math.floor(Number(entry.quantity));
+        if (!Number.isFinite(qty) || qty < 1) {
           summary.skipped += 1;
           continue;
         }
 
         const [progress] = await tx.$queryRaw<DeviceStageProgressRow[]>`
-          SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${deviceId} AND "stageId" = ${dto.stageId} FOR UPDATE
+          SELECT * FROM "DeviceStageProgress" WHERE "deviceId" = ${lockedDevice.id} AND "stageId" = ${stage.id} FOR UPDATE
         `;
         const currentQty = progress?.quantity || 0;
-        const remaining = lockedDevice.expectedquantity - currentQty;
-        const applied = Math.max(0, Math.min(dto.quantity, remaining));
-        const excess = Math.max(0, dto.quantity - applied);
+        const expectedQuantity =
+          lockedDevice.expectedQuantity ?? lockedDevice.expectedquantity ?? 0;
+        const remaining = expectedQuantity - currentQty;
 
-        // 计入设备进度的部分
-        if (applied > 0) {
-          if (progress) {
-            await tx.deviceStageProgress.update({
-              where: { id: progress.id },
-              data: { quantity: currentQty + applied },
-            });
-          } else {
-            await tx.deviceStageProgress.create({
-              data: {
-                deviceId,
-                stageId: dto.stageId,
-                quantity: applied,
-              },
-            });
-          }
-          const rec = await tx.performanceRecord.create({
+        // 该阶段已完成（无剩余量）或数量超出，均跳过，需用户手动单选补记
+        if (remaining <= 0) {
+          summary.skipped += 1;
+          continue;
+        }
+        const applied = Math.min(qty, remaining);
+
+        if (progress) {
+          await tx.deviceStageProgress.update({
+            where: { id: progress.id },
+            data: { quantity: currentQty + applied },
+          });
+        } else {
+          await tx.deviceStageProgress.create({
             data: {
-              projectId,
-              stageId: dto.stageId,
+              deviceId: lockedDevice.id,
+              stageId: stage.id,
               quantity: applied,
-              customerId: lockedDevice.customerId,
-              date: dto.date,
-              collaboratorIds: dto.collaboratorIds,
-              includeRecorder: dto.includeRecorder,
-              remark: dto.remark,
-              deviceId,
-              creatorId,
             },
           });
-          created.push(rec);
-          summary.applied += applied;
         }
-
-        // 超出设备剩余量的部分：单独记录，不计入设备进度
-        if (excess > 0) {
-          const excessRemark = `${dto.remark ? dto.remark + '；' : ''}超额记录：本批申请${dto.quantity}台，设备应送${lockedDevice.expectedquantity}台，已记${currentQty}台，超出${excess}台`;
-          const rec = await tx.performanceRecord.create({
-            data: {
-              projectId,
-              stageId: dto.stageId,
-              quantity: excess,
-              customerId: lockedDevice.customerId,
-              date: dto.date,
-              collaboratorIds: dto.collaboratorIds,
-              includeRecorder: dto.includeRecorder,
-              remark: excessRemark,
-              deviceId,
-              creatorId,
-            },
-          });
-          created.push(rec);
-          summary.excess += excess;
-        }
+        const rec = await tx.performanceRecord.create({
+          data: {
+            projectId,
+            stageId: stage.id,
+            quantity: applied,
+            customerId: lockedDevice.customerId,
+            date: dto.date,
+            collaboratorIds: dto.collaboratorIds,
+            includeRecorder: dto.includeRecorder,
+            remark: dto.remark,
+            deviceId: lockedDevice.id,
+            creatorId,
+          },
+        });
+        created.push(rec);
+        summary.recorded += 1;
+        summary.applied += applied;
       }
 
       return { created, summary };
@@ -773,8 +780,10 @@ export class PerformanceService {
             const currentQty = newProgress?.quantity || 0;
             const finalQty = currentQty + newQty;
             if (finalQty > device.expectedQuantity) {
+              const expectedQuantity =
+                device.expectedQuantity ?? device.expectedquantity ?? 0;
               throw new BadRequestException(
-                `${stage.name}数量超出限制：${device.devicename}应${device.expectedquantity}台，本次提交${newQty}台将超出总量`,
+                `${stage.name}数量超出限制：${device.deviceName || device.devicename}应${expectedQuantity}台，本次提交${newQty}台将超出总量`,
               );
             }
             if (newProgress) {

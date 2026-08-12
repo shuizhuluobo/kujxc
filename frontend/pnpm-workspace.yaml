@@ -1,3 +1,7 @@
-onlyBuiltDependencies:
-  - esbuild
-  - vue-demi
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  vue-demi: true
+overrides:
+  minimatch: ^10.2.3
+  glob: ^10.5.0

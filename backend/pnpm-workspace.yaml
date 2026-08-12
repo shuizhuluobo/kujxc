@@ -6,11 +6,6 @@ allowBuilds:
   bcrypt: true
   prisma: true
   unrs-resolver: true
-onlyBuiltDependencies:
-  - '@nestjs/core'
-  - '@prisma/client'
-  - '@prisma/engines'
-  - '@scarf/scarf'
-  - bcrypt
-  - prisma
-  - unrs-resolver
+overrides:
+  minimatch: ^10.2.3
+  glob: ^10.5.0
