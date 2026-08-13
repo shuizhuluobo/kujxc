@@ -212,7 +212,7 @@ const {
 
 .main-content.fullscreen-content {
     padding: 0;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .admin-menu-list {

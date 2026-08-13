@@ -21,7 +21,7 @@
 
     <!-- Desktop Nav -->
     <div v-else class="detail-nav">
-      <el-button :icon="ArrowLeft" circle @click="goBack" class="nav-back">
+      <el-button :icon="ArrowLeft" @click="goBack" class="nav-back">
         返回
       </el-button>
       <div class="nav-actions">
@@ -222,7 +222,7 @@ function formatFileSize(bytes: number) {
 
 .article-title {
   margin: 0 0 20px;
-  font-size: 36px;
+  font-size: clamp(26px, 4vw, 36px);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.3;
@@ -299,7 +299,7 @@ function formatFileSize(bytes: number) {
 }
 
 :deep(.md-preview h1) {
-  font-size: 28px;
+  font-size: clamp(24px, 2.4vw, 28px);
   font-weight: 700;
   margin: 32px 0 20px;
   padding-bottom: 12px;
@@ -308,14 +308,14 @@ function formatFileSize(bytes: number) {
 }
 
 :deep(.md-preview h2) {
-  font-size: 24px;
+  font-size: clamp(20px, 2.1vw, 24px);
   font-weight: 600;
   margin: 28px 0 16px;
   letter-spacing: -0.2px;
 }
 
 :deep(.md-preview h3) {
-  font-size: 20px;
+  font-size: clamp(18px, 1.8vw, 20px);
   font-weight: 600;
   margin: 24px 0 14px;
 }
@@ -402,8 +402,7 @@ function formatFileSize(bytes: number) {
 /* 移动端优化 */
 @media (max-width: 768px) {
   .detail-page {
-    height: 100vh;
-    overflow-y: auto;
+    min-height: 100vh;
   }
 
   .article-container-new {
@@ -420,11 +419,23 @@ function formatFileSize(bytes: number) {
     margin-bottom: 16px;
   }
 
+  /* 作者信息与点赞同一行：作者信息可换行，点赞固定在右侧 */
   .article-meta-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
     padding: 12px 0;
+  }
+
+  .author-and-category {
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-actions {
+    margin-left: auto;
   }
 
   .author-and-category {
@@ -432,7 +443,7 @@ function formatFileSize(bytes: number) {
   }
 
   .article-content {
-    padding: 20px 16px;
+    padding: 16px 12px;
     border-radius: 12px;
     min-height: 240px;
   }
@@ -554,6 +565,13 @@ function formatFileSize(bytes: number) {
 
 <style>
 /* 全局样式覆盖，确保移动端体验 */
+
+/* 代码块标题默认 sticky(top:0) 且 z-index:10000，滚动时会遮挡顶部标题栏，改为随内容滚动 */
+.md-editor-preview .md-editor-code .md-editor-code-head {
+  position: static !important;
+  z-index: auto !important;
+}
+
 @media (max-width: 768px) {
   /* 行内代码：允许换行，避免超长行溢出容器 */
   .article-container-new .md-preview code,
@@ -572,6 +590,15 @@ function formatFileSize(bytes: number) {
     white-space: pre !important;
     word-break: normal !important;
     overflow-wrap: normal !important;
+  }
+
+  /* 移动端压缩行号列宽与代码起始间距，减小代码块左边距 */
+  .md-editor-preview.md-editor-scrn span[rn-wrapper] {
+    width: 2em !important;
+  }
+
+  .md-editor-preview.md-editor-scrn pre code {
+    padding-inline-start: 2.3em !important;
   }
 }
 
