@@ -1098,7 +1098,10 @@ export class PerformanceService {
 
     return Array.from(userStats.values()).map((stat) => {
       let stageTotal = 0;
-      Object.values(stat.stageStats).forEach((s) => (stageTotal += s.amount));
+      Object.values(stat.stageStats).forEach((s) => {
+        s.count = Math.round(s.count * 100) / 100;
+        stageTotal += s.amount;
+      });
       return {
         ...stat,
         totalAmount: Math.round((stageTotal + stat.workDaysAmount) * 100) / 100,
@@ -1164,7 +1167,10 @@ export class PerformanceService {
     });
 
     let stageTotal = 0;
-    Object.values(result.stageStats).forEach((s) => (stageTotal += s.amount));
+    Object.values(result.stageStats).forEach((s) => {
+      s.count = Math.round(s.count * 100) / 100;
+      stageTotal += s.amount;
+    });
     result.totalAmount =
       Math.round((stageTotal + result.totalWorkDays * 0) * 100) / 100;
     // 注意：DAILY 项目的 totalAmount 已在循环中累加；QUANTITY 的金额在 stageStats 中
