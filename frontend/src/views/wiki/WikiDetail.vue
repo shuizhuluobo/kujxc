@@ -164,7 +164,7 @@ function formatFileSize(bytes: number) {
 
 <style scoped>
 .detail-page {
-  min-height: 100vh;
+  min-height: 100%;
   background: var(--bg-color);
 }
 
@@ -401,12 +401,8 @@ function formatFileSize(bytes: number) {
 
 /* 移动端优化 */
 @media (max-width: 768px) {
-  .detail-page {
-    min-height: 100vh;
-  }
-
   .article-container-new {
-    padding: 16px 12px 40px;
+    padding: 12px 8px 40px;
   }
 
   .article-header {
@@ -443,7 +439,7 @@ function formatFileSize(bytes: number) {
   }
 
   .article-content {
-    padding: 16px 12px;
+    padding: 12px 8px;
     border-radius: 12px;
     min-height: 240px;
   }
@@ -599,6 +595,19 @@ function formatFileSize(bytes: number) {
 
   .md-editor-preview.md-editor-scrn pre code {
     padding-inline-start: 2.3em !important;
+  }
+
+  /* 移动端代码字号随屏宽自适应缩小，同屏显示更多字符，减少横向滚动 */
+  .md-editor-preview pre,
+  .md-editor-preview pre code {
+    font-size: clamp(12px, 3.5vw, 14px) !important;
+    line-height: 1.55 !important;
+  }
+
+  /* 详情页代码块贴卡片边缘全宽展示（外勤工程师移动端查看），进一步提升可读宽度 */
+  .article-container-new .md-editor-preview .md-editor-code {
+    margin-left: -8px !important;
+    margin-right: -8px !important;
   }
 }
 
