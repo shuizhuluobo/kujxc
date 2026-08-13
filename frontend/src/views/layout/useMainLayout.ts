@@ -18,7 +18,13 @@ export function useMainLayout() {
     const sidebarCollapsed = ref(false);
     const showAdminMenu = ref(false);
 
-    const isFullscreen = computed(() => route.meta.fullscreen === true);
+    // 全屏（沉浸式）仅在移动端生效；桌面端默认保留侧边栏与顶栏以便滚动，
+    // 除非路由显式声明 desktopFullscreen（如编辑器）。
+    const isFullscreen = computed(() => {
+        if (route.meta.fullscreen !== true) return false;
+        if (isMobile.value) return true;
+        return route.meta.desktopFullscreen === true;
+    });
 
     // 权限检查
     const canAccessWorkOrder = computed(() => has('workOrder:list'));

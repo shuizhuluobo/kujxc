@@ -549,24 +549,29 @@ function formatFileSize(bytes: number) {
   color: var(--primary-color);
 }
 
-/* 全局样式覆盖，确保在移动端强制换行 */
+/* 全局样式覆盖（移动端）见下方非 scoped style 块 */
 </style>
 
 <style>
+/* 全局样式覆盖，确保移动端体验 */
 @media (max-width: 768px) {
-  .article-container-new .md-preview pre,
-  .article-container-new .md-preview code {
-    white-space: pre-wrap !important;
-    word-break: break-all !important;
-    overflow-wrap: break-word !important;
-  }
-  
-  /* 针对 md-editor-v3 的特定预览容器 */
-  .md-editor-preview pre,
+  /* 行内代码：允许换行，避免超长行溢出容器 */
+  .article-container-new .md-preview code,
   .md-editor-preview code {
     white-space: pre-wrap !important;
     word-break: break-all !important;
     overflow-wrap: break-word !important;
+  }
+
+  /* 代码块：不换行以保持行号逐行对齐（md-editor-v3 行号按源码行计数），
+     超长内容在代码块内横向滚动，避免 wrap 后行号错位 */
+  .article-container-new .md-preview pre,
+  .article-container-new .md-preview pre code,
+  .md-editor-preview pre,
+  .md-editor-preview pre code {
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
   }
 }
 

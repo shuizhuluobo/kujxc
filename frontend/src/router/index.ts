@@ -86,7 +86,7 @@ const router = createRouter({
                     path: 'wiki/edit',
                     name: 'wikiEditor',
                     component: () => import('@/views/wiki/WikiEditor.vue'),
-                    meta: { permission: 'wiki:create', fullscreen: true },
+                    meta: { permission: 'wiki:create', fullscreen: true, desktopFullscreen: true },
                 },
                 {
                     path: 'test/components',
