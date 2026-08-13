@@ -11,16 +11,8 @@
         <span class="page-title">{{ isEdit ? '编辑文章' : '新文章' }}</span>
       </div>
       <div class="header-right">
-        <!-- Mobile Mode Toggle -->
-        <el-button link class="icon-btn" @click="toggleMobileMode" v-if="isMobile">
-          <el-icon :size="20">
-            <View v-if="mobileMode === 'edit'" />
-            <EditPen v-else />
-          </el-icon>
-        </el-button>
-        
-        <!-- Publish -->
-        <el-button type="primary" size="small" circle :loading="submitting" @click="handleSave" class="publish-btn">
+        <!-- Publish (desktop) -->
+        <el-button v-if="!isMobile" type="primary" size="small" circle :loading="submitting" @click="handleSave" class="publish-btn">
           <el-icon><Check /></el-icon>
         </el-button>
       </div>
@@ -146,6 +138,28 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile Bottom Action Bar -->
+    <div v-if="isMobile" class="editor-footer">
+      <el-button link class="footer-cancel-btn" @click="router.back()">
+        <el-icon :size="18"><Close /></el-icon>
+        <span>取消</span>
+      </el-button>
+      <div class="footer-mode-switch">
+        <div class="mode-item" :class="{ active: mobileMode === 'edit' }" @click="mobileMode = 'edit'">编辑</div>
+        <div class="mode-item" :class="{ active: mobileMode === 'preview' }" @click="mobileMode = 'preview'">预览</div>
+      </div>
+      <el-button
+        type="primary"
+        size="large"
+        round
+        class="footer-save-btn"
+        :loading="submitting"
+        @click="handleSave"
+      >
+        保存
+      </el-button>
+    </div>
   </div>
 </template>
 
@@ -153,7 +167,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  ArrowLeft, Check, View, EditPen, Folder,
+  ArrowLeft, Check, Close, Folder,
   ArrowDown, Paperclip, Plus, Document, Delete
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -207,10 +221,6 @@ const mobileToolbars = [
   'link', 'image', 'code', 'table', '=',
   'fullscreen'
 ];
-
-function toggleMobileMode() {
-  mobileMode.value = mobileMode.value === 'edit' ? 'preview' : 'edit';
-}
 
 async function fetchCategories() {
   const res = await wikiApi.getCategories();
@@ -590,8 +600,87 @@ onMounted(async () => {
   border: 1px dashed var(--border-color);
 }
 
+/* Mobile Bottom Action Bar */
+.editor-footer {
+  display: none;
+}
+
 /* Mobile Ops */
 @media (max-width: 768px) {
+  .editor-header {
+    height: calc(56px + var(--safe-area-top));
+    padding-top: var(--safe-area-top);
+  }
+
+  .document-header {
+    padding: 16px 16px 12px;
+  }
+
+  :deep(.md-editor-content-wrapper) {
+    padding: 0 16px 40px;
+  }
+
+  .mobile-preview-container {
+    padding: 0 16px 40px;
+  }
+
+  .attachment-section {
+    padding: 0 16px 40px;
+  }
+
+  .editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-bottom: calc(10px + var(--safe-area-bottom));
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color-lighter);
+  }
+
+  .footer-cancel-btn {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .footer-mode-switch {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    background: var(--bg-color-page);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .footer-mode-switch .mode-item {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 6px 0;
+    border-radius: 18px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .footer-mode-switch .mode-item.active {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .footer-save-btn {
+    min-width: 96px;
+    flex-shrink: 0;
+    margin-left: 0;
+  }
+
   /* CSS Optimizations for Touch & Text */
   :deep(.md-editor-preview-wrapper) {
     padding: 0 8px;

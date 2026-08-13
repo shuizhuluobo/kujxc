@@ -247,7 +247,7 @@ const {
   }
   
   .main-content {
-    padding: 16px;
+    padding: 12px;
   }
 }
 </style>

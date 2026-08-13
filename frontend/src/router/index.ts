@@ -80,7 +80,7 @@ const router = createRouter({
                     path: 'wiki/:id',
                     name: 'wikiDetail',
                     component: () => import('@/views/wiki/WikiDetail.vue'),
-                    meta: { permission: 'wiki:view' },
+                    meta: { permission: 'wiki:view', fullscreen: true },
                 },
                 {
                     path: 'wiki/edit',

@@ -7,6 +7,7 @@
       left-arrow
       fixed
       placeholder
+      safe-area-inset-top
       @click-left="goBack"
       class="mobile-nav-bar"
     >
@@ -400,8 +401,13 @@ function formatFileSize(bytes: number) {
 
 /* 移动端优化 */
 @media (max-width: 768px) {
-  .article-container {
-    padding: 20px 16px 48px;
+  .detail-page {
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .article-container-new {
+    padding: 16px 12px 40px;
   }
 
   .article-header {
@@ -426,8 +432,14 @@ function formatFileSize(bytes: number) {
   }
 
   .article-content {
-    padding: 24px 20px;
+    padding: 20px 16px;
     border-radius: 12px;
+    min-height: 240px;
+  }
+
+  .article-attachments {
+    padding: 16px;
+    margin-top: 20px;
   }
 
   :deep(.md-preview) {

@@ -156,6 +156,11 @@ function getSummary(content: string) {
 }
 
 /* 页头副样式（基准 .m-page-header 由全局提供） */
+.m-page-header {
+  padding: 0 12px;
+  padding-top: var(--safe-area-top);
+}
+
 .m-page-header .header-create-btn {
   width: 36px;
   height: 36px;
@@ -171,7 +176,7 @@ function getSummary(content: string) {
 
 /* 卡片列表（使用全局 .card-list） */
 .card-list {
-  padding: 12px 16px 20px;
+  padding: 8px 12px 12px;
 }
 
 .mobile-article-card {
