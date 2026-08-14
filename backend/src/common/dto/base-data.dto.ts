@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsInt,
+  IsUUID,
   MaxLength,
   Min,
   IsUrl,
@@ -40,6 +41,14 @@ export class CreateCustomerDto {
   @IsString()
   @MaxLength(200)
   address?: string;
+
+  @ApiProperty({
+    description: '默认区域ID（新建工单时自动带出）',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  defaultRegionId?: string;
 }
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {}

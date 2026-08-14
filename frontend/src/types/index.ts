@@ -56,6 +56,8 @@ export interface Customer {
     contact?: string;
     phone?: string;
     address?: string;
+    defaultRegionId?: string;
+    region?: Region;
     createdAt: string;
     updatedAt: string;
 }

@@ -85,6 +85,21 @@ export function useWorkOrderForm(onSuccess?: () => void) {
         }
     };
 
+    // 选择客户后，若该客户设置了默认区域，自动带出（新建场景），用户仍可手动更改
+    watch(
+        () => form.customerId,
+        (newCustomerId) => {
+            // 编辑模式不自动覆盖已保存的区域
+            if (editingWorkOrder.value?.customerId === newCustomerId) return;
+            if (!newCustomerId) return;
+
+            const customer = baseDataStore.customers.find(c => c.id === newCustomerId);
+            if (customer?.defaultRegionId) {
+                form.regionId = customer.defaultRegionId;
+            }
+        },
+    );
+
     function resetForm() {
         editingWorkOrder.value = null;
 

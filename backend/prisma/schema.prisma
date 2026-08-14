@@ -49,22 +49,25 @@ model User {
 }
 
 model Customer {
-  id                 String              @id @default(uuid())
-  name               String
-  shortName          String?
-  namePinyin         String?
-  nameInitials       String?
-  contact            String?
-  phone              String?
-  address            String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  devices            CustomerDevice[]
+  id               String              @id @default(uuid())
+  name             String
+  shortName        String?
+  namePinyin       String?
+  nameInitials     String?
+  contact          String?
+  phone            String?
+  address          String?
+  defaultRegionId  String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  devices          CustomerDevice[]
   performanceRecords PerformanceRecord[]
-  workOrders         WorkOrder[]
-  feeRecords         FeeRecord[]
+  workOrders       WorkOrder[]
+  feeRecords       FeeRecord[]
+  defaultRegion    Region?             @relation(fields: [defaultRegionId], references: [id])
 
   @@index([shortName])
+  @@index([defaultRegionId])
 }
 
 model Region {
@@ -79,6 +82,7 @@ model Region {
   dingtalkWebhook String?
   users           User[]
   workOrders      WorkOrder[]
+  customers       Customer[]
 }
 
 model ServiceType {

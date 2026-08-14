@@ -23,6 +23,9 @@
       <el-table-column prop="contact" label="联系人" width="100" />
       <el-table-column prop="phone" label="电话" width="130" />
       <el-table-column prop="address" label="地址" min-width="200" show-overflow-tooltip />
+      <el-table-column label="默认区域" width="120">
+        <template #default="{ row }">{{ row.region?.name || '-' }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="handleEdit(row)">编辑</el-button>
@@ -83,9 +86,12 @@
                                 <span class="separator" v-if="customer.contact && customer.phone">|</span>
                                 <van-icon name="phone-o" v-if="customer.phone" /> {{ customer.phone }}
                             </div>
-                             <div class="info-row" v-if="customer.address">
-                                <van-icon name="location-o" /> {{ customer.address }}
-                            </div>
+                              <div class="info-row" v-if="customer.address">
+                                 <van-icon name="location-o" /> {{ customer.address }}
+                             </div>
+                             <div class="info-row" v-if="customer.region">
+                                 <span class="region-label">默认区域：</span>{{ customer.region.name }}
+                             </div>
                         </div>
                     </template>
                 </van-cell>
@@ -126,6 +132,11 @@
         <el-form-item label="地址">
           <el-input v-model="form.address" type="textarea" :rows="2" maxlength="200" />
         </el-form-item>
+        <el-form-item label="默认区域">
+          <el-select v-model="form.defaultRegionId" style="width: 100%" clearable placeholder="可选，新建工单时自动带出">
+            <el-option v-for="r in regions" :key="r.id" :label="r.name" :value="r.id" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -139,8 +150,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
-import type { Customer } from '@/types';
-import { customersApi } from '@/api';
+import type { Customer, Region } from '@/types';
+import { customersApi, regionsApi } from '@/api';
 import { useResponsive } from '@/composables';
 
 import { 
@@ -161,6 +172,7 @@ const loading = ref(false);
 const submitting = ref(false);
 const dialogVisible = ref(false);
 const customers = ref<Customer[]>([]);
+const regions = ref<Region[]>([]);
 const searchKeyword = ref('');
 const total = ref(0);
 
@@ -172,7 +184,7 @@ const pagination = reactive({
 const editing = ref<Customer | null>(null);
 const formRef = ref<FormInstance>();
 
-const form = reactive({ name: '', shortName: '', contact: '', phone: '', address: '' });
+const form = reactive({ name: '', shortName: '', contact: '', phone: '', address: '', defaultRegionId: '' });
 const rules: FormRules = { name: [{ required: true, message: '请输入客户名称', trigger: 'blur' }] };
 
 async function fetchData() {
@@ -185,6 +197,9 @@ async function fetchData() {
     });
     customers.value = data.data;
     total.value = data.total;
+
+    const regionsRes = await regionsApi.getAll();
+    regions.value = regionsRes.data;
   } finally {
     loading.value = false;
   }
@@ -206,16 +221,16 @@ function handleSearch() {
   void fetchData();
 }
 
-function handleCreate() { editing.value = null; Object.assign(form, { name: '', shortName: '', contact: '', phone: '', address: '' }); dialogVisible.value = true; }
+function handleCreate() { editing.value = null; Object.assign(form, { name: '', shortName: '', contact: '', phone: '', address: '', defaultRegionId: '' }); dialogVisible.value = true; }
 function handleEdit(row: Customer) { 
   editing.value = row; 
-  // Only copy the editable fields
   Object.assign(form, { 
     name: row.name, 
     shortName: row.shortName || '', 
     contact: row.contact || '', 
     phone: row.phone || '', 
-    address: row.address || '' 
+    address: row.address || '', 
+    defaultRegionId: row.defaultRegionId || '' 
   }); 
   dialogVisible.value = true; 
 }
@@ -232,8 +247,10 @@ async function handleSubmit() {
   if (!valid) return;
   submitting.value = true;
   try {
-    if (editing.value) { await customersApi.update(editing.value.id, form); }
-    else { await customersApi.create(form); }
+    const defaultRegionIdValue = form.defaultRegionId || null;
+    const payload = { name: form.name, shortName: form.shortName, contact: form.contact, phone: form.phone, address: form.address, defaultRegionId: defaultRegionIdValue };
+    if (editing.value) { await customersApi.update(editing.value.id, payload); }
+    else { await customersApi.create(payload); }
     ElMessage.success(editing.value ? '更新成功' : '创建成功');
     dialogVisible.value = false;
     void fetchData();
@@ -327,10 +344,16 @@ onMounted(fetchData);
     margin-bottom: 2px;
 }
 
-.info-row .van-icon {
+  .info-row .van-icon {
     margin-right: 4px;
     font-size: 14px;
-}
+  }
+
+  .region-label {
+    margin-right: 4px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
 
 .separator {
     margin: 0 8px;

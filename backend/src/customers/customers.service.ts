@@ -13,15 +13,27 @@ import { PaginationDto } from '../common/dto';
 export class CustomersService {
   constructor(private prisma: PrismaService) {}
 
+  private withRegion(
+    customer: Prisma.CustomerGetPayload<{
+      include: { defaultRegion: true };
+    }> | null,
+  ) {
+    if (!customer) return customer;
+    const { defaultRegion, ...rest } = customer;
+    return { ...rest, region: defaultRegion };
+  }
+
   async create(createDto: CreateCustomerDto) {
     const { pinyinStr, initials } = generatePinyinMeta(createDto.name);
-    return this.prisma.customer.create({
+    const customer = await this.prisma.customer.create({
       data: {
         ...createDto,
         namePinyin: pinyinStr,
         nameInitials: initials,
       },
+      include: { defaultRegion: true },
     });
+    return this.withRegion(customer);
   }
 
   async findAll(query: PaginationDto = {}) {
@@ -34,6 +46,7 @@ export class CustomersService {
           shortName: { equals: keyword, mode: 'insensitive' },
         },
         orderBy: { createdAt: 'desc' },
+        include: { defaultRegion: true },
         take: pageSize,
       });
 
@@ -70,6 +83,7 @@ export class CustomersService {
           this.prisma.customer.findMany({
             where: remainingWhere,
             orderBy: { createdAt: 'desc' },
+            include: { defaultRegion: true },
             skip: Math.max(
               0,
               (page - 1) * pageSize - exactShortNameMatch.length,
@@ -85,7 +99,7 @@ export class CustomersService {
         const total = totalExact + totalRemaining;
 
         return {
-          data,
+          data: data.map((c) => this.withRegion(c)),
           total,
           page,
           pageSize,
@@ -116,6 +130,7 @@ export class CustomersService {
         orderBy: keyword
           ? [{ shortName: 'asc' }, { name: 'asc' }]
           : { createdAt: 'desc' },
+        include: { defaultRegion: true },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -123,7 +138,7 @@ export class CustomersService {
     ]);
 
     return {
-      data,
+      data: data.map((c) => this.withRegion(c)),
       total,
       page,
       pageSize,
@@ -132,11 +147,14 @@ export class CustomersService {
   }
 
   async findOne(id: string) {
-    const customer = await this.prisma.customer.findUnique({ where: { id } });
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+      include: { defaultRegion: true },
+    });
     if (!customer) {
       throw new NotFoundException('客户不存在');
     }
-    return customer;
+    return this.withRegion(customer);
   }
 
   async update(id: string, updateDto: UpdateCustomerDto) {
@@ -145,14 +163,16 @@ export class CustomersService {
       ? generatePinyinMeta(updateDto.name)
       : { pinyinStr: undefined, initials: undefined };
 
-    return this.prisma.customer.update({
+    const customer = await this.prisma.customer.update({
       where: { id },
       data: {
         ...updateDto,
         namePinyin: pinyinStr,
         nameInitials: initials,
       },
+      include: { defaultRegion: true },
     });
+    return this.withRegion(customer);
   }
 
   async remove(id: string) {

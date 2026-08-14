@@ -40,6 +40,17 @@
           {{ r.name }}
         </el-radio>
       </el-radio-group>
+      <el-button
+        v-if="canSetDefaultRegion && currentCustomer"
+        size="small"
+        :type="isDefaultRegion ? 'info' : 'default'"
+        :disabled="!localModelValue.regionId || savingDefault"
+        class="set-default-region-btn"
+        @click.prevent="handleSetDefaultRegion"
+      >
+        <el-icon v-if="isDefaultRegion" style="margin-right: 4px"><Check /></el-icon>
+        {{ isDefaultRegion ? '已设为默认' : '设为默认' }}
+      </el-button>
     </el-form-item>
 
     <el-form-item label="服务类型" prop="serviceTypeId">
@@ -81,10 +92,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { FormInstance, FormRules } from 'element-plus';
+import { ref, computed } from 'vue';
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import { Check } from '@element-plus/icons-vue';
 import type { CreateWorkOrderDto, Customer } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
+import { usePermission } from '@/composables';
+import { customersApi } from '@/api';
 
 interface Props {
   modelValue: CreateWorkOrderDto;
@@ -99,12 +113,47 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const baseDataStore = useBaseDataStore();
+const { has: hasPermission } = usePermission();
 const formRef = ref<FormInstance>();
 // Alias the reactive modelValue so v-model binds to a local name (parent holds the same reactive object by reference)
 const localModelValue = props.modelValue;
 
 const labelPosition = props.isMobile ? 'top' : 'right';
 const labelWidth = props.isMobile ? 'auto' : '80px';
+
+// 仅拥有客户编辑权限的用户可设置默认区域
+const canSetDefaultRegion = computed(() => hasPermission('customer:edit'));
+
+const currentCustomer = computed(() =>
+  props.customers.find((c) => c.id === localModelValue.customerId),
+);
+
+const isDefaultRegion = computed(() =>
+  Boolean(currentCustomer.value?.defaultRegionId) &&
+  currentCustomer.value?.defaultRegionId === localModelValue.regionId,
+);
+
+const savingDefault = ref(false);
+
+async function handleSetDefaultRegion() {
+  const customerId = localModelValue.customerId;
+  const regionId = localModelValue.regionId;
+  if (!customerId || !regionId) return;
+
+  savingDefault.value = true;
+  try {
+    await customersApi.update(customerId, { defaultRegionId: regionId });
+    // 同步更新本地缓存中的客户默认区域，避免下次还需请求
+    const cached = baseDataStore.customers.find((c) => c.id === customerId);
+    if (cached) cached.defaultRegionId = regionId;
+    ElMessage.success('已设为默认区域');
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } };
+    ElMessage.error(err.response?.data?.message || '设置默认区域失败');
+  } finally {
+    savingDefault.value = false;
+  }
+}
 
 // Expose validate methods
 type FormValidateCallback = (isValid: boolean) => void;
@@ -127,6 +176,17 @@ defineExpose({
 .radio-item-inline {
   margin-right: 16px;
   margin-bottom: 8px;
+}
+
+.set-default-region-btn {
+  margin-left: 8px;
+}
+
+@media (max-width: 767px) {
+  .set-default-region-btn {
+    margin-left: 0;
+    margin-top: 4px;
+  }
 }
 
 .customer-option {

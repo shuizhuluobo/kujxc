@@ -158,6 +158,8 @@ function canViewRepairFee(row: WorkOrder): boolean {
 }
 
 const props = defineProps<{
+  loading: boolean;
+  loadingMore: boolean;
   workOrders: WorkOrder[];
   total: number;
   filter: WorkOrderFilterParams;
