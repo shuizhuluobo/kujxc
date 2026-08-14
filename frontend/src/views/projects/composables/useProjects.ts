@@ -40,6 +40,10 @@ export function useProjects() {
   const canViewPerformance = computed(() =>
     hasPermission(authStore.user?.role?.permissions || [], 'fee:view_stats') || isAdmin.value,
   );
+  const canViewGlobalStats = computed(() => isAdmin.value);
+  const canExport = computed(() =>
+    hasPermission(authStore.user?.role?.permissions || [], 'fee:export') || isAdmin.value,
+  );
   const canViewAmount = computed(() =>
     hasPermission(authStore.user?.role?.permissions || [], 'fee:view_amount') || isAdmin.value,
   );
@@ -309,6 +313,8 @@ export function useProjects() {
     canCreateRecord,
     canManageDevice,
     canViewPerformance,
+    canViewGlobalStats,
+    canExport,
     canViewAmount,
     // 区域分组
     regionGroups,

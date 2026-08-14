@@ -23,6 +23,7 @@
           :can-manage-project="canManageProject"
           :can-create-record="canCreateRecord"
           :can-view-performance="canViewPerformance"
+          :can-export="canExport"
           :can-view-amount="canViewAmount"
           :loading="loading"
           :current-page="currentPage"
@@ -145,7 +146,7 @@
       </el-tab-pane>
 
       <!-- 绩效总览 -->
-      <el-tab-pane label="绩效总览" name="global-stats" v-if="canViewPerformance">
+      <el-tab-pane label="绩效总览" name="global-stats" v-if="canViewGlobalStats">
         <GlobalPerformanceOverview />
       </el-tab-pane>
     </el-tabs>
@@ -182,6 +183,8 @@ const {
   canManageProject,
   canCreateRecord,
   canViewPerformance,
+  canViewGlobalStats,
+  canExport,
   canViewAmount,
   loadProjects,
   selectProject,

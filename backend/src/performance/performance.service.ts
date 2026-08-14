@@ -1208,43 +1208,7 @@ export class PerformanceService {
 
     const workbook = new ExcelJS.Workbook();
 
-    // 项目信息
-    const infoSheet = workbook.addWorksheet('项目信息');
-    infoSheet.columns = [
-      { header: '项目信息', key: 'label', width: 20 },
-      { header: '内容', key: 'value', width: 40 },
-    ];
-    infoSheet.getRow(1).font = { bold: true };
-    infoSheet.addRow({ label: '项目名称', value: project.projectName });
-    infoSheet.addRow({
-      label: '计算方式',
-      value:
-        project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
-    });
-    infoSheet.addRow({
-      label: '设备总量',
-      value: project.totalQuantity || '-',
-    });
-    if (project.calculationType === 'QUANTITY') {
-      project.stages.forEach((s) => {
-        infoSheet.addRow({
-          label: `${s.name}单价`,
-          value: `${s.unitPrice}元/台`,
-        });
-      });
-    }
-    infoSheet.addRow({
-      label: '日结单价',
-      value: `${project.dailyPrice}元/人/工日`,
-    });
-    infoSheet.addRow({ label: '备注', value: project.remark || '-' });
-    infoSheet.addRow({ label: '创建人', value: project.creator?.name || '-' });
-    infoSheet.addRow({
-      label: '创建时间',
-      value: new Date(project.createdAt).toLocaleString('zh-CN'),
-    });
-
-    // 工作记录
+    // 工作记录（放在最前，确保导出的首要内容是工作记录）
     const recordSheet = workbook.addWorksheet('工作记录');
     recordSheet.columns = [
       { header: '日期', key: 'date', width: 12 },
@@ -1289,6 +1253,42 @@ export class PerformanceService {
         description: record.description || record.remark || '-',
         creator: record.creator?.name || '-',
       });
+    });
+
+    // 项目信息
+    const infoSheet = workbook.addWorksheet('项目信息');
+    infoSheet.columns = [
+      { header: '项目信息', key: 'label', width: 20 },
+      { header: '内容', key: 'value', width: 40 },
+    ];
+    infoSheet.getRow(1).font = { bold: true };
+    infoSheet.addRow({ label: '项目名称', value: project.projectName });
+    infoSheet.addRow({
+      label: '计算方式',
+      value:
+        project.calculationType === 'QUANTITY' ? '按数量计算' : '按工日计算',
+    });
+    infoSheet.addRow({
+      label: '设备总量',
+      value: project.totalQuantity || '-',
+    });
+    if (project.calculationType === 'QUANTITY') {
+      project.stages.forEach((s) => {
+        infoSheet.addRow({
+          label: `${s.name}单价`,
+          value: `${s.unitPrice}元/台`,
+        });
+      });
+    }
+    infoSheet.addRow({
+      label: '日结单价',
+      value: `${project.dailyPrice}元/人/工日`,
+    });
+    infoSheet.addRow({ label: '备注', value: project.remark || '-' });
+    infoSheet.addRow({ label: '创建人', value: project.creator?.name || '-' });
+    infoSheet.addRow({
+      label: '创建时间',
+      value: new Date(project.createdAt).toLocaleString('zh-CN'),
     });
 
     // 工作量统计（动态阶段列）

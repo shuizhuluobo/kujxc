@@ -283,10 +283,14 @@ export class PerformanceController {
   @Get('global-stats')
   @Permissions('fee:view_stats')
   async getGlobalStats(
+    @CurrentUser() user: CurrentUserData,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('userId') userId?: string,
   ) {
+    if (user.roleCode !== 'admin') {
+      throw new ForbiddenException('仅管理员可查看绩效总览');
+    }
     return this.performanceService.getGlobalStats(startDate, endDate, userId);
   }
 

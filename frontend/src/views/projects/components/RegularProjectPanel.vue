@@ -6,7 +6,7 @@
         <span class="sidebar-title">项目列表</span>
         <div class="sidebar-actions">
           <el-button v-if="canCreateProject" type="primary" size="small" @click="$emit('createProject')">新增</el-button>
-          <el-button v-if="canViewPerformance && projects.length > 0" size="small" @click="$emit('exportAll')">导出</el-button>
+          <el-button v-if="canExport && projects.length > 0" size="small" @click="$emit('exportAll')">导出</el-button>
         </div>
       </div>
       <div class="project-list">
@@ -70,7 +70,7 @@
             </template>
             <span v-if="selectedProject.members.length > 3" class="avatar-more">+{{ selectedProject.members.length - 3 }}</span>
           </span>
-          <el-button v-if="canViewPerformance" size="small" @click="$emit('exportCurrent', selectedProject)">
+          <el-button v-if="canExport" size="small" @click="$emit('exportCurrent', selectedProject)">
             <el-icon><Download /></el-icon> 导出
           </el-button>
         </div>
@@ -815,6 +815,7 @@ const props = defineProps<{
   canManageProject: boolean;
   canCreateRecord: boolean;
   canViewPerformance: boolean;
+  canExport: boolean;
   canViewAmount: boolean;
   loading: boolean;
   currentPage: number;
