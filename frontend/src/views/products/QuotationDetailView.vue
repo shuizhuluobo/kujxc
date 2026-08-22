@@ -9,7 +9,7 @@
           <el-tag :type="statusType(quotation.status)" size="small">{{ QUOTATION_STATUS_LABELS[quotation.status] }}</el-tag>
         </div>
         <div class="header-actions">
-          <el-button type="primary" @click="createVersion">生成新版本</el-button>
+          <el-button type="primary" @click="createVersion">修订</el-button>
           <el-dropdown v-if="quotation.status === 'DRAFT' || quotation.status === 'SENT'">
             <el-button>变更状态<el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
             <template #dropdown>

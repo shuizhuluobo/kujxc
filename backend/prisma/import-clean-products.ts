@@ -22,8 +22,16 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const TAG_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+  '#6366f1',
+  '#84cc16',
 ];
 
 function tagColor(i: number): string {
@@ -51,7 +59,9 @@ async function main() {
     }[];
   };
 
-  console.log(`读取: ${products.length} 个产品, ${brands.length} 个品牌, ${categories.length} 个二级分类`);
+  console.log(
+    `读取: ${products.length} 个产品, ${brands.length} 个品牌, ${categories.length} 个二级分类`,
+  );
 
   // ============ 1. 清空旧数据（按外键依赖顺序）============
   console.log('清空旧产品库数据...');
@@ -126,7 +136,11 @@ async function main() {
   let to = 0;
   for (const t of allTags) {
     const created = await prisma.productTag.create({
-      data: { name: t, color: tagColor(to++), description: `自动清洗生成标签：${t}` },
+      data: {
+        name: t,
+        color: tagColor(to++),
+        description: `自动清洗生成标签：${t}`,
+      },
     });
     tagMap.set(t, created.id);
   }
@@ -159,8 +173,7 @@ async function main() {
         status: 'ACTIVE',
         isMarketProduct: false,
         // 清洗源数据中的价格均为成本价，写入 costPrice；售价待后续报价维护
-        costPrice:
-          p.price != null ? new Prisma.Decimal(p.price) : null,
+        costPrice: p.price != null ? new Prisma.Decimal(p.price) : null,
         salePrice: null,
         marketPrice: null,
         brandId,

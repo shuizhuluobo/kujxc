@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <el-table :data="quotations" v-loading="loading" class="card-premium" empty-text="暂无报价记录">
+    <el-table :data="quotations" v-loading="loading" class="card-premium quotation-table" empty-text="暂无报价记录" @row-click="goDetail">
       <el-table-column label="版本" width="70" align="center">
         <template #default="{ row }">
           <el-tag size="small" :type="row.version > 1 ? 'warning' : 'info'" effect="plain">V{{ row.version }}</el-tag>
@@ -45,12 +45,13 @@
       <el-table-column label="更新时间" width="140">
         <template #default="{ row }">{{ fmtDate(row.updatedAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="230" fixed="right">
+      <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" text type="primary" @click="goDetail(row)">查看</el-button>
-          <el-button size="small" text @click="createVersion(row)">修订</el-button>
-          <el-button size="small" text @click="openExport(row)">导出</el-button>
-          <el-button size="small" text type="danger" v-if="canDelete" @click="handleDelete(row)">删除</el-button>
+          <div class="action-buttons" @click.stop>
+            <el-button size="small" type="warning" @click="createVersion(row)">修订</el-button>
+            <el-button size="small" @click="openExport(row)">导出</el-button>
+            <el-button size="small" type="danger" v-if="canDelete" @click="handleDelete(row)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -170,6 +171,21 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+/* 行内点击查看详情 */
+.quotation-table :deep(.el-table__row) {
+  cursor: pointer;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+/* 抵消 el-button 相邻默认 margin-left:12px（与 gap 叠加导致列宽不足、按钮被裁） */
+.action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .quotation-history-page { max-width: 1300px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
 .header-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

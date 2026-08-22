@@ -23,7 +23,7 @@
           <el-radio-button value="list">列表</el-radio-button>
           <el-radio-button value="card">卡片</el-radio-button>
         </el-radio-group>
-        <el-button size="small" :type="favoritesOnly ? 'warning' : 'default'" @click="toggleFavorites">
+        <el-button :type="favoritesOnly ? 'warning' : 'default'" @click="toggleFavorites">
           <el-icon><StarFilled v-if="favoritesOnly" /><Star v-else /></el-icon>
           <span style="margin-left: 4px">仅看收藏</span>
         </el-button>
@@ -66,23 +66,22 @@
     <!-- 筛选区 -->
     <el-card class="filter-card">
       <div class="filter-row">
-        <el-select v-model="filters.brandIds" multiple collapse-tags placeholder="品牌" clearable class="filter-item">
-          <el-option v-for="b in brands" :key="b.id" :label="b.name" :value="b.id" />
+        <el-select v-model="filters.brandIds" multiple collapse-tags filterable :filter-method="filterBrandOptions" placeholder="品牌（可输入拼音）" clearable class="filter-item" @change="handleSearch">
+          <el-option v-for="b in filteredBrandOptions" :key="b.id" :label="b.name" :value="b.id" />
         </el-select>
-        <el-select v-model="filters.categoryId" placeholder="类型" clearable class="filter-item">
-          <el-option v-for="c in categoryOptions" :key="c.id" :label="c.path" :value="c.id" />
+        <el-select v-model="filters.categoryId" filterable :filter-method="filterCategoryOptions" placeholder="类型（可输入拼音）" clearable class="filter-item" @change="handleSearch">
+          <el-option v-for="c in filteredCategoryOptions" :key="c.id" :label="c.path" :value="c.id" />
         </el-select>
-        <el-select v-model="filters.tagIds" multiple collapse-tags placeholder="标签" clearable class="filter-item">
-          <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
+        <el-select v-model="filters.tagIds" multiple collapse-tags filterable :filter-method="filterTagOptions" placeholder="标签（可输入拼音）" clearable class="filter-item" @change="handleSearch">
+          <el-option v-for="t in filteredTagOptions" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-        <el-select v-model="filters.status" placeholder="状态" clearable class="filter-item">
-          <el-option label="全部状态" value="ALL" />
-          <el-option v-for="(label, key) in PRODUCT_STATUS_LABELS" :key="key" :label="label" :value="key" />
+        <el-select v-model="filters.status" filterable :filter-method="filterStatusOptions" placeholder="状态" clearable class="filter-item" @change="handleSearch">
+          <el-option v-for="s in filteredStatusOptions" :key="s.value" :label="s.label" :value="s.value" />
         </el-select>
-        <el-input-number v-model="filters.minPrice" :min="0" placeholder="最低价" controls-position="right" class="price-input" />
+        <el-input-number v-model="filters.minPrice" :min="0" placeholder="最低价" controls-position="right" class="price-input" @change="handleSearch" />
         <span class="price-sep">-</span>
-        <el-input-number v-model="filters.maxPrice" :min="0" placeholder="最高价" controls-position="right" class="price-input" />
-        <el-select v-model="filters.orderBy" class="filter-item">
+        <el-input-number v-model="filters.maxPrice" :min="0" placeholder="最高价" controls-position="right" class="price-input" @change="handleSearch" />
+        <el-select v-model="filters.orderBy" class="filter-item" @change="handleSearch">
           <el-option label="最近更新" value="updatedAt" />
           <el-option label="超期优先" value="staleFirst" />
         </el-select>
@@ -116,7 +115,6 @@
           </el-icon>
         </template>
       </el-table-column>
-      <el-table-column label="编号" prop="code" width="130" />
       <el-table-column label="品牌型号" min-width="180">
         <template #default="{ row }">
           <div class="product-name-cell">
@@ -172,12 +170,13 @@
       <el-table-column label="最后更新" width="110">
         <template #default="{ row }">{{ fmtDate(row.updatedAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" text type="primary" @click="addToQuotation([row.id])">报价</el-button>
-          <el-button size="small" text @click="goDetail(row)">详情</el-button>
-          <el-button size="small" text v-if="canEdit" @click="goEdit(row)">编辑</el-button>
-          <el-button size="small" text type="danger" v-if="canDelete" @click="handleDelete(row)">删除</el-button>
+          <div class="action-buttons">
+            <el-button size="small" type="primary" @click="goDetail(row)">详情</el-button>
+            <el-button size="small" v-if="canEdit" @click="goEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" v-if="canDelete" @click="handleDelete(row)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -207,7 +206,6 @@
                 <StarFilled v-if="row.isFavorite" />
                 <Star v-else />
               </el-icon>
-              <el-button size="small" text type="primary" @click="addToQuotation([row.id])">报价</el-button>
             </span>
           </div>
           <div v-if="row.isStale" class="stale-actions">
@@ -261,6 +259,7 @@ import { resolveAssetUrl } from '@/utils/url';
 import ExcelJS from 'exceljs';
 import { downloadBlob } from '@/utils/download';
 import { getApiErrorMessage, flattenCategories, productStatusTagType as statusType, formatPrice as fmtPrice, formatDate as fmtDate } from '@/utils/format';
+import { matchPinyin } from '@/utils/pinyinFilter';
 
 const router = useRouter();
 const { has, hasAny } = usePermission();
@@ -286,6 +285,36 @@ const total = ref(0);
 const selected = ref<Product[]>([]);
 const favoritesOnly = ref(false);
 
+// ==================== 筛选下拉拼音模糊过滤（原文/全拼/首字母任一命中） ====================
+const statusOptions: Array<{ label: string; value: string }> = [
+    { label: '全部状态', value: 'ALL' },
+    ...Object.entries(PRODUCT_STATUS_LABELS).map(([value, label]) => ({ label, value })),
+];
+function makePinyinFilter<T>(getSource: () => T[], getLabel: (o: T) => string) {
+    const query = ref('');
+    const filtered = computed(() =>
+        query.value ? getSource().filter((o) => matchPinyin(getLabel(o), query.value)) : getSource(),
+    );
+    return { filtered, setQuery: (q: string) => (query.value = q.trim()) };
+}
+const { filtered: filteredBrandOptions, setQuery: filterBrandOptions } = makePinyinFilter(
+    () => brands.value,
+    (b) => b.name,
+);
+const { filtered: filteredCategoryOptions, setQuery: filterCategoryOptions } = makePinyinFilter(
+    () => categoryOptions.value,
+    (c) => c.path,
+);
+const { filtered: filteredTagOptions, setQuery: filterTagOptions } = makePinyinFilter(
+    () => tags.value,
+    (t) => t.name,
+);
+const { filtered: filteredStatusOptions, setQuery: filterStatusOptions } = makePinyinFilter(
+    () => statusOptions,
+    (s) => s.label,
+);
+
+
 const pagination = reactive({ page: 1, pageSize: 20 });
 const filters = reactive<{
     keyword: string;
@@ -307,7 +336,10 @@ const filters = reactive<{
     orderBy: 'updatedAt',
 });
 
+/** 请求序号：丢弃过期响应，避免快速输入时旧结果覆盖新结果 */
+let fetchSeq = 0;
 async function fetchData() {
+    const seq = ++fetchSeq;
     loading.value = true;
     try {
         const params = {
@@ -323,11 +355,36 @@ async function fetchData() {
             orderBy: filters.orderBy,
         };
         const { data } = favoritesOnly.value ? await productsApi.getFavorites(params) : await productsApi.getAll(params);
+        if (seq !== fetchSeq) return;
         products.value = data.data;
         total.value = data.total;
     } finally {
-        loading.value = false;
+        if (seq === fetchSeq) loading.value = false;
     }
+}
+
+// ==================== 实时过滤 ====================
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** 防抖触发搜索（关键词输入实时过滤） */
+function queueSearch(delay = 350) {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        searchTimer = undefined;
+        pagination.page = 1;
+        void fetchData();
+    }, delay);
+}
+
+watch(() => filters.keyword, () => queueSearch());
+
+function handleSearch() {
+    if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = undefined;
+    }
+    pagination.page = 1;
+    void fetchData();
 }
 
 function toggleFavorites() {
@@ -357,7 +414,7 @@ async function exportExcel() {
         });
         downloadBlob(blob, `产品列表_${new Date().toISOString().slice(0, 10)}.xlsx`);
         ElMessage.success('导出成功');
-    } catch (e) {
+    } catch {
         ElMessage.error('导出失败，请重试');
     } finally {
         exporting.value = false;
@@ -441,11 +498,6 @@ function rowClassName({ row }: { row: Product }) {
 
 function handleSelectionChange(rows: Product[]) {
     selected.value = rows;
-}
-
-function handleSearch() {
-    pagination.page = 1;
-    void fetchData();
 }
 
 function handleReset() {
@@ -594,6 +646,16 @@ watch(viewMode, () => {
 </script>
 
 <style scoped>
+.action-buttons {
+  display: flex;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+/* 抵消 el-button 相邻默认 margin-left:12px（与 gap 叠加导致列宽不足、按钮被裁） */
+.action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .product-page { max-width: 1400px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
 .header-actions { display: flex; align-items: center; gap: 12px; }

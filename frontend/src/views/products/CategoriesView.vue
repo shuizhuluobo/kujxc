@@ -21,9 +21,9 @@
             <span class="node-name">{{ data.name }}</span>
             <el-tag size="small" type="info" class="node-count">{{ data.productCount ?? 0 }} 产品</el-tag>
             <span class="node-actions">
-              <el-button size="small" text type="primary" @click.stop="handleCreate(data.id)">添加子类</el-button>
-              <el-button size="small" text @click.stop="handleEdit(data)">编辑</el-button>
-              <el-button size="small" text type="danger" @click.stop="handleDelete(data)">删除</el-button>
+              <el-button size="small" @click.stop="handleCreate(data.id)">添加子类</el-button>
+              <el-button size="small" @click.stop="handleEdit(data)">编辑</el-button>
+              <el-button size="small" type="danger" @click.stop="handleDelete(data)">删除</el-button>
             </span>
           </div>
         </template>

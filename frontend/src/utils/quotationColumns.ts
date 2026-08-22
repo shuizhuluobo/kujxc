@@ -144,11 +144,11 @@ export type ColumnAlign = 'left' | 'center' | 'right';
 
 /**
  * 商务报价对齐标准（四端唯一来源）：
- * 居中=序号/编号/类型/单位等短标识；右对齐=数量与金额（会计惯例）；左对齐=名称/型号/参数等长文本。
+ * 居中=序号/编号/类型/单位/数量/品牌型号等短标识；右对齐=金额类（会计惯例，便于位数比对）；左对齐=名称/参数等长文本。
  * Excel/PDF/HTML 预览直接引用本函数；DOCX 服务端维护同语义镜像（见 quotations-docx.service.ts docxColumnAlign）。
  */
-const CENTER_KEYS = new Set(['no', 'index', 'code', 'category', 'unit']);
-const RIGHT_KEYS = new Set(['quantity', 'unitPrice', 'discount', 'subtotal', 'cost', 'unitCost']);
+const CENTER_KEYS = new Set(['no', 'index', 'code', 'category', 'unit', 'quantity', 'brandModel']);
+const RIGHT_KEYS = new Set(['unitPrice', 'discount', 'subtotal', 'cost', 'unitCost']);
 
 export function columnAlign(key: string): ColumnAlign {
     if (RIGHT_KEYS.has(key)) return 'right';

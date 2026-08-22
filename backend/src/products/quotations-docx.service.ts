@@ -296,7 +296,7 @@ export class QuotationsDocxService {
 
     /**
      * 列对齐镜像：与前端 quotationColumns.columnAlign 同语义（商务报价标准），
-     * 居中=序号/编号/类型/单位；右对齐=数量与金额；左对齐=名称/型号/参数等长文本。两端需同步修改。
+     * 居中=序号/编号/类型/单位/数量/品牌型号；右对齐=金额类；左对齐=名称/参数等长文本。两端需同步修改。
      */
     const DOCX_CENTER_KEYS = new Set([
       'no',
@@ -304,9 +304,10 @@ export class QuotationsDocxService {
       'code',
       'category',
       'unit',
+      'quantity',
+      'brandModel',
     ]);
     const DOCX_RIGHT_KEYS = new Set([
-      'quantity',
       'unitPrice',
       'discount',
       'subtotal',
@@ -474,13 +475,17 @@ export class QuotationsDocxService {
       rows.push(
         new TableRow({
           children: [
-            rowCell(this.TOTAL_LABELS.subtotalNoTax, { align: AlignmentType.CENTER }),
+            rowCell(this.TOTAL_LABELS.subtotalNoTax, {
+              align: AlignmentType.CENTER,
+            }),
             rowCell((quotation.totalAmount ?? 0).toFixed(2)),
           ],
         }),
         new TableRow({
           children: [
-            rowCell(`税额（税率 ${quotation.taxRate ?? 0}%）`, { align: AlignmentType.CENTER }), // 文案同前端 taxRowLabel
+            rowCell(`税额（税率 ${quotation.taxRate ?? 0}%）`, {
+              align: AlignmentType.CENTER,
+            }), // 文案同前端 taxRowLabel
             rowCell((quotation.taxAmount ?? 0).toFixed(2)),
           ],
         }),

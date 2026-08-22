@@ -444,5 +444,4 @@ export class UploadsController {
       throw error;
     }
   }
-
 }

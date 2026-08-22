@@ -192,7 +192,7 @@
         </div>
       </div>
       <div class="picker-search">
-        <el-input v-model="pickerKeyword" :prefix-icon="Search" clearable placeholder="搜索品牌型号/编号/参数" @keyup.enter="loadPickerProducts(1)" />
+        <el-input v-model="pickerKeyword" :prefix-icon="Search" clearable placeholder="搜索品牌型号/编号/参数（实时）" @input="queuePickerSearch" @keyup.enter="loadPickerProducts(1)" @clear="loadPickerProducts(1)" />
       </div>
       <div class="picker-list" v-loading="pickerLoading">
         <label v-for="p in pickerProducts" :key="p.id" class="picker-item" :class="{ selected: isPicked(p.id) }">
@@ -278,6 +278,7 @@ const isVersion = computed(() => !!route.query.base);
 // 客户库快捷选择（远程搜索，自动填充联系人/地址）
 const customerOptions = ref<Customer[]>([]);
 const customerSearching = ref(false);
+let customerSearchSeq = 0;
 let customerSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 function searchCustomers(keyword: string) {
@@ -286,10 +287,12 @@ function searchCustomers(keyword: string) {
         customerOptions.value = [];
         return;
     }
+    const seq = ++customerSearchSeq;
     customerSearchTimer = setTimeout(async () => {
         customerSearching.value = true;
         try {
             const { data } = await customersApi.getAll({ keyword, pageSize: 20, page: 1 });
+            if (seq !== customerSearchSeq) return;
             customerOptions.value = data.data;
         } catch {
             customerOptions.value = [];
@@ -442,7 +445,10 @@ function selectPickerTag(tag: ProductTag | null) {
     void loadPickerProducts(1);
 }
 
+/** 请求序号：丢弃过期响应 */
+let pickerSeq = 0;
 async function loadPickerProducts(page: number) {
+    const seq = ++pickerSeq;
     pickerLoading.value = true;
     try {
         const { data } = await productsApi.getAll({
@@ -452,12 +458,23 @@ async function loadPickerProducts(page: number) {
             status: 'ACTIVE',
             tagIds: activePickerTag.value ? [activePickerTag.value.id] : undefined,
         });
+        if (seq !== pickerSeq) return;
         pickerProducts.value = data.data;
         pickerTotal.value = data.total;
         pickerPage.value = page;
     } finally {
-        pickerLoading.value = false;
+        if (seq === pickerSeq) pickerLoading.value = false;
     }
+}
+
+// 关键词实时过滤（防抖 300ms）
+let pickerSearchTimer: ReturnType<typeof setTimeout> | undefined;
+function queuePickerSearch() {
+    if (pickerSearchTimer) clearTimeout(pickerSearchTimer);
+    pickerSearchTimer = setTimeout(() => {
+        pickerSearchTimer = undefined;
+        void loadPickerProducts(1);
+    }, 300);
 }
 
 function isPicked(id: string): boolean {
