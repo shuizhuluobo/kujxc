@@ -336,3 +336,350 @@ export type {
     DeviceStageProgress,
     StageStat,
 } from './performance';
+
+// ==================== 产品库类型 ====================
+export type ProductStatus = 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
+export type QuotationStatus = 'DRAFT' | 'SENT' | 'CLOSED' | 'CANCELLED';
+
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
+    ACTIVE: '上架',
+    INACTIVE: '下架',
+    DISCONTINUED: '停产',
+};
+
+export const QUOTATION_STATUS_LABELS: Record<QuotationStatus, string> = {
+    DRAFT: '草稿',
+    SENT: '已发送',
+    CLOSED: '已成交',
+    CANCELLED: '已作废',
+};
+
+export interface Brand {
+    id: string;
+    name: string;
+    logo?: string | null;
+    description?: string | null;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+    _count?: { products: number };
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    parentId?: string | null;
+    description?: string | null;
+    sortOrder: number;
+    productCount?: number;
+    children: Category[];
+}
+
+export interface ProductTag {
+    id: string;
+    name: string;
+    color?: string | null;
+    description?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    _count?: { products: number };
+}
+
+export interface ProductImage {
+    id?: string;
+    url: string;
+    description?: string | null;
+    displayOrder?: number;
+}
+
+export interface ProductCertificate {
+    id?: string;
+    url: string;
+    name: string;
+    description?: string | null;
+    displayOrder?: number;
+}
+
+export interface Product {
+    id: string;
+    code: string;
+    name: string;
+    model?: string | null;
+    description?: string | null;
+    status: ProductStatus;
+    isMarketProduct: boolean;
+    unit: string;
+    minOrderQty?: number | null;
+    warranty?: string | null;
+    supplier?: string | null;
+    marketUrl?: string | null;
+    marketPrice?: number | null;
+    salePrice?: number | null;
+    costPrice?: number | null;
+    lastPriceUpdateAt?: string | null;
+    staleAcknowledgedAt?: string | null;
+    viewCount: number;
+    brandId: string;
+    brand: Brand;
+    categoryId: string;
+    category: Category;
+    images: ProductImage[];
+    certificates: ProductCertificate[];
+    tags: ProductTag[];
+    isFavorite: boolean;
+    isStale: boolean;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string | null;
+    updatedBy?: string | null;
+}
+
+export interface ProductFilterParams {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    brandIds?: string[];
+    categoryId?: string;
+    tagIds?: string[];
+    status?: ProductStatus | 'ALL';
+    minPrice?: number;
+    maxPrice?: number;
+    orderBy?: 'updatedAt' | 'staleFirst';
+}
+
+export interface ProductListResponse extends PaginatedResponse<Product> {
+    staleThresholdDays: number;
+}
+
+export interface CreateProductDto {
+    name: string;
+    model?: string;
+    description?: string;
+    status?: ProductStatus;
+    isMarketProduct?: boolean;
+    unit?: string;
+    minOrderQty?: number;
+    warranty?: string;
+    supplier?: string;
+    marketUrl?: string;
+    marketPrice?: number;
+    salePrice?: number;
+    costPrice?: number;
+    brandId: string;
+    categoryId: string;
+    tagIds?: string[];
+    images?: ProductImage[];
+    certificates?: ProductCertificate[];
+}
+
+export type UpdateProductDto = Partial<CreateProductDto>;
+
+export interface ProductChangeLog {
+    id: string;
+    productId: string;
+    field: string;
+    oldValue?: string | null;
+    newValue?: string | null;
+    changedBy?: string | null;
+    changedByName?: string | null;
+    createdAt: string;
+}
+
+export const PRODUCT_CHANGE_FIELD_LABELS: Record<string, string> = {
+    name: '产品名称',
+    model: '型号',
+    description: '详细参数',
+    status: '状态',
+    isMarketProduct: '是否商城产品',
+    unit: '单位',
+    minOrderQty: '最小起订量',
+    warranty: '保修期',
+    supplier: '供应商',
+    marketUrl: '商城链接',
+    marketPrice: '商城价格',
+    costPrice: '成本价',
+};
+
+export interface QuotationItem {
+    id: string;
+    productId?: string | null;
+    productSnapshot: Record<string, unknown>;
+    selectedImages?: string[] | null;
+    selectedCerts?: string[] | null;
+    quantity: number;
+    unitPrice: number;
+    discount?: number | null;
+    subtotal: number;
+    costPrice?: number | null;
+    profit?: number | null;
+    displayOrder: number;
+}
+
+export interface Quotation {
+    id: string;
+    code: string;
+    customerId?: string | null;
+    customerName: string;
+    customerContact?: string | null;
+    customerAddress?: string | null;
+    remark?: string | null;
+    templateId?: string | null;
+    template?: QuotationTemplate | null;
+    totalAmount: number;
+    taxRate?: number | null;
+    taxAmount?: number | null;
+    finalAmount: number;
+    estimatedProfit?: number | null;
+    status: QuotationStatus;
+    version: number;
+    versionGroupId: string;
+    parentQuotationId?: string | null;
+    items: QuotationItem[];
+    excelUrl?: string | null;
+    pdfUrl?: string | null;
+    deletedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string | null;
+    updatedBy?: string | null;
+    /** 操作人用户名（列表接口映射，非 id） */
+    createdByName?: string | null;
+}
+
+export interface QuotationFilterParams {
+    page?: number;
+    pageSize?: number;
+    status?: QuotationStatus;
+    customerId?: string;
+    customerName?: string;
+    versionGroupId?: string;
+}
+
+export interface CreateQuotationItemDto {
+    productId?: string;
+    productSnapshot: Record<string, unknown>;
+    selectedImages?: string[];
+    selectedCerts?: string[];
+    quantity: number;
+    unitPrice: number;
+    discount?: number;
+    costPrice?: number;
+    profit?: number;
+}
+
+export interface CreateQuotationDto {
+    customerId?: string;
+    customerName: string;
+    customerContact?: string;
+    customerAddress?: string;
+    remark?: string;
+    templateId?: string;
+    taxRate?: number;
+    status?: QuotationStatus;
+    items: CreateQuotationItemDto[];
+}
+
+export interface QuotationTemplateColumn {
+    key: string;
+    label: string;
+    visible: boolean;
+    /** field=直接取快照字段；formula=组合列（{字段} 占位符） */
+    type?: 'field' | 'formula';
+    /** type=field 时对应的字段 key */
+    field?: string;
+    /** type=formula 时的组合表达式，如 {brand} {model} */
+    formula?: string;
+    width?: number;
+    align?: 'left' | 'center' | 'right';
+}
+
+/** 自由段落区块：固定套话（如项目背景），导出后可在文档中修改 */
+export interface QuotationTemplateSection {
+    id: string;
+    /** 段落标题（可选） */
+    title?: string;
+    /** 段落正文（支持 {{customerName}} {{code}} 等占位符） */
+    content: string;
+    /** 相对报价表格的位置：before=表格之前，after=表格之后 */
+    position: 'before' | 'after';
+}
+
+export type QuotationTemplateType = 'quotation';
+
+/** 公司信息（保存在模板配置内，可用于页眉/页脚/标题的 {{companyName}} 等占位符） */
+export interface QuotationTemplateCompany {
+    name?: string;
+    address?: string;
+    phone?: string;
+}
+
+export interface QuotationTemplateConfig {
+    columns: QuotationTemplateColumn[];
+    title: string;
+    showTax: boolean;
+    header: string;
+    footer: string;
+    type?: QuotationTemplateType;
+    /** 同名行纵向合并所依据的列 key，默认 'name' */
+    mergeKey?: string;
+    /** 自由段落区块（项目背景/商务条款等固定套话），可定义相对报价表格的位置 */
+    sections?: QuotationTemplateSection[];
+    /** 表格正上方的标题（如“报价明细一览表”），让表前段落与表格层次更清晰 */
+    tableTitle?: string;
+    /** 信息行格式：客户/联系人/地址/报价编号/日期/单位，支持 {{customerName}} 等占位符，段间用全角空格分隔；留空用默认 */
+    infoFormat?: string;
+    /** PDF 页面方向：portrait（默认）/ landscape */
+    pageOrientation?: 'portrait' | 'landscape';
+    /** 公司信息：名称/地址/电话，可在页眉页脚用占位符直接调用 */
+    company?: QuotationTemplateCompany;
+}
+
+/**
+ * 产品快照：报价单明细在生成时刻的产品数据定格。
+ * 唯一键清单来源——新增字段时同步 quotationColumns.fieldValue / DOCX 服务 / seed。
+ */
+export interface ProductSnapshot {
+    id?: string;
+    code?: string;
+    name?: string;
+    model?: string;
+    brand?: string;
+    category?: string;
+    unit?: string;
+    isMarketProduct?: boolean;
+    marketPrice?: number | null;
+    salePrice?: number | null;
+    costPrice?: number | null;
+    marketUrl?: string;
+    description?: string;
+    /** 结构化参数（fieldValue 的 param/spec 兜底源） */
+    param?: Record<string, unknown>;
+    spec?: Record<string, unknown>;
+    warranty?: string;
+    supplier?: string;
+    minOrderQty?: number | null;
+    tags?: string[];
+    remark?: string;
+    images?: string[];
+    certs?: string[];
+    certNames?: string[];
+}
+
+export interface QuotationTemplate {
+    id: string;
+    name: string;
+    description?: string | null;
+    config: QuotationTemplateConfig;
+    isDefault: boolean;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string | null;
+}
+
+export interface SystemSettings {
+    staleThresholdDays?: number;
+    defaultTaxRate?: number;
+    defaultUnit?: string;
+    quotationPrefix?: string;
+    companyInfo?: Record<string, unknown>;
+}

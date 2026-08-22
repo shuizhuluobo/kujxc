@@ -14,12 +14,20 @@
         </el-badge>
       </template>
 
-      <div class="notification-panel" @click="handlePanelClick">
+      <div class="notification-panel">
         <div class="panel-header">
           <span class="title">消息通知</span>
+          <div class="header-actions" v-if="notifications.length > 0">
+            <el-button link type="primary" size="small" @click="handleMarkAllRead">
+              全部已读
+            </el-button>
+            <el-button link type="danger" size="small" @click="handleClearAll">
+              清空
+            </el-button>
+          </div>
         </div>
 
-        <el-scrollbar max-height="300px">
+        <el-scrollbar max-height="340px">
           <div v-if="loading" class="loading-container">
             <el-icon class="is-loading"><Loading /></el-icon>
           </div>
@@ -33,11 +41,22 @@
               :class="['notification-item', { unread: !item.isRead }]"
               @click="handleClick(item)"
             >
-              <div class="item-header">
-                <span class="item-title">{{ item.title }}</span>
-                <span class="item-time">{{ formatTime(item.createdAt) }}</span>
+              <div class="item-body">
+                <div class="item-header">
+                  <span class="item-title">{{ item.title }}</span>
+                  <span class="item-time">{{ formatTime(item.createdAt) }}</span>
+                </div>
+                <div class="item-content">{{ item.content }}</div>
               </div>
-              <div class="item-content">{{ item.content }}</div>
+              <el-button
+                class="item-delete"
+                type="danger"
+                text
+                :icon="Close"
+                size="small"
+                title="忽略此通知"
+                @click.stop="handleDelete(item)"
+              />
             </div>
           </div>
         </el-scrollbar>
@@ -48,7 +67,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Bell, Loading } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
+import { Bell, Loading, Close } from '@element-plus/icons-vue';
 import { notificationsApi } from '@/api';
 import type { Notification } from '@/types';
 import { useSSE } from '@/composables/useSSE';
@@ -86,22 +106,20 @@ const togglePopover = () => {
   popoverVisible.value = !popoverVisible.value;
 };
 
-// 点击面板任意位置
-const handlePanelClick = async () => {
-  // 标记所有未读为已读
-  if (unreadCount.value > 0) {
-    await handleMarkAllRead();
-  }
-  // 关闭气泡
-  popoverVisible.value = false;
-};
-
-// 点击通知项
+// 点击通知项：仅标记该条为已读，不触发全量操作
 const handleClick = async (item: Notification) => {
-  // 只标记已读，不做任何跳转
   if (!item.isRead) {
     await notificationsApi.markRead([item.id]);
     item.isRead = true;
+    unreadCount.value = Math.max(0, unreadCount.value - 1);
+  }
+};
+
+// 单条忽略（删除）
+const handleDelete = async (item: Notification) => {
+  await notificationsApi.deleteNotification([item.id]);
+  notifications.value = notifications.value.filter(n => n.id !== item.id);
+  if (!item.isRead) {
     unreadCount.value = Math.max(0, unreadCount.value - 1);
   }
 };
@@ -110,6 +128,22 @@ const handleClick = async (item: Notification) => {
 const handleMarkAllRead = async () => {
   await notificationsApi.markAllRead();
   notifications.value.forEach(n => n.isRead = true);
+  unreadCount.value = 0;
+};
+
+// 清空全部通知
+const handleClearAll = async () => {
+  try {
+    await ElMessageBox.confirm('确定清空全部通知吗？此操作不可撤销。', '提示', {
+      type: 'warning',
+      confirmButtonText: '确定清空',
+      cancelButtonText: '取消',
+    });
+  } catch {
+    return;
+  }
+  await notificationsApi.clearAll();
+  notifications.value = [];
   unreadCount.value = 0;
 };
 
@@ -156,18 +190,15 @@ onUnmounted(() => {
   }
 });
 
-// 气泡关闭时自动已读
-const handleHide = async () => {
-  if (unreadCount.value > 0) {
-    await handleMarkAllRead();
-  }
+// 气泡关闭时仅刷新未读计数，不再自动全部已读
+const handleHide = () => {
+  void loadUnreadCount();
 };
 </script>
 
 <style scoped>
 .notification-panel {
   margin: -12px;
-  cursor: pointer;
 }
 
 .panel-header {
@@ -183,6 +214,12 @@ const handleHide = async () => {
   font-size: 14px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .loading-container,
 .empty-container {
   padding: 24px;
@@ -194,6 +231,9 @@ const handleHide = async () => {
 }
 
 .notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   padding: 12px 16px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -204,9 +244,24 @@ const handleHide = async () => {
   background-color: var(--bg-color);
 }
 
+.notification-item:hover .item-delete {
+  opacity: 1;
+}
+
 .notification-item.unread {
-  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  border-left-color: var(--primary-color);
   background-color: rgba(var(--primary-rgb), 0.06);
+}
+
+.item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-delete {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
 .item-header {

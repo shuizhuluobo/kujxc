@@ -4,6 +4,7 @@ export interface CurrentUserData {
   id: string;
   username: string;
   roleCode: string;
+  permissions?: string[];
 }
 
 interface RequestWithUser extends Request {

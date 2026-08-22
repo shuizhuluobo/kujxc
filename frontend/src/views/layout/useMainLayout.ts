@@ -33,6 +33,26 @@ export function useMainLayout() {
     const canAccessProjects = computed(() => has('fee:list'));
     const canAccessProfile = computed(() => has('profile:profile'));
 
+    // 产品库（并入“基础数据”菜单）
+    const canAccessProducts = computed(() => hasAny([
+        'product:list', 'product:view', 'product:create', 'product:edit',
+        'product:delete', 'product:import', 'brand:manage', 'category:manage',
+        'tag:manage',
+    ]));
+    const canAccessProductList = computed(() => hasAny(['product:list', 'product:view']));
+    const canAccessBrandManage = computed(() => has('brand:manage'));
+    const canAccessCategoryManage = computed(() => has('category:manage'));
+    const canAccessTagManage = computed(() => has('tag:manage'));
+    const canImport = computed(() => has('product:import'));
+
+    // 报价管理（独立顶级菜单，与待办/知识库等同级）
+    const canAccessQuotation = computed(() => hasAny([
+        'quotation:list', 'quotation:view', 'quotation:create',
+        'quotation:update', 'quotationTemplate:manage',
+    ]));
+    const canAccessQuotationList = computed(() => hasAny(['quotation:list', 'quotation:view']));
+    const canAccessQuotationTemplate = computed(() => has('quotationTemplate:manage'));
+
     // 系统管理页面访问权 (UI 菜单入口)
     const canAccessUserManage = computed(() => has('system:user_manage'));
     const canAccessRoleManage = computed(() => has('system:role_manage'));
@@ -116,6 +136,15 @@ export function useMainLayout() {
         canAccessWiki,
         canAccessProjects,
         canAccessProfile,
+        canAccessProducts,
+        canAccessProductList,
+        canAccessQuotation,
+        canAccessBrandManage,
+        canAccessCategoryManage,
+        canAccessTagManage,
+        canAccessQuotationList,
+        canAccessQuotationTemplate,
+        canImport,
         canAccessUserManage,
         canAccessRoleManage,
         canAccessCustomer,

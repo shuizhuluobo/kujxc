@@ -9,6 +9,8 @@
       :can-access-wiki="canAccessWiki"
       :can-access-projects="canAccessProjects"
       :can-access-profile="canAccessProfile"
+      :can-access-products="canAccessProducts"
+      :can-access-quotation="canAccessQuotation"
       :can-access-any-admin="canAccessAnyAdmin"
       :can-access-user-manage="canAccessUserManage"
       :can-access-role-manage="canAccessRoleManage"
@@ -72,6 +74,8 @@
       :can-access-wiki="canAccessWiki"
       :can-access-projects="canAccessProjects"
       :can-access-profile="canAccessProfile"
+      :can-access-products="canAccessProducts"
+      :can-access-quotation="canAccessQuotation"
       :can-access-any-admin="canAccessAnyAdmin"
       @navigate="router.push($event)"
       @show-admin="showAdminMenu = true"
@@ -84,6 +88,8 @@
       size="auto"
     >
       <div class="admin-menu-list">
+        <div class="admin-menu-item" @click="goTo('/products')" v-if="canAccessProducts">产品库</div>
+        <div class="admin-menu-item" @click="goTo('/products/import')" v-if="canImport">批量导入</div>
         <div class="admin-menu-item" @click="goTo('/admin/users')" v-if="canAccessUserManage">用户管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/roles')" v-if="canAccessRoleManage">角色管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/customers')" v-if="canAccessCustomer">客户管理</div>
@@ -115,6 +121,9 @@ const {
   canAccessWiki,
   canAccessProjects,
   canAccessProfile,
+  canAccessProducts,
+  canAccessQuotation,
+  canImport,
   canAccessUserManage,
   canAccessRoleManage,
   canAccessCustomer,

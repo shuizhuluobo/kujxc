@@ -111,6 +111,78 @@ export const PermissionModules = {
         ],
     },
 
+    // 产品库
+    PRODUCT: {
+        key: 'product',
+        name: '产品库',
+        icon: 'Goods',
+        pages: [
+            { key: 'list', name: '产品列表', path: '/products' },
+        ],
+        actions: [
+            { key: 'view', name: '查看产品', description: '允许查看产品列表与详情' },
+            { key: 'create', name: '创建产品', description: '允许新增产品' },
+            { key: 'edit', name: '编辑产品', description: '允许编辑产品信息' },
+            { key: 'delete', name: '删除产品', description: '允许删除产品' },
+            { key: 'import', name: '批量导入', description: '允许批量导入产品' },
+            { key: 'viewCost', name: '查看成本价', description: '允许查看产品成本价与毛利' },
+        ],
+    },
+
+    // 品牌管理
+    BRAND: {
+        key: 'brand',
+        name: '品牌管理',
+        icon: 'Goods',
+        pages: [
+            { key: 'manage', name: '品牌管理', path: '/products/brands' },
+        ],
+        actions: [
+            { key: 'manage', name: '管理品牌', description: '允许创建/编辑/删除品牌' },
+        ],
+    },
+
+    // 类型管理
+    CATEGORY: {
+        key: 'category',
+        name: '类型管理',
+        icon: 'Goods',
+        pages: [
+            { key: 'manage', name: '类型管理', path: '/products/categories' },
+        ],
+        actions: [
+            { key: 'manage', name: '管理类型', description: '允许创建/编辑/删除类型' },
+        ],
+    },
+
+    // 标签管理
+    TAG: {
+        key: 'tag',
+        name: '标签管理',
+        icon: 'Goods',
+        pages: [
+            { key: 'manage', name: '标签管理', path: '/products/tags' },
+        ],
+        actions: [
+            { key: 'manage', name: '管理标签', description: '允许创建/编辑/删除标签' },
+        ],
+    },
+
+    // 报价
+    QUOTATION: {
+        key: 'quotation',
+        name: '报价管理',
+        icon: 'Document',
+        pages: [
+            { key: 'list', name: '报价历史', path: '/products/quotations' },
+        ],
+        actions: [
+            { key: 'view', name: '查看报价', description: '允许查看报价详情' },
+            { key: 'create', name: '生成报价', description: '允许生成新报价' },
+            { key: 'update', name: '更新状态', description: '允许更新报价状态' },
+        ],
+    },
+
     // 系统管理
     SYSTEM: {
         key: 'system',

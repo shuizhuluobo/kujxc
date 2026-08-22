@@ -46,6 +46,23 @@ const ALLOWED_ATTACHMENT_MIME_TYPES = [
   'application/x-tar',
 ];
 
+const ALLOWED_CERT_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+];
+
+const ALLOWED_CERT_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.pdf',
+];
+
 const ALLOWED_ATTACHMENT_EXTENSIONS = [
   '.zip',
   '.rar',
@@ -63,9 +80,17 @@ const MAX_ATTACHMENT_SIZE = 500 * 1024 * 1024; // 500MB
 const UPLOAD_DIR = './uploads/avatars';
 const IMAGE_UPLOAD_DIR = './uploads/images';
 const WIKI_ATTACHMENT_DIR = './uploads/wiki/attachments';
+const PRODUCT_IMAGE_DIR = './uploads/products/images';
+const PRODUCT_CERT_DIR = './uploads/products/certificates';
 
 // 确保上传目录存在
-for (const dir of [UPLOAD_DIR, IMAGE_UPLOAD_DIR, WIKI_ATTACHMENT_DIR]) {
+for (const dir of [
+  UPLOAD_DIR,
+  IMAGE_UPLOAD_DIR,
+  WIKI_ATTACHMENT_DIR,
+  PRODUCT_IMAGE_DIR,
+  PRODUCT_CERT_DIR,
+]) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -130,6 +155,46 @@ function createImageMulterOptions(uploadDir: string) {
     ) => {
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
         return callback(new Error('Only image files are allowed!'), false);
+      }
+      callback(null, true);
+    },
+    limits: {
+      fileSize: MAX_FILE_SIZE,
+      files: 1,
+    },
+  };
+}
+
+/**
+ * 产品证书上传的 Multer 配置（图片 + PDF）
+ */
+function createCertificateMulterOptions(uploadDir: string) {
+  return {
+    storage: diskStorage({
+      destination: uploadDir,
+      filename: (
+        _req: unknown,
+        file: Express.Multer.File,
+        callback: (error: Error | null, filename: string) => void,
+      ) => {
+        const uniqueSuffix = uuidv4();
+        const ext = extname(file.originalname).toLowerCase();
+        if (!ALLOWED_CERT_EXTENSIONS.includes(ext)) {
+          return callback(new Error('Invalid file extension'), '');
+        }
+        callback(null, `${uniqueSuffix}${ext}`);
+      },
+    }),
+    fileFilter: (
+      _req: unknown,
+      file: Express.Multer.File,
+      callback: (error: Error | null, accept: boolean) => void,
+    ) => {
+      if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)) {
+        return callback(
+          new Error('Only image or pdf files are allowed!'),
+          false,
+        );
       }
       callback(null, true);
     },
@@ -294,4 +359,90 @@ export class UploadsController {
       throw error;
     }
   }
+
+  @Post('product/image')
+  @UseGuards(PermissionsGuard)
+  @Permissions('product:create', 'product:edit', 'product:manage')
+  @ApiOperation({ summary: '上传产品图片' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', createImageMulterOptions(PRODUCT_IMAGE_DIR)),
+  )
+  async uploadProductImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    try {
+      const url = await validateUploadedFile(
+        file,
+        PRODUCT_IMAGE_DIR,
+        ALLOWED_IMAGE_MIME_TYPES,
+        '/uploads/products/images',
+      );
+      return { url };
+    } catch (error) {
+      if (file?.path && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      throw error;
+    }
+  }
+
+  @Post('product/certificate')
+  @UseGuards(PermissionsGuard)
+  @Permissions('product:create', 'product:edit', 'product:manage')
+  @ApiOperation({ summary: '上传产品证书（图片或 PDF）' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', createCertificateMulterOptions(PRODUCT_CERT_DIR)),
+  )
+  async uploadProductCertificate(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    try {
+      const buffer = fs.readFileSync(file.path);
+      const detectedType = await fileType.fromBuffer(buffer);
+      if (
+        !detectedType ||
+        !ALLOWED_CERT_MIME_TYPES.includes(detectedType.mime)
+      ) {
+        fs.unlinkSync(file.path);
+        throw new BadRequestException(
+          `Invalid file type. Detected: ${detectedType?.mime || 'unknown'}. Allowed types: jpg/png/gif/webp/pdf`,
+        );
+      }
+      const resolvedPath = path.resolve(
+        path.join(PRODUCT_CERT_DIR, file.filename),
+      );
+      if (!resolvedPath.startsWith(path.resolve(PRODUCT_CERT_DIR))) {
+        fs.unlinkSync(file.path);
+        throw new BadRequestException('Invalid file path');
+      }
+      return {
+        filename: file.originalname,
+        url: `/uploads/products/certificates/${file.filename}`,
+        size: file.size,
+        mimeType: detectedType.mime,
+      };
+    } catch (error) {
+      if (file?.path && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      throw error;
+    }
+  }
+
 }

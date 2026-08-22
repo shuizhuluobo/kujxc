@@ -19,6 +19,9 @@ import { HealthModule } from './health/health.module';
 import { DingtalkModule } from './dingtalk/dingtalk.module';
 import { FeeModule } from './fee/fee.module';
 import { PerformanceModule } from './performance/performance.module';
+import { ProductsModule } from './products/products.module';
+import { SettingsModule } from './settings/settings.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -57,6 +60,9 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     DingtalkModule,
     FeeModule,
     PerformanceModule,
+    SettingsModule,
+    AuditLogModule,
+    ProductsModule,
   ],
   providers: [
     {

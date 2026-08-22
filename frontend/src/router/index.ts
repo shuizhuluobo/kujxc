@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { hasPermission } from '@/config/permissions';
+import { hasPermission, hasAnyPermission } from '@/config/permissions';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -77,6 +77,86 @@ const router = createRouter({
                     meta: { permission: null },
                 },
                 {
+                    path: 'products',
+                    name: 'productList',
+                    component: () => import('@/views/products/ProductListView.vue'),
+                    // 与侧边栏 canAccessProducts 的入口语义一致：列表或查看任一权限即可进入
+                    meta: { permission: ['product:list', 'product:view'] },
+                },
+                {
+                    path: 'products/new',
+                    name: 'productCreate',
+                    component: () => import('@/views/products/ProductEditView.vue'),
+                    meta: { permission: 'product:create' },
+                },
+                {
+                    path: 'products/:id',
+                    name: 'productDetail',
+                    component: () => import('@/views/products/ProductDetailView.vue'),
+                    meta: { permission: 'product:view' },
+                },
+                {
+                    path: 'products/:id/edit',
+                    name: 'productEdit',
+                    component: () => import('@/views/products/ProductEditView.vue'),
+                    meta: { permission: 'product:edit' },
+                },
+                {
+                    path: 'products/brands',
+                    name: 'productBrands',
+                    component: () => import('@/views/products/BrandsView.vue'),
+                    meta: { permission: 'brand:manage' },
+                },
+                {
+                    path: 'products/categories',
+                    name: 'productCategories',
+                    component: () => import('@/views/products/CategoriesView.vue'),
+                    meta: { permission: 'category:manage' },
+                },
+                {
+                    path: 'products/tags',
+                    name: 'productTags',
+                    component: () => import('@/views/products/TagsView.vue'),
+                    meta: { permission: 'tag:manage' },
+                },
+                {
+                    path: 'products/quotations',
+                    name: 'quotationList',
+                    component: () => import('@/views/products/QuotationHistoryView.vue'),
+                    // 与侧边栏 canAccessQuotation 的入口语义一致：列表或查看任一权限即可进入
+                    meta: { permission: ['quotation:list', 'quotation:view'] },
+                },
+                {
+                    path: 'products/quotations/new',
+                    name: 'quotationCreate',
+                    component: () => import('@/views/products/QuotationGeneratorView.vue'),
+                    meta: { permission: 'quotation:create' },
+                },
+                {
+                    path: 'products/quotations/:id',
+                    name: 'quotationDetail',
+                    component: () => import('@/views/products/QuotationDetailView.vue'),
+                    meta: { permission: 'quotation:view' },
+                },
+                {
+                    path: 'products/quotations/templates',
+                    name: 'quotationTemplates',
+                    component: () => import('@/views/products/QuotationTemplatesView.vue'),
+                    meta: { permission: 'quotationTemplate:manage' },
+                },
+                {
+                    path: 'products/import',
+                    name: 'productImport',
+                    component: () => import('@/views/products/ProductImportView.vue'),
+                    meta: { permission: 'product:import' },
+                },
+                {
+                    path: 'products/settings',
+                    name: 'productSettings',
+                    component: () => import('@/views/products/ProductSettingsView.vue'),
+                    meta: { permission: 'product:view' },
+                },
+                {
                     path: 'wiki/:id',
                     name: 'wikiDetail',
                     component: () => import('@/views/wiki/WikiDetail.vue'),
@@ -127,7 +207,11 @@ router.beforeEach((to) => {
 
     if (to.meta.permission && authStore.token) {
         const permissions = authStore.user?.role?.permissions || [];
-        const hasAccess = hasPermission(permissions, to.meta.permission as string) || permissions.includes('*');
+        // 支持单权限或任一命中（数组）：与侧边栏 hasAny 的导航可见性语义保持一致
+        const required = to.meta.permission as string | string[];
+        const hasAccess = Array.isArray(required)
+            ? hasAnyPermission(permissions, required)
+            : hasPermission(permissions, required) || permissions.includes('*');
 
         if (!hasAccess) {
             redirectCount++;

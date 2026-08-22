@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -31,7 +32,9 @@ async function bootstrap() {
     }
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // 产品批量导入会把全量行回传给 preview/execute，默认 100kb JSON 上限不够用
+  app.useBodyParser('json', { limit: '10mb' });
 
   // 禁用 X-Powered-By 响应头，避免暴露后端技术栈
   (

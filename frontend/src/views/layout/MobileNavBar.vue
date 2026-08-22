@@ -38,9 +38,18 @@
     </div>
     <div 
       class="nav-item" 
-      :class="{ active: currentPath.startsWith('/admin') }"
+      :class="{ active: currentPath.startsWith('/products/quotations') }"
+      @click="$emit('navigate', '/products/quotations')"
+      v-if="canAccessQuotation"
+    >
+      <el-icon><Tickets /></el-icon>
+      <span>报价</span>
+    </div>
+    <div 
+      class="nav-item" 
+      :class="{ active: currentPath.startsWith('/admin') || (currentPath.startsWith('/products') && !currentPath.startsWith('/products/quotations')) }"
       @click="$emit('showAdmin')"
-      v-if="canAccessAnyAdmin"
+      v-if="canAccessAnyAdmin || canAccessProducts"
     >
       <el-icon><Setting /></el-icon>
       <span>管理</span>
@@ -58,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection, Wallet } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet, Tickets } from '@element-plus/icons-vue';
 
 defineProps<{
   currentPath: string;
@@ -66,6 +75,8 @@ defineProps<{
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
   canAccessProjects: boolean;
+  canAccessQuotation: boolean;
+  canAccessProducts: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
 }>();

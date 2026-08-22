@@ -45,4 +45,16 @@ export class NotificationsController {
   markAllRead(@CurrentUser() user: CurrentUserData) {
     return this.notificationsService.markAllAsRead(user.id);
   }
+
+  @Post('delete')
+  @ApiOperation({ summary: '删除指定通知（单条/批量忽略）' })
+  remove(@CurrentUser() user: CurrentUserData, @Body() dto: MarkReadDto) {
+    return this.notificationsService.delete(dto.ids, user.id);
+  }
+
+  @Post('clear-all')
+  @ApiOperation({ summary: '清空全部通知' })
+  clearAll(@CurrentUser() user: CurrentUserData) {
+    return this.notificationsService.clearAll(user.id);
+  }
 }

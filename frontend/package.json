@@ -11,7 +11,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:e2e": "vitest run src/test/e2e",
-    "lint": "eslint . --ext .vue,.js,.ts,.jsx,.tsx"
+    "lint": "eslint . --ext .vue,.js,.ts,.jsx,.tsx",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -40,12 +41,15 @@
     "@vueuse/core": "^14.3.0",
     "axios": "^1.16.0",
     "dayjs": "^1.11.20",
+    "dompurify": "^3.4.14",
     "element-plus": "^2.13.7",
+    "exceljs": "^4.4.0",
     "gsap": "^3.15.0",
     "lowlight": "^3.3.0",
     "marked": "^18.0.3",
     "md-editor-v3": "^6.5.0",
     "pdfjs-dist": "^5.7.284",
+    "pdfmake": "^0.3.11",
     "pinia": "^3.0.4",
     "pinyin-pro": "^3.28.1",
     "prismjs": "^1.30.0",

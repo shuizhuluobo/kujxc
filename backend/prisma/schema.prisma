@@ -49,22 +49,22 @@ model User {
 }
 
 model Customer {
-  id               String              @id @default(uuid())
-  name             String
-  shortName        String?
-  namePinyin       String?
-  nameInitials     String?
-  contact          String?
-  phone            String?
-  address          String?
-  defaultRegionId  String?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  devices          CustomerDevice[]
+  id                 String              @id @default(uuid())
+  name               String
+  shortName          String?
+  namePinyin         String?
+  nameInitials       String?
+  contact            String?
+  phone              String?
+  address            String?
+  defaultRegionId    String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  devices            CustomerDevice[]
   performanceRecords PerformanceRecord[]
-  workOrders       WorkOrder[]
-  feeRecords       FeeRecord[]
-  defaultRegion    Region?             @relation(fields: [defaultRegionId], references: [id])
+  workOrders         WorkOrder[]
+  feeRecords         FeeRecord[]
+  defaultRegion      Region?             @relation(fields: [defaultRegionId], references: [id])
 
   @@index([shortName])
   @@index([defaultRegionId])
@@ -261,16 +261,16 @@ enum StageTrackingMode {
 }
 
 model ProjectStage {
-  id           String             @id @default(uuid())
-  projectId    String
-  name         String
-  code         String
-  trackingMode StageTrackingMode  @default(DEVICE)
-  unitPrice    Float              @default(0)
-  sortOrder    Int                @default(0)
-  createdAt    DateTime           @default(now())
-  project      PerformanceProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  records      PerformanceRecord[]
+  id             String                @id @default(uuid())
+  projectId      String
+  name           String
+  code           String
+  trackingMode   StageTrackingMode     @default(DEVICE)
+  unitPrice      Float                 @default(0)
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  project        PerformanceProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records        PerformanceRecord[]
   deviceProgress DeviceStageProgress[]
 
   @@unique([projectId, code])
@@ -404,4 +404,353 @@ enum RecordType {
 enum ProjectMemberRole {
   OWNER
   MEMBER
+}
+
+// ==================== 产品库 ====================
+
+enum ProductStatus {
+  ACTIVE // 上架
+  INACTIVE // 下架
+  DISCONTINUED // 停产
+}
+
+enum QuotationStatus {
+  DRAFT // 草稿
+  SENT // 已发送
+  CLOSED // 已成交
+  CANCELLED // 已作废
+}
+
+model Brand {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  logo        String?
+  description String?
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("brands")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Category[] @relation("CategoryTree")
+  description String?
+  sortOrder   Int        @default(0)
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id              String        @id @default(uuid())
+  code            String        @unique
+  name            String
+  /// 名称全拼小写（如 hangtianrunpu），用于模糊搜索；写入时由 toPinyinFields 维护
+  namePinyin      String?
+  /// 名称拼音首字母小写（如 htrp），前缀匹配搜索
+  nameInitials    String?
+  description     String?       @db.Text
+  model           String? // 型号
+  status          ProductStatus @default(ACTIVE)
+  isMarketProduct Boolean       @default(false)
+  unit            String        @default("台")
+  minOrderQty     Int?
+  warranty        String?
+  supplier        String?
+  marketUrl       String?
+  marketPrice     Decimal?      @db.Decimal(10, 2)
+  salePrice       Decimal?      @db.Decimal(10, 2)
+  costPrice       Decimal?      @db.Decimal(10, 2)
+
+  lastPriceUpdateAt   DateTime?
+  /// 用户「确认无需更新」时记录的续期时间；超期判定基准取其与 lastPriceUpdateAt/updatedAt 的较大值
+  staleAcknowledgedAt DateTime?
+  viewCount           Int       @default(0)
+
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  images         ProductImage[]
+  certificates   ProductCertificate[]
+  tags           ProductTagRelation[]
+  changeLogs     ProductChangeLog[]
+  favorites      UserProductFavorite[]
+  quotationItems QuotationItem[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  @@index([brandId, categoryId, status])
+  @@index([status, updatedAt])
+  @@index([deletedAt])
+  @@map("products")
+}
+
+model ProductTag {
+  id          String               @id @default(uuid())
+  name        String               @unique
+  color       String?
+  description String?
+  products    ProductTagRelation[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@map("product_tags")
+}
+
+model ProductTagRelation {
+  id        String     @id @default(uuid())
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       ProductTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([productId, tagId])
+  @@index([productId])
+  @@index([tagId])
+  @@map("product_tag_relations")
+}
+
+model ProductImage {
+  id           String   @id @default(uuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([productId, displayOrder])
+  @@map("product_images")
+}
+
+model ProductCertificate {
+  id           String   @id @default(uuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url          String
+  name         String
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([productId, displayOrder])
+  @@map("product_certificates")
+}
+
+model ProductChangeLog {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  field     String
+  oldValue  String?  @db.Text
+  newValue  String?  @db.Text
+  changedBy String?
+  changedAt DateTime @default(now())
+
+  @@index([productId, changedAt])
+  @@map("product_change_logs")
+}
+
+model UserProductFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("user_product_favorites")
+}
+
+// ==================== 报价 ====================
+
+model Quotation {
+  id              String  @id @default(uuid())
+  code            String  @unique
+  customerId      String?
+  customerName    String
+  customerContact String?
+  customerAddress String?
+
+  remark String? @db.Text
+
+  templateId String?
+  template   QuotationTemplate? @relation(fields: [templateId], references: [id])
+
+  totalAmount     Decimal  @db.Decimal(12, 2)
+  taxRate         Decimal? @db.Decimal(5, 2)
+  taxAmount       Decimal? @db.Decimal(12, 2)
+  finalAmount     Decimal  @db.Decimal(12, 2)
+  estimatedProfit Decimal? @db.Decimal(12, 2)
+
+  status            QuotationStatus @default(DRAFT)
+  version           Int             @default(1)
+  versionGroupId    String
+  parentQuotationId String?
+  parentQuotation   Quotation?      @relation("QuotationVersions", fields: [parentQuotationId], references: [id])
+  childQuotations   Quotation[]     @relation("QuotationVersions")
+
+  items     QuotationItem[]
+  excelUrl  String?
+  pdfUrl    String?
+  deletedAt DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@index([parentQuotationId])
+  @@index([versionGroupId, version])
+  @@index([customerId, versionGroupId])
+  @@index([deletedAt])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productSnapshot Json
+  selectedImages  Json?
+  selectedCerts   Json?
+
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  discount  Decimal? @db.Decimal(5, 2)
+  subtotal  Decimal  @db.Decimal(12, 2)
+  costPrice Decimal? @db.Decimal(10, 2)
+  profit    Decimal? @db.Decimal(12, 2)
+
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([quotationId, displayOrder])
+  @@map("quotation_items")
+}
+
+model QuotationTemplate {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  config      Json
+  isDefault   Boolean     @default(false)
+  quotations  Quotation[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+
+  @@map("quotation_templates")
+}
+
+// ==================== 编号生成 ====================
+
+model CodePrefixConfig {
+  id          String   @id @default(uuid())
+  entityType  String   @unique
+  prefix      String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("code_prefix_configs")
+}
+
+model CodeSequence {
+  id           Int      @id @default(autoincrement())
+  entityType   String
+  year         Int
+  month        Int
+  currentValue Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([entityType, year, month])
+  @@index([entityType, year, month])
+  @@map("code_sequences")
+}
+
+// ==================== 批量导入 ====================
+
+model ProductImportLog {
+  id            String   @id @default(uuid())
+  fileName      String
+  totalRows     Int      @default(0)
+  successRows   Int      @default(0)
+  failedRows    Int      @default(0)
+  skippedRows   Int      @default(0)
+  errorReport   Json?
+  mappingConfig Json?
+  status        String   @default("processing")
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  @@index([createdBy, createdAt])
+  @@map("product_import_logs")
+}
+
+model ProductImportTemplate {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  mappingConfig Json
+  isGlobal      Boolean  @default(false)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([createdBy])
+  @@map("product_import_templates")
+}
+
+// ==================== 系统设置 / 审计日志 ====================
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }

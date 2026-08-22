@@ -50,7 +50,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const message =
       exception instanceof HttpException
-        ? exception.message
+        ? this.extractDetailMessage(exception)
         : 'Internal server error';
 
     // 构建结构化日志
@@ -100,6 +100,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error: exception instanceof Error ? exception.message : exception,
       }),
     });
+  }
+
+  private extractDetailMessage(exception: HttpException): string {
+    const response = exception.getResponse();
+    if (response && typeof response === 'object') {
+      const detail = (response as { message?: string | string[] }).message;
+      if (Array.isArray(detail) && detail.length > 0) {
+        return detail.join('; ');
+      }
+      if (typeof detail === 'string' && detail.length > 0) {
+        return detail;
+      }
+    }
+    return exception.message;
   }
 
   private sanitizeBody(body: unknown): Record<string, unknown> | undefined {

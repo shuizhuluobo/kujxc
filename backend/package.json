@@ -21,6 +21,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "db:split-model": "ts-node prisma/split-product-model.ts",
+    "db:gen-tags": "ts-node prisma/generate-product-tags.ts",
     "db:setup": "prisma migrate dev && npm run prisma:seed"
   },
   "dependencies": {
@@ -44,6 +46,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "csv-parse": "^6.2.1",
+    "docx": "^9.7.1",
+    "docx-templates": "^4.15.0",
     "exceljs": "^4.4.0",
     "file-type": "^16.5.4",
     "iconv-lite": "^0.7.2",

@@ -136,6 +136,8 @@ export const notificationsApi = {
     getUnreadCount: () => api.get<{ count: number }>('/notifications/unread-count'),
     markRead: (ids: string[]) => api.post('/notifications/mark-read', { ids }),
     markAllRead: () => api.post('/notifications/mark-all-read'),
+    deleteNotification: (ids: string[]) => api.post('/notifications/delete', { ids }),
+    clearAll: () => api.post('/notifications/clear-all'),
 };
 
 // ==================== 知识库 ====================
@@ -275,3 +277,6 @@ export const performanceApi = {
         api.post<FeeRecord>(`/performance/warehouse/fee-records`, data),
     deleteWarehouseFeeRecord: (recordId: string) => api.delete(`/performance/warehouse/fee-records/${recordId}`),
 };
+
+// ==================== 产品库 ====================
+export * from './products';

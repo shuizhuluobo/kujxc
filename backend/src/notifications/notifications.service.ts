@@ -112,4 +112,21 @@ export class NotificationsService {
       data: { isRead: true },
     });
   }
+
+  // 删除单条/多条通知（仅能删除自己的）
+  async delete(ids: string[], userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+  }
+
+  // 清空全部通知（硬删除）
+  async clearAll(userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: { userId },
+    });
+  }
 }

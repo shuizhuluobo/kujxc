@@ -1,22 +1,15 @@
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { hasPermission, hasAnyPermission, hasAllPermissions, PermissionModules, type PermissionModule } from '@/config/permissions';
 
-// 当前用户权限缓存
-const userPermissions = ref<string[]>([]);
-
 export function usePermission() {
     const authStore = useAuthStore();
-    
-    // 从用户信息加载权限
-    const loadPermissions = () => {
-        if (authStore.user?.role?.permissions) {
-            userPermissions.value = authStore.user.role.permissions;
-        } else {
-            userPermissions.value = [];
-        }
-    };
-    
+
+    // 实时从当前用户读取权限，避免登录完成后权限缓存未刷新导致入口不显示
+    const userPermissions = computed<string[]>(() => {
+        return authStore.user?.role?.permissions ?? [];
+    });
+
     // 检查单个权限
     const checkPermission = (permission: string): boolean => {
         return hasPermission(userPermissions.value, permission);
@@ -66,28 +59,24 @@ export function usePermission() {
     const isAdmin = computed(() => {
         return userPermissions.value.includes('*') || authStore.user?.role?.code === 'admin';
     });
-    
-    // 初始化权限
-    loadPermissions();
-    
+
     return {
         // 权限检查
         has: checkPermission,
         hasAny: checkAnyPermission,
         hasAll: checkAllPermissions,
-        
+
         // 页面和操作
         canAccessPage,
         canPerformAction,
         hasModuleAccess,
         getVisiblePages,
         getAvailableActions,
-        
+
         // 状态
         isAdmin,
         userPermissions,
-        loadPermissions,
-        
+
         // 配置
         modules: PermissionModules,
     };

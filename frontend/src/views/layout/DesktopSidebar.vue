@@ -20,29 +20,54 @@
         <el-icon><List /></el-icon>
         <span>历史工单</span>
       </el-menu-item>
-      
+
+      <el-menu-item index="/products/quotations" v-if="canAccessQuotation">
+        <el-icon><Tickets /></el-icon>
+        <span>报价管理</span>
+      </el-menu-item>
+
       <el-menu-item index="/wiki" v-if="canAccessWiki">
         <el-icon><Collection /></el-icon>
         <span>知识库</span>
       </el-menu-item>
-      
+
       <el-menu-item index="/projects" v-if="canAccessProjects">
         <el-icon><Wallet /></el-icon>
         <span>项目记录</span>
       </el-menu-item>
-      
-      <el-sub-menu index="admin" v-if="canAccessAnyAdmin">
+
+      <el-sub-menu index="admin" v-if="canAccessAnyAdmin || canAccessProducts">
         <template #title>
           <el-icon><Setting /></el-icon>
           <span>基础数据</span>
         </template>
-        <el-menu-item index="/admin/users" v-if="canAccessUserManage">用户管理</el-menu-item>
-        <el-menu-item index="/admin/roles" v-if="canAccessRoleManage">角色管理</el-menu-item>
-        <el-menu-item index="/admin/customers" v-if="canAccessCustomer">客户管理</el-menu-item>
-        <el-menu-item index="/admin/regions" v-if="canAccessBaseData">区域管理</el-menu-item>
-        <el-menu-item index="/admin/service-types" v-if="canAccessBaseData">服务类型</el-menu-item>
+        <el-menu-item index="/admin/users" v-if="canAccessUserManage">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/roles" v-if="canAccessRoleManage">
+          <el-icon><Avatar /></el-icon>
+          <span>角色管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/customers" v-if="canAccessCustomer">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>客户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/regions" v-if="canAccessBaseData">
+          <el-icon><Location /></el-icon>
+          <span>区域管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/service-types" v-if="canAccessBaseData">
+          <el-icon><Service /></el-icon>
+          <span>服务类型</span>
+        </el-menu-item>
+        <!-- 产品库归入基础数据，作为单页面入口；品牌/类型/标签/导入/过期提醒改为产品库页内按钮 -->
+        <el-menu-item index="/products" v-if="canAccessProducts">
+          <el-icon><Goods /></el-icon>
+          <span>产品库</span>
+        </el-menu-item>
       </el-sub-menu>
-      
+
       <el-menu-item index="/profile" v-if="canAccessProfile">
         <el-icon><User /></el-icon>
         <span>个人中心</span>
@@ -52,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection, Wallet } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet, Goods, Tickets, Avatar, OfficeBuilding, Location, Service } from '@element-plus/icons-vue';
 
 defineProps<{
   sidebarCollapsed: boolean;
@@ -61,6 +86,8 @@ defineProps<{
   canAccessWorkOrderHistory: boolean;
   canAccessWiki: boolean;
   canAccessProjects: boolean;
+  canAccessProducts: boolean;
+  canAccessQuotation: boolean;
   canAccessProfile: boolean;
   canAccessAnyAdmin: boolean;
   canAccessUserManage: boolean;
