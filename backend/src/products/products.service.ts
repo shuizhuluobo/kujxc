@@ -255,7 +255,7 @@ export class ProductsService {
   }
 
   async findAll(query: ProductFilterDto, userId: string) {
-    const { page = 1, pageSize = 20, minPrice, maxPrice, orderBy } = query;
+    const { page = 1, pageSize = 20, orderBy } = query;
 
     const where = this.buildWhere(query);
 
@@ -277,12 +277,10 @@ export class ProductsService {
       'staleThresholdDays',
       90,
     );
-    const serialized = await Promise.all(
-      data.map((p) => {
-        const isStale = this.isStale(p, staleThresholdDays);
-        return this.serialize(p, { isStale });
-      }),
-    );
+    const serialized = data.map((p) => {
+      const isStale = this.isStale(p, staleThresholdDays);
+      return this.serialize(p, { isStale });
+    });
 
     return {
       data: serialized,
@@ -349,32 +347,30 @@ export class ProductsService {
       });
       if (batch.length === 0) break;
 
-      const rows = await Promise.all(
-        batch.map((p) => {
-          const s = this.serialize(p, {
-            isStale: this.isStale(p, staleThresholdDays),
-          });
-          return {
-            code: s.code,
-            name: s.name,
-            model: s.model ?? '',
-            brand: (p.brand as { name?: string } | null)?.name ?? '',
-            category: (p.category as { name?: string } | null)?.name ?? '',
-            marketPrice: s.marketPrice,
-            unit: s.unit ?? '',
-            status: s.status,
-            isStale: s.isStale ? '是' : '否',
-            supplier: s.supplier ?? '',
-            favoriteCount: s.favoriteCount ?? 0,
-            viewCount: s.viewCount ?? 0,
-            lastPriceUpdateAt:
-              p.lastPriceUpdateAt != null
-                ? new Date(p.lastPriceUpdateAt).toLocaleString('zh-CN')
-                : '',
-            createdAt: new Date(p.createdAt).toLocaleString('zh-CN'),
-          };
-        }),
-      );
+      const rows = batch.map((p) => {
+        const s = this.serialize(p, {
+          isStale: this.isStale(p, staleThresholdDays),
+        });
+        return {
+          code: s.code,
+          name: s.name,
+          model: s.model ?? '',
+          brand: (p.brand as { name?: string } | null)?.name ?? '',
+          category: (p.category as { name?: string } | null)?.name ?? '',
+          marketPrice: s.marketPrice,
+          unit: s.unit ?? '',
+          status: s.status,
+          isStale: s.isStale ? '是' : '否',
+          supplier: s.supplier ?? '',
+          favoriteCount: s.favoriteCount ?? 0,
+          viewCount: s.viewCount ?? 0,
+          lastPriceUpdateAt:
+            p.lastPriceUpdateAt != null
+              ? new Date(p.lastPriceUpdateAt).toLocaleString('zh-CN')
+              : '',
+          createdAt: new Date(p.createdAt).toLocaleString('zh-CN'),
+        };
+      });
       rows.forEach((r) => sheet.addRow(r));
       skip += batch.length;
       if (batch.length < BATCH) break;
@@ -642,12 +638,10 @@ export class ProductsService {
       }),
       this.prisma.product.count({ where }),
     ]);
-    const serialized = await Promise.all(
-      data.map((p) =>
-        this.serialize(p, {
-          isStale: this.isStale(p, staleThresholdDays),
-        }),
-      ),
+    const serialized = data.map((p) =>
+      this.serialize(p, {
+        isStale: this.isStale(p, staleThresholdDays),
+      }),
     );
     return {
       data: serialized,

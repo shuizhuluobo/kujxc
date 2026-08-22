@@ -13,6 +13,11 @@ type AnyMock = jest.Mock;
 type MockPrismaModel = Record<string, jest.Mock>;
 type MockPrisma = Record<string, MockPrismaModel>;
 
+/** expect.objectContaining 返回 any，包装为保留入参类型 */
+function objCont<T extends object>(o: T): T {
+  return expect.objectContaining(o) as T;
+}
+
 function buildMockPrisma(): MockPrisma {
   return {
     brand: {
@@ -288,8 +293,8 @@ describe('ProductImportService', () => {
       expect(result.successRows).toBe(1);
       expect(result.skippedRows).toBe(1);
       expect(mockPrisma.productImportLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ skippedRows: 1 }),
+        objCont({
+          data: objCont({ skippedRows: 1 }),
         }),
       );
     });
@@ -333,7 +338,7 @@ describe('ProductImportService', () => {
 
       expect(mockPrisma.product.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
-        data: expect.objectContaining({ model: 'X1', updatedBy: 'user-1' }),
+        data: objCont({ model: 'X1', updatedBy: 'user-1' }),
       });
       expect(result.overwrittenRows).toBe(1);
       expect(result.successRows).toBe(1);
@@ -373,8 +378,8 @@ describe('ProductImportService', () => {
       expect(mockBrands.findOrCreateMany).not.toHaveBeenCalled();
       expect(result.createdBrands).toHaveLength(0);
       expect(mockPrisma.product.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ brandId: 'brand-1' }),
+        objCont({
+          data: objCont({ brandId: 'brand-1' }),
         }),
       );
     });
