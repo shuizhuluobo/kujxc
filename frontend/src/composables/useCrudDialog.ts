@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { getApiErrorMessage } from '@/utils/format';
 
@@ -25,9 +25,9 @@ export function useCrudDialog<F extends object, T extends { id: string }>(opts: 
     const loading = ref(false);
     const submitting = ref(false);
     const dialogVisible = ref(false);
-    const editingRow = ref<T | null>(null);
+    const editingRow = ref(null) as Ref<T | null>;
     const formRef = ref<FormInstance>();
-    const form = ref<F>(opts.emptyForm());
+    const form = ref(opts.emptyForm()) as Ref<F>;
     const list = ref<T[]>([]);
 
     /** 模板标题用：true=编辑态 */

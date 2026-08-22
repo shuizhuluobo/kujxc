@@ -21,4 +21,4 @@ async function main() {
   console.log(`✅ 拼音回填完成：${n} 个产品`);
 }
 
-main().finally(() => prisma.$disconnect());
+void main().finally(() => prisma.$disconnect());

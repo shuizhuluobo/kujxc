@@ -13,13 +13,13 @@ beforeAll(() => {
         '/fonts/simsun-subset.ttf': 'simsun-subset.ttf',
         '/fonts/notosans-bold-subset.ttf': 'notosans-bold-subset.ttf',
     };
-    vi.stubGlobal('fetch', (async (url: string) => {
+    vi.stubGlobal('fetch', ((url: string) => {
         const name = files[url];
         if (!name) return { ok: false } as Response;
         const bytes = readFileSync(`${fontDir}/${name.split('/').pop()}`);
         return {
             ok: true,
-            arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+            arrayBuffer: () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
         } as unknown as Response;
     }) as typeof fetch);
 

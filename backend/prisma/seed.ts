@@ -1230,7 +1230,7 @@ async function seedQuotations(
   };
 
   // 由产品 + 报价条件构建报价明细
-  const buildItems = async (
+  const buildItems = (
     defs: QuotationSeedItem[],
     opts: { showDiscount?: boolean } = {},
   ) => {
@@ -1298,7 +1298,7 @@ async function seedQuotations(
     { model: 'fi-7160', quantity: 2, unitPrice: 5200, discount: 96 },
     { model: 'PowerEdge R750', quantity: 1, unitPrice: 86000 },
   ];
-  const q1Items = await buildItems(q1Defs, { showDiscount: true });
+  const q1Items = buildItems(q1Defs, { showDiscount: true });
   const q1Total = totals(q1Defs);
   const q1TaxRate = 13;
   const q1Tax = round2((q1Total * q1TaxRate) / 100);
@@ -1331,7 +1331,7 @@ async function seedQuotations(
     { model: 'fi-7160', quantity: 4, unitPrice: 5200 },
     { name: '针式票据打印机', quantity: 10, unitPrice: 1500 },
   ];
-  const q2Items = await buildItems(q2Defs, { showDiscount: false });
+  const q2Items = buildItems(q2Defs, { showDiscount: false });
   const q2Total = totals(q2Defs);
   const q2TaxRate = 13;
   const q2Tax = round2((q2Total * q2TaxRate) / 100);
@@ -1369,7 +1369,7 @@ async function seedQuotations(
     { model: 'ThinkSystem ST650 V2', quantity: 1, unitPrice: 42000 },
     { model: 'Precision 7780', quantity: 3, unitPrice: 32000 },
   ];
-  const q3Items = await buildItems(q3Defs, { showDiscount: true });
+  const q3Items = buildItems(q3Defs, { showDiscount: true });
   const q3Total = totals(q3Defs);
   const q3TaxRate = 13;
   const q3Tax = round2((q3Total * q3TaxRate) / 100);

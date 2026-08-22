@@ -255,18 +255,7 @@ export class ProductsService {
   }
 
   async findAll(query: ProductFilterDto, userId: string) {
-    const {
-      page = 1,
-      pageSize = 20,
-      keyword,
-      brandIds,
-      categoryId,
-      tagIds,
-      status,
-      minPrice,
-      maxPrice,
-      orderBy,
-    } = query;
+    const { page = 1, pageSize = 20, minPrice, maxPrice, orderBy } = query;
 
     const where = this.buildWhere(query);
 
@@ -289,7 +278,7 @@ export class ProductsService {
       90,
     );
     const serialized = await Promise.all(
-      data.map(async (p) => {
+      data.map((p) => {
         const isStale = this.isStale(p, staleThresholdDays);
         return this.serialize(p, { isStale });
       }),
@@ -361,7 +350,7 @@ export class ProductsService {
       if (batch.length === 0) break;
 
       const rows = await Promise.all(
-        batch.map(async (p) => {
+        batch.map((p) => {
           const s = this.serialize(p, {
             isStale: this.isStale(p, staleThresholdDays),
           });
@@ -654,7 +643,7 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
     const serialized = await Promise.all(
-      data.map(async (p) =>
+      data.map((p) =>
         this.serialize(p, {
           isStale: this.isStale(p, staleThresholdDays),
         }),

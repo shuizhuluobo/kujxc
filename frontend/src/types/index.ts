@@ -411,6 +411,8 @@ export interface Product {
     unit: string;
     minOrderQty?: number | null;
     warranty?: string | null;
+    /** 售后/备注说明（后端 Product.remark） */
+    remark?: string | null;
     supplier?: string | null;
     marketUrl?: string | null;
     marketPrice?: number | null;

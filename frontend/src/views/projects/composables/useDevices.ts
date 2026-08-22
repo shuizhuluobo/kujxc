@@ -305,9 +305,10 @@ export function useDevices(project?: Ref<Project | null>) {
       ElMessage.success(msg);
       await loadDevices(projectId);
       return data;
-    } catch (e: any) {
+    } catch (e) {
       console.error('Failed to batch record stage:', e);
-      ElMessage.error(e?.response?.data?.message || '批量记录失败');
+      const msg = (e as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;
+      ElMessage.error(msg || '批量记录失败');
       return null;
     }
   };

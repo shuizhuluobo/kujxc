@@ -1,11 +1,21 @@
 import * as ExcelJSNS from 'exceljs';
+import type { Cell } from 'exceljs';
 // 兼容 Vite 与 Node(ESM) 对 exceljs(CJS) 的默认导出 interop：Node 下真实构造器在 .default
 const ExcelJS: typeof ExcelJSNS = (ExcelJSNS as unknown as { default?: typeof ExcelJSNS }).default ?? ExcelJSNS;
 import pdfMake from 'pdfmake/build/pdfmake';
-import type { Quotation, QuotationTemplate, QuotationTemplateColumn } from '@/types';
+import type { Quotation, QuotationTemplate, QuotationTemplateColumn, QuotationTemplateConfig } from '@/types';
 import { columnAlign, columnValue, computeMergeGroups, formatAmount, infoLineText, resolveMergeKey, resolveTitle, showTaxBreakdown, taxRowLabel, templateText, TOTAL_LABELS, visibleColumns } from '@/utils/quotationColumns';
 
 export type EffectiveTemplate = Pick<QuotationTemplate, 'config'> | null | undefined;
+
+/** 空模板配置兜底：与 undefined 语义一致（templateText/showTaxBreakdown 对 ''/false/undefined 同判） */
+const EMPTY_TEMPLATE_CONFIG: QuotationTemplateConfig = {
+    columns: [],
+    title: '',
+    showTax: false,
+    header: '',
+    footer: '',
+};
 
 function defaultColumns(): QuotationTemplateColumn[] {
     return [
@@ -114,7 +124,7 @@ function softBreak(text: string, max = 28): string {
     return text.replace(/\S{28,}/g, (m) => m.replace(new RegExp(`(.{${max}})`, 'g'), `$1\u200b`));
 }
 
-function applyBorder(cell: ExcelJS.Cell) {
+function applyBorder(cell: Cell) {
     cell.border = {
         top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
         left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
@@ -232,7 +242,7 @@ export async function exportQuotationToExcel(
         };
     });
 
-    const config = template?.config ?? {};
+    const config = template?.config ?? EMPTY_TEMPLATE_CONFIG;
     const company = config.company;
     const breakdown = showTaxBreakdown(config, quotation);
     const headerText = templateText(config.header, quotation, company);
@@ -632,7 +642,7 @@ export async function exportQuotationToPdf(
         widthSum -= 1;
     }
 
-    const config = template?.config ?? {};
+    const config = template?.config ?? EMPTY_TEMPLATE_CONFIG;
     const company = config.company;
     const breakdown = showTaxBreakdown(config, quotation);
     const headerText = templateText(config.header, quotation, company);

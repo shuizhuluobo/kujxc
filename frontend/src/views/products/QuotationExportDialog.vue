@@ -74,7 +74,7 @@
           </el-tooltip>
           <el-button :loading="saving" :icon="Files" @click="saveAsNewVisible = true">另存为新模板</el-button>
           <el-divider direction="vertical" />
-          <el-button :loading="exporting" :icon="Document" type="primary" plain @click="doExport('excel')">Excel</el-button>
+          <el-button :loading="exporting" :icon="DocumentIcon" type="primary" plain @click="doExport('excel')">Excel</el-button>
           <el-button :loading="exporting" :icon="Reading" type="success" plain @click="doExport('pdf')">PDF</el-button>
           <el-button :loading="exporting" :icon="Notebook" type="warning" plain @click="doExport('docx')">Word</el-button>
           <el-button :loading="exporting" :icon="Printer" type="info" plain @click="doExport('print')">打印</el-button>
@@ -103,7 +103,7 @@
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { ElMessage } from 'element-plus';
 import Sortable from 'sortablejs';
-import { Close, Files, Rank, Document, Reading, Notebook, Printer } from '@element-plus/icons-vue';
+import { Close, Files, Rank, Document as DocumentIcon, Reading, Notebook, Printer } from '@element-plus/icons-vue';
 import type { Quotation, QuotationTemplate, QuotationTemplateColumn, QuotationTemplateConfig } from '@/types';
 import { quotationsApi, quotationTemplatesApi } from '@/api';
 import { exportQuotationToExcel, exportQuotationToPdf } from '@/utils/quotationExport';
@@ -203,7 +203,6 @@ const effectiveConfig = computed<QuotationTemplateConfig>(() => {
         columns: workingColumns.value,
         title: workingTitle.value,
         showTax: base.showTax ?? true,
-        showLogo: base.showLogo ?? true,
         header: base.header ?? '',
         footer: base.footer ?? '',
         type: base.type ?? 'quotation',

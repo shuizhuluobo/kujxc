@@ -10,7 +10,10 @@ import { ImportPreviewDto, ImportExecuteDto } from './dto';
 
 type AnyMock = jest.Mock;
 
-function buildMockPrisma() {
+type MockPrismaModel = Record<string, jest.Mock>;
+type MockPrisma = Record<string, MockPrismaModel>;
+
+function buildMockPrisma(): MockPrisma {
   return {
     brand: {
       findUnique: jest.fn(),

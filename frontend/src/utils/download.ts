@@ -31,14 +31,13 @@ export function parseDispositionFilename(disposition?: string): string | null {
 export function downloadBlob(
     blob: Blob,
     fallbackName: string,
-    headers?: Record<string, any> | any,
+    headers?: Record<string, string | undefined> | Headers,
 ): void {
     let disposition: string | undefined;
-    if (headers) {
-        disposition =
-            headers['content-disposition'] ||
-            headers['Content-Disposition'] ||
-            (typeof headers.get === 'function' ? headers.get('content-disposition') : undefined);
+    if (headers instanceof Headers) {
+        disposition = headers.get('content-disposition') ?? undefined;
+    } else if (headers) {
+        disposition = headers['content-disposition'] ?? headers['Content-Disposition'];
     }
     const filename = parseDispositionFilename(disposition) || fallbackName;
 

@@ -125,7 +125,7 @@ function handleSearch() { /* computed 已实现本地过滤 */ }
 
 function goBack() {
     const parent = router.currentRoute.value.query.from as string | undefined;
-    if (parent) router.push(parent);
+    if (parent) void router.push(parent);
     else router.back();
 }
 

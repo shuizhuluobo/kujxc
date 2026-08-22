@@ -51,8 +51,8 @@ const activeTab = ref<'columns' | 'layout' | 'company'>('layout');
 const addFieldKey = ref<string>('');
 
 function goBack() {
-    if (window.history.length > 1) router.back();
-    else router.push({ name: 'quotationList' });
+    if (window.history.length > 1) void router.back();
+    else void router.push({ name: 'quotationList' });
 }
 
 function defaultConfig(): QuotationTemplateConfig {
@@ -104,7 +104,7 @@ function editTemplate(t: QuotationTemplate) {
     editing.isDefault = t.isDefault;
     editing.config = deepClone(stripProposal(t.config)) as QuotationTemplateConfig;
     activeTab.value = 'columns';
-    nextTick(updatePreview);
+    void nextTick(updatePreview);
 }
 
 function stripProposal(config: QuotationTemplateConfig | undefined): QuotationTemplateConfig {
@@ -132,10 +132,10 @@ function newTemplate() {
     editing.isDefault = false;
     editing.config = defaultConfig();
     activeTab.value = 'columns';
-    nextTick(updatePreview);
+    void nextTick(updatePreview);
 }
 
-async function copyTemplate(t: QuotationTemplate) {
+function copyTemplate(t: QuotationTemplate) {
     editing.id = null;
     editing.name = `${t.name} 副本`;
     editing.description = t.description ?? '';
@@ -143,7 +143,7 @@ async function copyTemplate(t: QuotationTemplate) {
     editing.config = deepClone(stripProposal(t.config)) as QuotationTemplateConfig;
     activeTab.value = 'columns';
     ElMessage.success('已复制为副本，可编辑后保存');
-    nextTick(updatePreview);
+    void nextTick(updatePreview);
 }
 
 async function setDefault(t: QuotationTemplate) {

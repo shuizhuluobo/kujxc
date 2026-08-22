@@ -14,13 +14,6 @@ const JSON_PATH = path.resolve(
   'products_clean.json',
 );
 
-const CATEGORY_COLORS: Record<string, string> = {
-  电脑整机: '#2563eb',
-  打印设备: '#0891b2',
-  扫描设备: '#7c3aed',
-  办公设备: '#d97706',
-};
-
 const TAG_COLORS = [
   '#3b82f6',
   '#10b981',
@@ -42,8 +35,9 @@ async function main() {
   if (!fs.existsSync(JSON_PATH)) {
     throw new Error(`找不到清洗数据文件: ${JSON_PATH}`);
   }
-  const data = JSON.parse(fs.readFileSync(JSON_PATH, 'utf-8'));
-  const { categories, brands, products } = data as {
+  const { categories, brands, products } = JSON.parse(
+    fs.readFileSync(JSON_PATH, 'utf-8'),
+  ) as {
     categories: { lvl1: string; lvl2: string }[];
     brands: string[];
     products: {

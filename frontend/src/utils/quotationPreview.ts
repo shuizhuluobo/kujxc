@@ -15,6 +15,8 @@ export interface PreviewConfig {
     /** 公司信息（名称/地址/电话），可在页眉页脚用 {{companyName}} 等占位符调用 */
     company?: QuotationTemplateCompany;
     companyName?: string;
+    /** 表格正上方标题 */
+    tableTitle?: string;
     /** 信息行格式（客户/联系人/地址/报价编号/日期/单位） */
     infoFormat?: string;
     /** 页面方向：portrait（默认）/ landscape */
