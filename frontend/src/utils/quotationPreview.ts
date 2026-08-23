@@ -1,5 +1,7 @@
-import type { Quotation, QuotationTemplateColumn, QuotationTemplateSection, QuotationTemplateCompany } from '@/types';
+import type { Quotation, QuotationItem, QuotationTemplateColumn, QuotationTemplateSection, QuotationTemplateCompany } from '@/types';
 import { columnAlign, columnValue, computeMergeGroups, formatAmount, infoLineText, resolveMergeKey, resolveTitle, showTaxBreakdown, taxRowLabel, templateText, TOTAL_LABELS, visibleColumns } from '@/utils/quotationColumns';
+import { collectItemMediaEntries, isDocumentMedia, isMediaColumnKey } from '@/utils/quotationImages';
+import { resolveAssetUrl } from '@/utils/url';
 
 export interface PreviewConfig {
     columns?: QuotationTemplateColumn[];
@@ -33,6 +35,22 @@ function esc(value: string): string {
 
 function alignClass(col: QuotationTemplateColumn): string {
     return `a-${col.align ?? columnAlign(col.key)}`;
+}
+
+/**
+ * 媒体列（产品图片/产品证书）单元格内容：真实渲染缩略图；
+ * 文档型证书（PDF 等）保留名称文本；无条目时返回 null 走普通文本。
+ */
+function mediaCellHtml(item: QuotationItem, key: string): string | null {
+    if (!isMediaColumnKey(key)) return null;
+    const entries = collectItemMediaEntries(item, key);
+    if (!entries.length) return null;
+    const parts = entries.map((e) =>
+        isDocumentMedia(e.url)
+            ? `<span class="cell-doc">${esc(e.label || e.url)}</span>`
+            : `<img class="cell-thumb" src="${esc(resolveAssetUrl(e.url))}" alt="${esc(e.label)}" loading="lazy" />`,
+    );
+    return `<div class="cell-media">${parts.join('')}</div>`;
 }
 
 /**
@@ -78,24 +96,25 @@ export function renderQuotationHtml(quotation: Quotation, config: PreviewConfig)
         for (let ci = 0; ci < columns.length; ci++) {
             const c = columns[ci];
             const text = c.key === 'no' || c.key === 'index' ? String(i + 1) : columnValue(item, c);
+            const content = mediaCellHtml(item, c.key) ?? esc(text);
             if (ci === mergeIdx) {
                 if (isRowStart) {
-                    cells.push(`<td class="${alignClass(c)}" rowspan="${groupSpan}">${esc(text)}</td>`);
+                    cells.push(`<td class="${alignClass(c)}" rowspan="${groupSpan}">${content}</td>`);
                 }
                 continue;
             }
             if (ci === brandIdx && group && group.brandSpan > 1 && brandIdx !== mergeIdx) {
                 // 品牌列部分合并：组内前缀 brandSpan 行一致时合并，其余行照常显示
                 if (offsetInGroup === 0) {
-                    cells.push(`<td class="${alignClass(c)}" rowspan="${group.brandSpan}">${esc(text)}</td>`);
+                    cells.push(`<td class="${alignClass(c)}" rowspan="${group.brandSpan}">${content}</td>`);
                 } else if (offsetInGroup < group.brandSpan) {
                     // 已被上方 rowspan 覆盖
                 } else {
-                    cells.push(`<td class="${alignClass(c)}">${esc(text)}</td>`);
+                    cells.push(`<td class="${alignClass(c)}">${content}</td>`);
                 }
                 continue;
             }
-            cells.push(`<td class="${alignClass(c)}">${esc(text)}</td>`);
+            cells.push(`<td class="${alignClass(c)}">${content}</td>`);
         }
         tbody.push(`<tr>${cells.join('')}</tr>`);
     }
@@ -140,6 +159,9 @@ export function renderQuotationHtml(quotation: Quotation, config: PreviewConfig)
   table.items { width: 100%; border-collapse: collapse; }
   table.items th, table.items td { border: 1px solid #9db2d6; padding: 7px 8px; font-size: 11px; vertical-align: middle; line-height: 1.4; white-space: pre-line; }
   table.items th { background: #eaf1fb; color: #000000; font-weight: bold; text-align: center; }
+  .cell-media { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cell-thumb { display: block; max-width: 100px; max-height: 75px; object-fit: contain; }
+  .cell-doc { font-size: 10px; color: #333; word-break: break-all; }
   .a-right { text-align: right; }
   .a-center { text-align: center; }
   .a-left { text-align: left; }

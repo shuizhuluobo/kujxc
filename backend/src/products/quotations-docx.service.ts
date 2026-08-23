@@ -1,6 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import axios from 'axios';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 import {
   Document,
+  ImageRun,
   Packer,
   Paragraph,
   TextRun,
@@ -37,6 +41,57 @@ function formatParamValue(value: unknown): string {
   }
   return '';
 }
+
+/** 已解析的待嵌入图片：原始字节 + docx 类型 + 像素尺寸 */
+interface EmbeddedDocxImage {
+  data: Buffer;
+  type: 'png' | 'jpg' | 'gif' | 'bmp';
+  width: number;
+  height: number;
+}
+
+/** 媒体条目（产品图片/证书），label 为嵌图失败时的文本兜底展示名 */
+interface MediaEntry {
+  url: string;
+  label: string;
+}
+
+/** 每个媒体单元格最多嵌入的缩略图数量 */
+const MAX_MEDIA_PER_CELL = 4;
+/** 缩略图适配盒（docx transformation 单位为 px @96dpi） */
+const THUMB_MAX_W = 96;
+const THUMB_MAX_H = 72;
+
+/** 文档型证书（PDF 扫描件等）：无法按位图嵌入，保留名称文本 */
+function isDocumentMedia(url: string): boolean {
+  return /\.pdf([?#]|$)/i.test(String(url ?? ''));
+}
+
+/** 从 URL 提取文件名（去查询参数并解码），作为证书名称兜底 */
+function fileNameOfUrl(url: string): string {
+  const clean = String(url ?? '').split(/[?#]/)[0];
+  const last = clean.substring(clean.lastIndexOf('/') + 1);
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}
+
+const toStrList = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((x): string => {
+          if (typeof x === 'string') return x;
+          if (typeof x === 'object' && x !== null) {
+            const rec = x as Record<string, unknown>;
+            if (typeof rec.url === 'string') return rec.url;
+            if (typeof rec.name === 'string') return rec.name;
+          }
+          return '';
+        })
+        .filter(Boolean)
+    : [];
 
 /**
  * 报价单 DOCX 生成（使用 docx 库直接构建，而非 docx-templates 套打）
@@ -125,24 +180,11 @@ export class QuotationsDocxService {
       }
       case 'certs':
       case 'certificates': {
-        const names = item?.productSnapshot?.certNames;
-        if (Array.isArray(names)) {
-          return names.filter((n: any) => typeof n === 'string').join('\n');
-        }
-        const list =
-          Array.isArray(item?.selectedCerts) && item.selectedCerts.length
-            ? item.selectedCerts
-            : item?.productSnapshot?.certs;
-        if (Array.isArray(list)) {
-          return list
-            .map((c: any) =>
-              typeof c === 'object' && c !== null
-                ? String(c.name ?? c.url ?? '')
-                : String(c),
-            )
-            .filter(Boolean)
-            .join('\n');
-        }
+        // 与前端 quotationImages.collectItemMediaEntries 同语义：尊重勾选子集，
+        // 名称经 snap.certs ↔ snap.certNames 平行数组映射，缺失回退文件名
+        // （修复旧逻辑恒显示全量 certNames、忽略 selectedCerts 的问题）
+        const entries = this.itemMediaEntries(item, 'certs');
+        if (entries.length) return entries.map((e) => e.label).join('\n');
         return '';
       }
       case 'cost':
@@ -268,6 +310,189 @@ export class QuotationsDocxService {
     };
   }
 
+  // ============ 媒体列（产品图片/证书）取数与图片加载 ============
+
+  private readonly imageCache = new Map<string, EmbeddedDocxImage | null>();
+
+  /**
+   * 明细行 → 指定媒体列的条目列表。取数口径与前端 quotationImages.collectItemMediaEntries 一致：
+   * - images：selectedImages 优先，空则回退快照全量；
+   * - certs：selectedCerts 优先，空则回退快照全量；名称经 snap.certs ↔ snap.certNames 平行数组映射。
+   */
+  private itemMediaEntries(item: any, field: string): MediaEntry[] {
+    if (field !== 'images' && field !== 'certs') return [];
+    const snap = (item?.productSnapshot ?? {}) as Record<string, unknown>;
+    if (field === 'images') {
+      const list =
+        Array.isArray(item?.selectedImages) && item.selectedImages.length
+          ? item.selectedImages
+          : snap.images;
+      return toStrList(list).map((url) => ({ url, label: '' }));
+    }
+    const certsRaw =
+      Array.isArray(item?.selectedCerts) && item.selectedCerts.length
+        ? item.selectedCerts
+        : snap.certs;
+    const allUrls = toStrList(snap.certs);
+    const names = toStrList(snap.certNames);
+    return toStrList(certsRaw).map((url) => {
+      const idx = allUrls.indexOf(url);
+      return {
+        url,
+        label: idx >= 0 && names[idx] ? names[idx] : fileNameOfUrl(url),
+      };
+    });
+  }
+
+  /** 加载并解析图片（本地 uploads 目录或 http 外链），失败返回 null；按 URL 缓存 */
+  private async loadEmbeddedImage(
+    rawUrl: string,
+  ): Promise<EmbeddedDocxImage | null> {
+    const url = String(rawUrl ?? '').trim();
+    if (!url || url.startsWith('data:')) return null;
+    const cached = this.imageCache.get(url);
+    if (cached !== undefined) return cached;
+    let result: EmbeddedDocxImage | null = null;
+    try {
+      const bytes = await this.fetchImageBytes(url);
+      result = bytes ? this.parseImageBytes(bytes) : null;
+    } catch (e) {
+      this.logger.warn(
+        `报价单导出嵌入图片失败（回退文本展示）: ${url} - ${e instanceof Error ? e.message : e}`,
+      );
+      result = null;
+    }
+    this.imageCache.set(url, result);
+    return result;
+  }
+
+  private async fetchImageBytes(url: string): Promise<Buffer | null> {
+    if (/^https?:\/\//i.test(url)) {
+      const res = await axios.get<ArrayBuffer>(url, {
+        responseType: 'arraybuffer',
+        timeout: 10_000,
+        maxContentLength: 20 * 1024 * 1024,
+      });
+      return Buffer.from(res.data);
+    }
+    // 本地上传文件：/uploads/xxx 由 ServeStatic 映射到 <cwd>/uploads/xxx
+    const rel = url.replace(/^[/\\]+/, '');
+    if (!/^uploads[/\\]/i.test(rel)) return null;
+    return readFile(join(process.cwd(), rel));
+  }
+
+  /** 魔数识别 png/jpg/gif/bmp 并读取像素尺寸，其余类型（webp/svg/pdf）不支持嵌入返回 null */
+  private parseImageBytes(buf: Buffer): EmbeddedDocxImage | null {
+    if (!buf || buf.length < 24) return null;
+    // PNG：\x89PNG + IHDR 宽高位于固定偏移（大端 uint32）
+    if (
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47
+    ) {
+      const width = buf.readUInt32BE(16);
+      const height = buf.readUInt32BE(20);
+      return width && height ? { data: buf, type: 'png', width, height } : null;
+    }
+    // JPEG：遍历段找 SOFn
+    if (buf[0] === 0xff && buf[1] === 0xd8) {
+      let off = 2;
+      while (off + 9 < buf.length) {
+        if (buf[off] !== 0xff) {
+          off++;
+          continue;
+        }
+        const marker = buf[off + 1];
+        const isSof =
+          marker >= 0xc0 &&
+          marker <= 0xcf &&
+          marker !== 0xc4 &&
+          marker !== 0xc8 &&
+          marker !== 0xcc;
+        if (isSof) {
+          const height = buf.readUInt16BE(off + 5);
+          const width = buf.readUInt16BE(off + 7);
+          return width && height
+            ? { data: buf, type: 'jpg', width, height }
+            : null;
+        }
+        off += 2 + buf.readUInt16BE(off + 2);
+      }
+      return null;
+    }
+    // GIF87a/GIF89a：小端 uint16 @6/@8
+    if (buf.toString('ascii', 0, 3) === 'GIF') {
+      const width = buf.readUInt16LE(6);
+      const height = buf.readUInt16LE(8);
+      return width && height ? { data: buf, type: 'gif', width, height } : null;
+    }
+    // BMP：BITMAPINFOHEADER 小端 int32 @18/@22
+    if (buf[0] === 0x42 && buf[1] === 0x4d) {
+      const width = Math.abs(buf.readInt32LE(18));
+      const height = Math.abs(buf.readInt32LE(22));
+      return width && height ? { data: buf, type: 'bmp', width, height } : null;
+    }
+    return null;
+  }
+
+  /** 媒体单元格内容：可嵌图时返回居中缩略图段落组；否则返回 null（由调用方走文本兜底） */
+  private async buildMediaCellParagraphs(
+    item: any,
+    field: string,
+  ): Promise<{ paragraphs: Paragraph[]; docLabels: string[] } | null> {
+    const entries = this.itemMediaEntries(item, field);
+    if (!entries.length) return null;
+
+    const paragraphs: Paragraph[] = [];
+    const docLabels: string[] = [];
+    for (const entry of entries.slice(0, MAX_MEDIA_PER_CELL)) {
+      if (isDocumentMedia(entry.url)) {
+        docLabels.push(entry.label || entry.url);
+        continue;
+      }
+      const img = await this.loadEmbeddedImage(entry.url);
+      if (!img) {
+        // 位图加载失败：证书回退名称、产品图片回退路径，避免静默丢失信息
+        docLabels.push(entry.label || entry.url);
+        continue;
+      }
+      const scale = Math.min(
+        THUMB_MAX_W / img.width,
+        THUMB_MAX_H / img.height,
+        1,
+      );
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 40 },
+          children: [
+            new ImageRun({
+              type: img.type,
+              data: img.data,
+              transformation: {
+                width: Math.max(1, Math.round(img.width * scale)),
+                height: Math.max(1, Math.round(img.height * scale)),
+              },
+            }),
+          ],
+        }),
+      );
+    }
+    if (docLabels.length) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: this.runs(docLabels.join('\n'), {
+            size: 16,
+            color: '595959',
+          }),
+        }),
+      );
+    }
+    return paragraphs.length ? { paragraphs, docLabels } : null;
+  }
+
   // ============ 通用字体/字号常量 ============
   private readonly FONT = '宋体';
   private readonly COLOR_TITLE = '000000'; // 标题黑色
@@ -285,7 +510,7 @@ export class QuotationsDocxService {
 
   // ============ 表格/合计构建（两种模板共用） ============
 
-  private buildPriceTable(quotation: any, template: any) {
+  private async buildPriceTable(quotation: any, template: any) {
     const items = (quotation.items ?? []) as any[];
     const columns: any[] = (template?.config?.columns ?? []).filter(
       (c: any) => c && c.visible !== false,
@@ -376,18 +601,25 @@ export class QuotationsDocxService {
               : AlignmentType.LEFT;
         const isNameCell = nameIdx >= 0 && ci === nameIdx;
         const isBrandCell = brandIdx >= 0 && ci === brandIdx;
+        // 媒体列（产品图片/证书）嵌入真实缩略图；失败回退路径/名称文本
+        const mediaCell =
+          c.key === 'images' || c.key === 'certs'
+            ? await this.buildMediaCellParagraphs(item, c.key)
+            : null;
         const cellOpts: any = {
           margins: { top: 40, bottom: 40, left: 80, right: 80 },
           verticalAlign: VerticalAlign.CENTER,
-          children: [
-            new Paragraph({
-              alignment: align,
-              children: this.runs(this.cellValue(item, idx, c), {
-                size: 19,
-                font: this.FONT,
-              }),
-            }),
-          ],
+          children: mediaCell
+            ? mediaCell.paragraphs
+            : [
+                new Paragraph({
+                  alignment: align,
+                  children: this.runs(this.cellValue(item, idx, c), {
+                    size: 19,
+                    font: this.FONT,
+                  }),
+                }),
+              ],
         };
         if (isNameCell && span.nameSpan > 1) cellOpts.rowSpan = span.nameSpan;
         if (isBrandCell && span.brandSpan > 1)
@@ -760,7 +992,10 @@ export class QuotationsDocxService {
   }
 
   // ============ 模板一：标准报价单（标题 + 页眉 + 表格 + 页脚） ============
-  private renderQuotation(quotation: any, template: any): Promise<Buffer> {
+  private async renderQuotation(
+    quotation: any,
+    template: any,
+  ): Promise<Buffer> {
     const config = template?.config ?? {};
     const company = config.company ?? {};
     const headerRaw = config.header as string | undefined;
@@ -811,7 +1046,7 @@ export class QuotationsDocxService {
       );
     }
 
-    children.push(this.buildPriceTable(quotation, template));
+    children.push(await this.buildPriceTable(quotation, template));
     children.push(
       new Paragraph({
         spacing: { before: 160 },

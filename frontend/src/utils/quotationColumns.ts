@@ -1,4 +1,5 @@
 import type { Quotation, QuotationItem, QuotationTemplateColumn, Product, ProductSnapshot } from '@/types';
+import { collectItemMediaEntries } from '@/utils/quotationImages';
 
 export type ColumnDef = QuotationTemplateColumn;
 
@@ -103,15 +104,10 @@ export function fieldValue(item: QuotationItem, field: string): string {
         }
         case 'certs':
         case 'certificates': {
-            const names = snap.certNames;
-            if (Array.isArray(names)) return (names as unknown[]).join('\n');
-            const list = item.selectedCerts?.length ? item.selectedCerts : snap.certs;
-            if (Array.isArray(list)) {
-                return (list as unknown[])
-                    .map((c) => (typeof c === 'object' && c !== null ? String((c as { name?: unknown }).name ?? (c as { url?: unknown }).url ?? '') : String(c)))
-                    .filter(Boolean)
-                    .join('\n');
-            }
+            // 与 quotationImages.collectItemMediaEntries 同语义：尊重勾选子集，名称经 certNames 平行数组映射，缺失回退文件名
+            // （修复旧逻辑恒显示全量 certNames、忽略 selectedCerts 的问题）
+            const entries = collectItemMediaEntries(item, 'certs');
+            if (entries.length) return entries.map((e) => e.label).join('\n');
             return '';
         }
         case 'description':

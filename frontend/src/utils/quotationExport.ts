@@ -5,6 +5,13 @@ const ExcelJS: typeof ExcelJSNS = (ExcelJSNS as unknown as { default?: typeof Ex
 import pdfMake from 'pdfmake/build/pdfmake';
 import type { Quotation, QuotationTemplate, QuotationTemplateColumn, QuotationTemplateConfig } from '@/types';
 import { columnAlign, columnValue, computeMergeGroups, formatAmount, infoLineText, resolveMergeKey, resolveTitle, showTaxBreakdown, taxRowLabel, templateText, TOTAL_LABELS, visibleColumns } from '@/utils/quotationColumns';
+import { collectItemMediaEntries, isDocumentMedia, isMediaColumnKey, loadImageThumb } from '@/utils/quotationImages';
+import type { LoadedThumb } from '@/utils/quotationImages';
+
+/** 每个媒体单元格最多嵌入的缩略图数量（超出部分丢弃，防止行高爆炸） */
+const MAX_MEDIA_PER_CELL = 4;
+/** PDF 中单张缩略图的适配盒（pt） */
+const PDF_THUMB_FIT: [number, number] = [64, 48];
 
 export type EffectiveTemplate = Pick<QuotationTemplate, 'config'> | null | undefined;
 
@@ -189,8 +196,9 @@ export async function exportQuotationToExcel(
         subtotal: 13,
         unitCost: 12,
         link: 22,
-        images: 12,
-        certs: 12,
+        images: 14,
+        certs: 14,
+        certsNames: 12,
         warranty: 12,
         supplier: 14,
         tags: 16,
@@ -216,7 +224,7 @@ export async function exportQuotationToExcel(
         return Number.isFinite(n) ? n : raw;
     };
 
-    // 数据行先于列宽计算：用真实内容决定每列宽度
+    // 数据行先于列宽计算：用真实内容决定每列宽度（媒体列嵌图，路径文本不参与测宽）
     const bodyRows = quotation.items.map((item, idx) => {
         const row: Record<string, string | number> = {};
         for (const c of columns) {
@@ -229,9 +237,11 @@ export async function exportQuotationToExcel(
     sheet.columns = columns.map((c) => {
         const base = c.width ?? COL_WIDTH[c.key] ?? 12;
         let maxContent = 0;
-        for (const row of bodyRows) {
-            const v = row[c.key];
-            if (v != null) maxContent = Math.max(maxContent, cjkLen(String(v)));
+        if (!isMediaColumnKey(c.key)) {
+            for (const row of bodyRows) {
+                const v = row[c.key];
+                if (v != null) maxContent = Math.max(maxContent, cjkLen(String(v)));
+            }
         }
         const natural = Math.max(base, cjkLen(c.label) + 2, maxContent + 2);
         const cap = WIDE_KEYS.has(c.key) ? 60 : 42;
@@ -432,6 +442,49 @@ export async function exportQuotationToExcel(
         }
     }
 
+    // ===== 嵌入产品图片/证书缩略图（加载失败时保留原路径文本兜底，绝不中断导出） =====
+    const mediaCols = columns.map((c, i) => ({ c, i })).filter(({ c }) => isMediaColumnKey(c.key));
+    for (const { c, i } of mediaCols) {
+        const colIdx1 = i + 1;
+        const colWidthPx = Math.round((sheet.getColumn(colIdx1).width ?? 10) * 7) + 5;
+        for (let r = 0; r < bodyRows.length; r++) {
+            const rawEntries = collectItemMediaEntries(quotation.items[r], c.key);
+            if (!rawEntries.length) continue;
+            const entries = rawEntries.filter((e) => !isDocumentMedia(e.url));
+            // 全有或全无：单元格混有文档型证书（PDF）时整格回退文本，避免浮动图压住文字
+            if (!entries.length || entries.length !== rawEntries.length) continue;
+            const thumbs = (
+                await Promise.all(entries.slice(0, MAX_MEDIA_PER_CELL).map((e) => loadImageThumb(e.url)))
+            ).filter((t): t is LoadedThumb => !!t);
+            if (!thumbs.length) continue;
+
+            const rowNumber = firstDataRow + r;
+            // 清掉路径文本，仅保留嵌图
+            sheet.getCell(rowNumber, colIdx1).value = '';
+            // 纵向堆叠：行高按缩略图总高度扩展（px→pt），上限 409.5pt
+            const GAP_PX = 4;
+            const stackHeight = thumbs.reduce((a, t) => a + t.height + GAP_PX, -GAP_PX) + 8;
+            const row = sheet.getRow(rowNumber);
+            row.height = Math.min(409.5, Math.max(row.height ?? 22, Math.ceil((stackHeight * 72) / 96)));
+
+            let yOffPx = 4;
+            for (const thumb of thumbs) {
+                const imgId = workbook.addImage({
+                    base64: thumb.dataUrl.replace(/^data:image\/png;base64,/, ''),
+                    extension: 'png',
+                });
+                // ExcelJS 锚点支持小数 col/row（相对列宽/行高的比例偏移）
+                const xFrac = Math.min(0.95, 4 / colWidthPx);
+                const yFrac = Math.min(0.95, yOffPx / ((row.height ?? 22) * (96 / 72)));
+                sheet.addImage(imgId, {
+                    tl: { col: i + xFrac, row: rowNumber - 1 + yFrac },
+                    ext: { width: thumb.width, height: thumb.height },
+                });
+                yOffPx += thumb.height + GAP_PX;
+            }
+        }
+    }
+
     // 同值合并：分组算法来自 computeMergeGroups（四端共用），
     // 空值不合并；品牌列仅在组内前缀连续一致时部分合并（修复组内 A/A/B 被 A 吞掉的错合并）。
     {
@@ -555,10 +608,41 @@ export async function exportQuotationToPdf(
     const mergeKey = resolveMergeKey(template?.config);
 
     // 明细行：对齐来自 columnAlign（四端统一）；rowSpan 分组来自 computeMergeGroups（与 Excel/预览/DOCX 一致）
-    const bodyRows = quotation.items.map((item, idx) => {
+    // 媒体列（产品图片/证书）加载缩略图以 stack of image 节点嵌入；全部失败回退文本
+    const bodyRows: Record<string, unknown>[][] = [];
+    for (let idx = 0; idx < quotation.items.length; idx++) {
+        const item = quotation.items[idx];
         const row: Record<string, unknown>[] = [];
         for (let ci = 0; ci < columns.length; ci++) {
             const c = columns[ci];
+            if (isMediaColumnKey(c.key)) {
+                const rawEntries = collectItemMediaEntries(item, c.key);
+                const entries = rawEntries.filter((e) => !isDocumentMedia(e.url));
+                // 全有或全无：混有文档型证书（PDF）时整格回退文本，与 Excel 端语义一致
+                const thumbs =
+                    entries.length && entries.length === rawEntries.length
+                        ? (
+                              await Promise.all(
+                                  entries.slice(0, MAX_MEDIA_PER_CELL).map((e) => loadImageThumb(e.url)),
+                              )
+                          ).filter((t): t is LoadedThumb => !!t)
+                        : [];
+                if (thumbs.length === entries.length && thumbs.length > 0) {
+                    row.push({
+                        stack: thumbs.map((t) => ({
+                            image: t.dataUrl,
+                            fit: PDF_THUMB_FIT,
+                            alignment: 'center',
+                            margin: [2, 2, 2, 2],
+                        })),
+                        style: 'cell',
+                        alignment: 'center',
+                        valign: 'center',
+                    });
+                    continue;
+                }
+                // 嵌图失败/含文档型证书：走文本兜底（certs 现返回名称而非路径）
+            }
             const cell: Record<string, unknown> = {
                 text: c.key === 'no' || c.key === 'index' ? String(idx + 1) : softBreak(columnValue(item, c)),
                 style: 'cell',
@@ -566,8 +650,8 @@ export async function exportQuotationToPdf(
             };
             row.push(cell);
         }
-        return row;
-    });
+        bodyRows.push(row);
+    }
 
     {
         const groups = computeMergeGroups(quotation.items, columns, mergeKey);
@@ -616,6 +700,8 @@ export async function exportQuotationToPdf(
     };
     const naturals = columns.map((c) => {
         if (c.key === 'no' || c.key === 'index') return 22;
+        // 媒体列嵌缩略图，固定窄列；路径文本不参与测宽
+        if (isMediaColumnKey(c.key)) return Math.max(40, Math.min(90, c.width ?? 64));
         if (c.width) return Math.max(32, c.width);
         const labelW = measure(c.label);
         let contentW = 0;

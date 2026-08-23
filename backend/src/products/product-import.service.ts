@@ -511,7 +511,9 @@ export class ProductImportService {
 
   private isPriceValid(value: string): boolean {
     const cleaned = value.replace(/[¥￥,，\s元]/g, '');
-    return !Number.isNaN(Number(cleaned));
+    const num = Number(cleaned);
+    // 价格必须可解析为数字且非负（价格不能为负数）
+    return Number.isFinite(num) && num >= 0;
   }
 
   private parsePrice(value: string): number | undefined {
@@ -552,6 +554,7 @@ export class ProductImportService {
     const tagNameMap = new Map<string, string>();
     const createdBrands = new Set<string>();
     const createdTags = new Set<string>();
+    const createdCategories = new Set<string>();
     const errors: RowIssue[] = [];
     const generatedRows: Array<{
       rowNumber: number;
@@ -602,7 +605,7 @@ export class ProductImportService {
     const categoryPathCache = new Map<string, Promise<string>>();
 
     // ---- 预处理：解析每行，宽容度处理品牌/类型/标签 ----
-    for (const { row, rowNumber, mapped } of preMapped) {
+    outer: for (const { row, rowNumber, mapped } of preMapped) {
       try {
         const name = this.composeName(mapped);
         if (!name) {
@@ -665,6 +668,7 @@ export class ProductImportService {
               categoryPathCache.set(categoryPath, pending);
             }
             categoryId = await pending;
+            createdCategories.add(categoryPath);
           } else {
             const root = categoryPath.split(/[/,、>]/)[0].trim();
             const foundId = ctx.categoryIdByRoot.get(root);
@@ -719,6 +723,25 @@ export class ProductImportService {
             continue;
           }
           tagIds = ids;
+        }
+
+        // 价格校验：与预览保持一致，拒绝空/非数字/负数价格
+        for (const field of [
+          'marketPrice',
+          'salePrice',
+          'costPrice',
+        ] as const) {
+          const raw = (mapped as Record<string, string | undefined>)[
+            field
+          ]?.trim();
+          if (raw && !this.isPriceValid(raw)) {
+            errors.push({
+              rowNumber,
+              message: `价格「${raw}」格式不正确或为负`,
+              rawData: row,
+            });
+            continue outer;
+          }
         }
 
         // 重复检测：品牌+型号优先，型号为空回退品牌+名称；文件内重复一并处理
@@ -907,6 +930,7 @@ export class ProductImportService {
       skippedRows,
       createdBrands: [...createdBrands],
       createdTags: [...createdTags],
+      createdCategories: [...createdCategories],
     });
 
     return {
@@ -918,6 +942,7 @@ export class ProductImportService {
       skippedRows,
       createdBrands: [...createdBrands],
       createdTags: [...createdTags],
+      createdCategories: [...createdCategories],
       errors: errors.slice(0, 50),
     };
   }
