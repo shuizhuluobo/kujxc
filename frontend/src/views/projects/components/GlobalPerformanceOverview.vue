@@ -16,6 +16,7 @@
         placeholder="筛选人员"
         clearable
         filterable
+        :filter-method="filterByPinyin"
         style="width: 160px"
         @change="loadData"
       >
@@ -74,6 +75,13 @@ import { performanceApi, usersApi } from '@/api';
 import type { GlobalPerformanceResult, User } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 import { hasPermission } from '@/config/permissions';
+import { matchPinyin } from '@/utils/pinyinFilter';
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 
 const authStore = useAuthStore();
 const canViewAmount = computed(() =>

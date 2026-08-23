@@ -36,7 +36,7 @@
       </el-table-column>
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small">{{ QUOTATION_STATUS_LABELS[row.status] }}</el-tag>
+          <el-tag :type="statusType(row.status)" size="small">{{ QUOTATION_STATUS_LABELS[row.status as QuotationStatus] }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作人" width="110">

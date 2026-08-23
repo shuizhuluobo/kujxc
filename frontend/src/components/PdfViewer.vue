@@ -116,6 +116,7 @@ const renderPages = async () => {
         canvas.width = viewport.width;
 
         const renderContext = {
+            canvas,
             canvasContext: context,
             viewport: viewport,
         };

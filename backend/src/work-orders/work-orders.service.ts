@@ -121,6 +121,16 @@ export class WorkOrdersService {
         { detail: { contains: keyword, mode: 'insensitive' } },
         { customer: { name: { contains: keyword, mode: 'insensitive' } } },
         { customer: { shortName: { contains: keyword, mode: 'insensitive' } } },
+        {
+          customer: {
+            namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+          },
+        },
+        {
+          customer: {
+            nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+          },
+        },
       ];
     }
 
@@ -596,6 +606,16 @@ export class WorkOrdersService {
         { detail: { contains: keyword, mode: 'insensitive' } },
         { customer: { name: { contains: keyword, mode: 'insensitive' } } },
         { customer: { shortName: { contains: keyword, mode: 'insensitive' } } },
+        {
+          customer: {
+            namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+          },
+        },
+        {
+          customer: {
+            nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+          },
+        },
       ];
     }
 

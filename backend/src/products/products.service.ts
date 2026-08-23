@@ -219,7 +219,8 @@ export class ProductsService {
       conditions.push({ categoryId });
     }
     if (tagIds?.length) {
-      conditions.push({ tags: { some: { tagId: { in: tagIds } } } });
+      // 多选标签采用「且」语义：产品需同时包含所有已选标签
+      conditions.push({ AND: tagIds.map((tagId) => ({ tags: { some: { tagId } } })) });
     }
     if (status && status !== 'ALL') {
       conditions.push({ status });

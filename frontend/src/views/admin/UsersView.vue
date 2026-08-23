@@ -356,7 +356,7 @@ async function handleSubmit() {
     
     submitting.value = true;
     try {
-      const regionIdValue = form.regionId || null;
+      const regionIdValue = form.regionId || undefined;
       if (editing.value) {
         await usersApi.update(editing.value.id, { name: form.name, roleId: form.roleId, regionId: regionIdValue, isActive: form.isActive });
       } else {

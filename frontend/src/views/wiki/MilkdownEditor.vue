@@ -32,7 +32,7 @@ const editorRef = ref<HTMLElement | null>(null);
 const editor = ref<MilkdownEditorHandle | null>(null);
 const isFullscreen = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
   if (!editorRef.value) return;
 
   editor.value = await Editor.make()
@@ -41,7 +41,7 @@ onMounted(() => {
       ctx.set(defaultValueCtx, props.modelValue || '');
 
       // 监听内容变化
-      ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
+      ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
         emit('update:modelValue', markdown);
       });
 

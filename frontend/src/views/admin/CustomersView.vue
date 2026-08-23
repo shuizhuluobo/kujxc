@@ -247,7 +247,7 @@ async function handleSubmit() {
   if (!valid) return;
   submitting.value = true;
   try {
-    const defaultRegionIdValue = form.defaultRegionId || null;
+    const defaultRegionIdValue = form.defaultRegionId || undefined;
     const payload = { name: form.name, shortName: form.shortName, contact: form.contact, phone: form.phone, address: form.address, defaultRegionId: defaultRegionIdValue };
     if (editing.value) { await customersApi.update(editing.value.id, payload); }
     else { await customersApi.create(payload); }

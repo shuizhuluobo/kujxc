@@ -88,7 +88,7 @@
       size="auto"
     >
       <div class="admin-menu-list">
-        <div class="admin-menu-item" @click="goTo('/products')" v-if="canAccessProducts">产品库</div>
+        <div class="admin-menu-item" @click="goTo('/products')" v-if="canAccessProducts">产品管理</div>
         <div class="admin-menu-item" @click="goTo('/products/import')" v-if="canImport">批量导入</div>
         <div class="admin-menu-item" @click="goTo('/admin/users')" v-if="canAccessUserManage">用户管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/roles')" v-if="canAccessRoleManage">角色管理</div>

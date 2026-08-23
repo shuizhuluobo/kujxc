@@ -278,7 +278,7 @@ const baseDataStore = useBaseDataStore();
 
 const emit = defineEmits<{
   (e: 'receive', workOrder: WorkOrder): void;
-  (e: 'complete', workOrder: WorkOrder, collaboratorIds: string[]): void;
+  (e: 'complete', workOrder: WorkOrder, collaboratorIds: string[], repairFee?: number): void;
   (e: 'edit', workOrder: WorkOrder): void;
   (e: 'delete', workOrder: WorkOrder): void;
   (e: 'cancel-receive', workOrder: WorkOrder): void;

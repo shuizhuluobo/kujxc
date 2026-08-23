@@ -10,6 +10,7 @@ import type {
     QuotationTemplate,
     QuotationTemplateColumn,
     QuotationTemplateConfig,
+    QuotationTemplateCompany,
 } from '@/types';
 import { deepClone, defaultTemplateColumns, fieldDefToColumn, QUOTATION_FIELD_POOL, QUOTATION_FORMULA_POOL, QUOTATION_MERGE_KEY_OPTIONS, QUOTATION_ALIGNMENT_OPTIONS } from '@/utils/quotationColumns';
 import { renderQuotationHtml, type PreviewConfig } from '@/utils/quotationPreview';
@@ -32,27 +33,35 @@ const loading = ref(false);
 const saving = ref(false);
 
 // 当前编辑的模板（副本）
+// 编辑态配置：company 保证存在（stripProposal/defaultConfig 均会初始化），v-model 直绑
+type EditingConfig = QuotationTemplateConfig & { company: QuotationTemplateCompany };
+
 const editing = reactive<{
     id: string | null;
     name: string;
     description: string;
     isDefault: boolean;
-    config: QuotationTemplateConfig;
+    config: EditingConfig;
 }>({
     id: null,
     name: '',
     description: '',
     isDefault: false,
-    config: defaultConfig(),
+    config: defaultConfig() as EditingConfig,
 });
 
 const previewHtml = ref('');
 const activeTab = ref<'columns' | 'layout' | 'company'>('layout');
 const addFieldKey = ref<string>('');
 
+// 返回：优先回退历史；直链进入（无上一页）时兜底到报价列表
 function goBack() {
-    if (window.history.length > 1) void router.back();
-    else void router.push({ name: 'quotationList' });
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push({ name: 'quotationList' });
+    }
 }
 
 function defaultConfig(): QuotationTemplateConfig {
@@ -102,21 +111,21 @@ function editTemplate(t: QuotationTemplate) {
     editing.name = t.name;
     editing.description = t.description ?? '';
     editing.isDefault = t.isDefault;
-    editing.config = deepClone(stripProposal(t.config)) as QuotationTemplateConfig;
+    editing.config = deepClone(stripProposal(t.config));
     activeTab.value = 'columns';
     void nextTick(updatePreview);
 }
 
-function stripProposal(config: QuotationTemplateConfig | undefined): QuotationTemplateConfig {
-    if (!config) return defaultConfig();
+function stripProposal(config: QuotationTemplateConfig | undefined): EditingConfig {
+    if (!config) return defaultConfig() as EditingConfig;
     // 历史 proposal 模板不再暴露类型，渲染时一律按 quotation 处理
     // 同时补齐新增字段（sections / title），保证旧模板结构完整
-    const migrated: QuotationTemplateConfig = {
+    const migrated: EditingConfig = {
         ...defaultConfig(),
         ...config,
         type: undefined,
         sections: config.sections ?? [],
-        company: config.company ?? defaultConfig().company,
+        company: config.company ?? {},
     };
     // 旧字段 titleFormat 迁移到 title
     if (!migrated.title && (config as { titleFormat?: string }).titleFormat) {
@@ -130,7 +139,7 @@ function newTemplate() {
     editing.name = '未命名模板';
     editing.description = '';
     editing.isDefault = false;
-    editing.config = defaultConfig();
+    editing.config = defaultConfig() as EditingConfig;
     activeTab.value = 'columns';
     void nextTick(updatePreview);
 }
@@ -140,7 +149,7 @@ function copyTemplate(t: QuotationTemplate) {
     editing.name = `${t.name} 副本`;
     editing.description = t.description ?? '';
     editing.isDefault = false;
-    editing.config = deepClone(stripProposal(t.config)) as QuotationTemplateConfig;
+    editing.config = deepClone(stripProposal(t.config));
     activeTab.value = 'columns';
     ElMessage.success('已复制为副本，可编辑后保存');
     void nextTick(updatePreview);
@@ -298,7 +307,7 @@ onMounted(async () => {
     <div class="tpl-page">
         <div class="tpl-header">
             <div class="tpl-header-left">
-                <el-button :icon="ArrowLeft" @click="goBack">返回</el-button>
+                <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
                 <div>
                     <h2 class="tpl-title">报价模板</h2>
                     <p class="tpl-sub">所见即所得：左侧实时预览，右侧编辑排版。做模板只有这一处入口。</p>
@@ -371,7 +380,7 @@ onMounted(async () => {
                                             placeholder="如 {{customerName}} 报价单"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">变量：{{customerName}} {{code}} {{date}}</span>
+                                        <span class="tpl-hint" v-pre>变量：{{customerName}} {{code}} {{date}}</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <label>合并依据</label>
@@ -403,7 +412,7 @@ onMounted(async () => {
                                             placeholder="留空不显示"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">支持变量：{{companyName}} {{companyAddress}} {{companyPhone}}</span>
+                                        <span class="tpl-hint" v-pre>支持变量：{{companyName}} {{companyAddress}} {{companyPhone}}</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <label>页脚</label>
@@ -413,7 +422,7 @@ onMounted(async () => {
                                             :rows="2"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">支持变量：{{companyName}} {{companyAddress}} {{companyPhone}}</span>
+                                        <span class="tpl-hint" v-pre>支持变量：{{companyName}} {{companyAddress}} {{companyPhone}}</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <label>信息行</label>
@@ -441,7 +450,7 @@ onMounted(async () => {
                                             placeholder="如 示例科技有限公司"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">页眉/页脚可用 {{ '{' }}{{ '}' }}companyName 调用</span>
+                                        <span class="tpl-hint" v-pre>页眉/页脚可用 {{companyName}} 调用</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <label>公司地址</label>
@@ -450,7 +459,7 @@ onMounted(async () => {
                                             placeholder="如 北京市朝阳区 XX 路 1 号"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">页眉/页脚可用 {{ '{' }}{{ '}' }}companyAddress 调用</span>
+                                        <span class="tpl-hint" v-pre>页眉/页脚可用 {{companyAddress}} 调用</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <label>联系电话</label>
@@ -459,7 +468,7 @@ onMounted(async () => {
                                             placeholder="如 400-000-0000"
                                             @input="updatePreview"
                                         />
-                                        <span class="tpl-hint">页眉/页脚可用 {{ '{' }}{{ '}' }}companyPhone 调用</span>
+                                        <span class="tpl-hint" v-pre>页眉/页脚可用 {{companyPhone}} 调用</span>
                                     </div>
                                     <div class="tpl-form-item">
                                         <span class="tpl-hint" v-html="'调用代码（直接粘贴到页眉/页脚即可）：<br />{{companyName}} 公司名称 · {{companyAddress}} 地址 · {{companyPhone}} 电话'"></span>

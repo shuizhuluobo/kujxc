@@ -125,7 +125,7 @@ export const quotationTemplatesApi = {
     remove: (id: string) => api.delete(`/quotation-templates/${id}`),
 };
 
-// ==================== 系统设置（产品库相关） ====================
+// ==================== 系统设置（产品管理相关） ====================
 export const settingsApi = {
     get: (key: string) => api.get<unknown>(`/settings/${key}`),
     update: (key: string, value: unknown) =>

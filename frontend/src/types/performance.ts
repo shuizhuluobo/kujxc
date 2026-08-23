@@ -122,7 +122,7 @@ export interface WorkRecord {
     stage?: { id: string; name: string; code: string; trackingMode: StageTrackingMode; unitPrice: number };
     quantity?: number;
     customerId?: string;
-    customer?: { id: string; name: string };
+    customer?: { id: string; name: string; shortName?: string | null };
     workHours?: number;
     description?: string;
     date: string;
@@ -140,7 +140,7 @@ export interface CustomerDevice {
     id: string;
     projectId: string;
     customerId: string;
-    customer?: { id: string; name: string };
+    customer?: { id: string; name: string; shortName?: string | null };
     deviceName: string;
     expectedQuantity: number;
     remark?: string;

@@ -71,7 +71,7 @@
       :data="workOrders" 
       class="work-order-table card-premium"
       :row-class-name="tableRowClassName"
-      @row-click="(row) => emit('rowClick', row)"
+      @row-click="(row: WorkOrder) => emit('rowClick', row)"
       empty-text="暂无待办工单"
     >
       <el-table-column label="客户" width="180" show-overflow-tooltip>
@@ -186,15 +186,15 @@
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         :total="pagination.total"
-        @size-change="(val) => emit('sizeChange', val)"
-        @current-change="(val) => emit('pageChange', val)"
+        @size-change="(val: number) => emit('sizeChange', val)"
+        @current-change="(val: number) => emit('pageChange', val)"
       />
     </div>
 
     <!-- 新建/编辑工单对话框 -->
     <el-dialog
       :model-value="formState.showDialog.value"
-      @update:model-value="(val) => localFormState.showDialog.value = val"
+      @update:model-value="(val: boolean | string | number) => localFormState.showDialog.value = !!val"
       :title="formState.editingWorkOrder.value ? '编辑工单' : '新建工单'"
       width="500px"
       @closed="workOrderFormRef?.clearValidate()"
@@ -218,17 +218,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, type Ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Plus, Search } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import Sortable from 'sortablejs';
-import type { WorkOrder, WorkOrderStatus, Customer } from '@/types';
+import type { WorkOrder, WorkOrderStatus } from '@/types';
 import { STATUS_LABELS } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 import { useBaseDataStore } from '@/stores/baseData';
 import { usePermission } from '@/composables';
 import WorkOrderForm from './components/WorkOrderForm.vue';
 import { getCustomerDisplayName } from '@/utils/customer';
+import type { WorkOrderFormState } from './composables/useWorkOrderForm';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { workOrdersApi } from '@/api';
 
@@ -250,15 +251,6 @@ interface Pagination {
   page: number;
   pageSize: number;
   total: number;
-}
-
-interface WorkOrderFormState {
-  showDialog: Ref<boolean>;
-  submitting: Ref<boolean>;
-  editingWorkOrder: Ref<WorkOrder | null>;
-  filteredCustomers: Ref<Customer[]>;
-  customerFilterMethod: (query: string) => void;
-  submit: () => Promise<void>;
 }
 
 interface WorkOrderFormExpose {

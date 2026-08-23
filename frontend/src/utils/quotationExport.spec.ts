@@ -21,7 +21,7 @@ beforeAll(() => {
             ok: true,
             arrayBuffer: () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
         } as unknown as Response;
-    }) as typeof fetch);
+    }) as unknown as typeof fetch);
 
     Object.defineProperty(URL, 'createObjectURL', {
         value: (b: Blob) => {
@@ -197,7 +197,7 @@ describe('Excel 导出公式（回归）', () => {
         const ExcelJSNS = await import('exceljs');
         const ExcelJS = (ExcelJSNS as unknown as { default?: typeof ExcelJSNS }).default ?? ExcelJSNS;
         const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(bytes);
+        await wb.xlsx.load(bytes as unknown as Parameters<typeof wb.xlsx.load>[0]);
         const ws = wb.getWorksheet(1)!;
 
         // 行号：标题1 / 信息2 / 表头3 / 数据4-5 / 合计6-8

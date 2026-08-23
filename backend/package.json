@@ -23,6 +23,16 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "db:split-model": "ts-node prisma/split-product-model.ts",
     "db:gen-tags": "ts-node prisma/generate-product-tags.ts",
+    "db:cleanup-products": "ts-node prisma/cleanup-product-library.ts",
+    "db:dump-products": "ts-node prisma/dump-products.ts",
+    "db:analyze-products": "ts-node prisma/analyze-products.ts",
+    "db:rebuild-products": "ts-node prisma/rebuild-product-library.ts",
+    "db:scan-accessories": "ts-node prisma/scan-accessories.ts",
+    "db:remove-accessories": "ts-node prisma/remove-accessories.ts",
+    "db:cleanup-orphans": "ts-node prisma/cleanup-orphans.ts",
+    "db:process-products": "ts-node prisma/process-products.ts",
+    "db:backfill-pinyin": "ts-node prisma/backfill-product-pinyin.ts",
+    "db:backfill-customer-pinyin": "ts-node prisma/backfill-customer-pinyin.ts",
     "db:setup": "prisma migrate dev && npm run prisma:seed"
   },
   "dependencies": {

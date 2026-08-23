@@ -133,10 +133,10 @@
           <el-icon><ArrowLeft /></el-icon> 返回
         </el-button>
         <div class="header-actions" v-if="canManageProject || canCreateProject">
-          <el-button v-if="canManageProject" size="small" text type="primary" @click="openEditProjectDrawer(selectedProject)">
+          <el-button v-if="canManageProject" size="small" text type="primary" @click="openEditProjectDrawer(projectDetail)">
             <el-icon><EditPen /></el-icon>
           </el-button>
-          <el-popconfirm v-if="canManageProject" title="确定删除该项目？" @confirm="handleDeleteProject(selectedProject)" confirm-button-text="确定" cancel-button-text="取消">
+          <el-popconfirm v-if="canManageProject" title="确定删除该项目？" @confirm="handleDeleteProject(projectDetail)" confirm-button-text="确定" cancel-button-text="取消">
             <template #reference>
               <el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button>
             </template>
@@ -145,14 +145,14 @@
       </div>
 
       <div class="detail-title">
-        <h2>{{ selectedProject.projectName }}</h2>
-        <el-tag size="small" :type="getCalcTagType(selectedProject.calculationType)">
-          {{ CALCULATION_TYPE_LABELS[selectedProject.calculationType] }}
+        <h2>{{ projectDetail.projectName }}</h2>
+        <el-tag size="small" :type="getCalcTagType(projectDetail.calculationType)">
+          {{ CALCULATION_TYPE_LABELS[projectDetail.calculationType] }}
         </el-tag>
       </div>
 
       <!-- 设备清单（按量）- 默认折叠 -->
-      <div class="section" v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+      <div class="section" v-if="projectDetail.calculationType === CalculationType.QUANTITY">
         <div class="section-header collapsible" @click="deviceExpanded = !deviceExpanded">
           <h3>设备清单 <span class="device-summary">{{ deviceSummaryText }}</span></h3>
           <div class="section-actions" @click.stop>
@@ -165,7 +165,7 @@
             v-if="sortedDevices.length > 0"
             :data="sortedDevices"
             size="small"
-            :row-class-name="({ row }) => deviceCompleted(row) ? 'row-completed' : ''"
+            :row-class-name="({ row }: { row: CustomerDevice }) => deviceCompleted(row) ? 'row-completed' : ''"
             style="width: 100%"
             :cell-style="{ padding: '2px 0' }"
             :header-cell-style="{ padding: '2px 0' }"
@@ -200,7 +200,7 @@
       </div>
 
       <!-- 工作记录 -->
-      <div class="section" v-if="selectedProject.calculationType !== CalculationType.WAREHOUSE">
+      <div class="section" v-if="projectDetail.calculationType !== CalculationType.WAREHOUSE">
         <div class="section-header collapsible" @click="recordExpanded = !recordExpanded">
           <h3>工作记录 <el-icon class="expand-icon" :class="{ expanded: recordExpanded }"><ArrowRight /></el-icon></h3>
           <el-button size="small" type="primary" @click.stop="openCreateRecordDrawer">新增</el-button>
@@ -220,7 +220,7 @@
                 {{ getRecordStageName(record) }}
               </el-tag>
               <span class="record-qty">
-                <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">{{ record.quantity || 0 }}台</template>
+                <template v-if="projectDetail.calculationType === CalculationType.QUANTITY">{{ record.quantity || 0 }}台</template>
                 <template v-else>{{ formatWorkHours(record.workHours || 0) }}</template>
               </span>
               <span class="record-customer" v-if="record.customer">{{ record.customer.name }}</span>
@@ -248,12 +248,12 @@
       </div>
 
       <!-- 工作量汇总 -->
-      <div class="section" v-if="canViewPerformance && stats.length > 0 && selectedProject.calculationType !== CalculationType.WAREHOUSE">
+      <div class="section" v-if="canViewPerformance && stats.length > 0 && projectDetail.calculationType !== CalculationType.WAREHOUSE">
         <div class="section-header collapsible" @click="statsExpanded = !statsExpanded">
           <h3>工作量汇总 <el-icon class="expand-icon" :class="{ expanded: statsExpanded }"><ArrowRight /></el-icon>
             <span class="my-stats-mini" v-if="myStats">
             我的：
-            <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+            <template v-if="projectDetail.calculationType === CalculationType.QUANTITY">
               <span v-for="stage in quantityStages" :key="stage.id">{{ stage.name }}{{ myStatsStageCount(stage.id) }} </span>
             </template>
             <template v-else>{{ formatWorkHours(myStats.totalWorkDays * HOURS_PER_DAY) }}</template>
@@ -265,7 +265,7 @@
           <div v-for="stat in stats" :key="stat.userId" class="stat-row">
             <span class="stat-name">{{ stat.userName }}</span>
             <div class="stat-detail">
-              <template v-if="selectedProject.calculationType === CalculationType.QUANTITY">
+              <template v-if="projectDetail.calculationType === CalculationType.QUANTITY">
                 <span v-for="stage in quantityStages" :key="stage.id">{{ stage.name }}{{ statStageCount(stat, stage.id) }}</span>
               </template>
               <template v-else>
@@ -311,12 +311,12 @@
               :key="rg.regionId"
               size="small"
               class="region-tag"
-              @click="addUsersByRegion(rg.regionId)"
+              @click="addUsersByRegion(rg.regionId, projectForm.memberIds)"
             >
               {{ rg.regionName }} ({{ rg.userIds.length }})
             </el-tag>
           </div>
-          <el-select v-model="projectForm.memberIds" multiple filterable placeholder="选择成员" style="width: 100%">
+          <el-select v-model="projectForm.memberIds" multiple filterable :filter-method="filterByPinyin" placeholder="选择成员" style="width: 100%">
             <el-option v-for="u in users.filter(u => u?.id)" :key="u.id" :label="u.name + (u.region?.name ? `（${u.region.name}）` : '')" :value="u.id" />
           </el-select>
         </el-form-item>
@@ -370,6 +370,7 @@
               :placeholder="recordForm.stageId ? '选择客户' : '先选择工作类型'"
               clearable
               filterable
+              :filter-method="filterByPinyin"
               style="width: 100%"
               :disabled="!recordForm.stageId"
               @change="recordForm.deviceId = ''"
@@ -387,6 +388,7 @@
               v-model="recordForm.deviceId"
               :placeholder="recordForm.customerId ? '请选择设备' : '先选择客户'"
               filterable
+              :filter-method="filterByPinyin"
               style="width: 100%"
               :disabled="!recordForm.customerId"
             >
@@ -454,7 +456,7 @@
           <el-date-picker v-model="mobileStageForm.date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="协作人">
-          <el-select v-model="mobileStageForm.collaboratorIds" multiple filterable placeholder="选择协作人" style="width: 100%">
+          <el-select v-model="mobileStageForm.collaboratorIds" multiple filterable :filter-method="filterByPinyin" placeholder="选择协作人" style="width: 100%">
             <el-option v-for="u in collaboratorOptions" :key="u.id" :label="u.name || '未知'" :value="u.id" />
           </el-select>
         </el-form-item>
@@ -477,7 +479,7 @@
     >
       <el-form :model="deviceForm" label-position="top" class="stage-form">
         <el-form-item label="客户" required>
-          <el-select v-model="deviceForm.customerId" filterable placeholder="选择客户" style="width: 100%" :disabled="!!editingDevice">
+          <el-select v-model="deviceForm.customerId" filterable :filter-method="filterByPinyin" placeholder="选择客户" style="width: 100%" :disabled="!!editingDevice">
             <el-option v-for="c in customers.filter(c => c?.id)" :key="c.id" :label="c.shortName ? `${c.shortName} (${c.name})` : c.name" :value="c.id" />
           </el-select>
         </el-form-item>
@@ -565,6 +567,7 @@ import { useFeeCalculator } from './composables/useFeeCalculator';
 import { useFeeRecords } from './composables/useFeeRecords';
 import { useSSE } from '@/composables/useSSE';
 import { useAuthStore } from '@/stores/auth';
+import { matchPinyin } from '@/utils/pinyinFilter';
 
 const authStore = useAuthStore();
 import {
@@ -579,6 +582,8 @@ import type { FeeSetting } from '@/api';
 import MobileFeeCalculator from './components/MobileFeeCalculator.vue';
 
 // ============ Composables ============
+// 详情分支（v-else 链末端）仅在选中项目后渲染，别名收窄供模板直取字段
+const projectDetail = computed(() => selectedProject.value!);
 const {
   projects,
   selectedProject,
@@ -676,10 +681,16 @@ const activeSettingsCategory = ref<string>('');
 // ============ 列表过滤 ============
 const filteredProjects = computed(() => {
   let list = projects.value;
-  if (!searchText.value) return list;
-  const kw = searchText.value.toLowerCase();
-  return list.filter(p => p.projectName.toLowerCase().includes(kw));
+  const kw = searchText.value.trim();
+  if (!kw) return list;
+  return list.filter(p => matchPinyin(p.projectName, kw));
 });
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 
 // ============ 分页展示 ============
 const FEE_PAGE = 10;

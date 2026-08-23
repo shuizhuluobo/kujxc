@@ -172,7 +172,7 @@ import {
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { UploadFile } from 'element-plus';
-import { MdEditor, MdPreview } from 'md-editor-v3';
+import { MdEditor, MdPreview, type ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { wikiApi, uploadsApi } from '@/api';
 import { resolveAssetUrl, resolveMarkdownAssets } from '@/utils/url';
@@ -215,7 +215,7 @@ function togglePublic() {
 
 const mobileMode = ref<'edit' | 'preview'>('edit');
 
-const mobileToolbars = [
+const mobileToolbars: ToolbarNames[] = [
   'bold', 'underline', 'italic', '-', 
   'title', 'quote', 'unorderedList', 'orderedList', '-',
   'link', 'image', 'code', 'table', '=',

@@ -401,7 +401,7 @@ export function useDevices(project?: Ref<Project | null>) {
         ElMessage.error('文件解析失败，请检查格式');
       }
     };
-    reader.readAsArrayBuffer(file.raw);
+    if (file.raw) reader.readAsArrayBuffer(file.raw);
   };
 
   // 全部新建未匹配客户

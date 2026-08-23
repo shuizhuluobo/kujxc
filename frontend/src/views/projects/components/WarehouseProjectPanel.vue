@@ -17,6 +17,7 @@
                   :model-value="feeSelectedCustomerId"
                   placeholder="选择客户"
                   filterable
+                  :filter-method="filterByPinyin"
                   clearable
                   size="default"
                   style="width: 260px"
@@ -212,7 +213,15 @@ import FeeResult from './FeeResult.vue';
 import PrintPreview from './PrintPreview.vue';
 import { generateDocumentNo, formatPrintDate, type PrintData } from '../composables/usePrint';
 import type { User, Customer } from '@/types';
-import type { FeeSetting, FeeRecord, FeeItem } from '@/api';
+import type { FeeSetting, FeeRecord } from '@/api';
+import type { SelectedItem } from '../composables/useFeeCalculator';
+import { matchPinyin } from '@/utils/pinyinFilter';
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 
 const props = defineProps<{
   feeRecords: FeeRecord[];
@@ -234,7 +243,7 @@ const props = defineProps<{
   feeTransportServices: any[];
   feeSelectedResponse: string;
   feeSelectedTimeSlot: string;
-  feeSelectedItems: FeeItem[];
+  feeSelectedItems: SelectedItem[];
   feeSubtotal: number;
   feeDiscount: number;
   feeActualAmount: number;

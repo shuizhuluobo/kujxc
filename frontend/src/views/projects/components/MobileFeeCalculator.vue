@@ -8,6 +8,7 @@
           v-model="selectedCustomerId"
           placeholder="选择客户"
           filterable
+          :filter-method="filterByPinyin"
           clearable
           size="default"
           class="customer-select"
@@ -258,6 +259,13 @@ import { Minus, Plus, ArrowRight } from '@element-plus/icons-vue';
 import { useFeeCalculator } from '../composables/useFeeCalculator';
 import type { ServiceItem } from '../composables/useFeeCalculator';
 import type { Customer } from '@/types';
+import { matchPinyin } from '@/utils/pinyinFilter';
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 
 const props = defineProps<{
   projectId?: string;

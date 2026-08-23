@@ -33,7 +33,7 @@ export function useMainLayout() {
     const canAccessProjects = computed(() => has('fee:list'));
     const canAccessProfile = computed(() => has('profile:profile'));
 
-    // 产品库（并入“基础数据”菜单）
+    // 产品管理（并入“基础数据”菜单）
     const canAccessProducts = computed(() => hasAny([
         'product:list', 'product:view', 'product:create', 'product:edit',
         'product:delete', 'product:import', 'brand:manage', 'category:manage',

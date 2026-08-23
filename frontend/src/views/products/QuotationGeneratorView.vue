@@ -144,28 +144,13 @@
     </el-form>
 
     <!-- 产品选择抽屉 -->
-    <el-drawer v-model="pickerVisible" title="选择产品" size="520px">
-      <div class="picker-recent" v-if="recentProducts.length">
-        <div class="picker-recent-title">最近使用</div>
-        <div class="picker-recent-list">
-          <el-tag
-            v-for="p in recentProducts"
-            :key="p.id"
-            closable
-            class="recent-tag"
-            @click="quickAdd(p)"
-            @close.prevent="removeRecent(p.id)"
-          >
-            {{ p.name }}
-          </el-tag>
-        </div>
-      </div>
+    <el-drawer v-model="pickerVisible" title="选择产品" size="520px" class="product-picker-drawer">
       <div class="picker-tags">
         <span class="picker-tags-label">快捷筛选</span>
         <div class="picker-tags-list">
           <el-tag
             class="picker-tag-chip"
-            :type="activePickerTag ? 'info' : 'primary'"
+            :type="activePickerTagIds.length ? 'info' : 'primary'"
             effect="plain"
             round
             @click="selectPickerTag(null)"
@@ -174,8 +159,8 @@
             v-for="t in visiblePickerTags"
             :key="t.id"
             class="picker-tag-chip"
-            :effect="activePickerTag?.id === t.id ? 'dark' : 'plain'"
-            :color="activePickerTag?.id === t.id ? t.color || undefined : undefined"
+            :effect="activePickerTagIds.includes(t.id) ? 'dark' : 'plain'"
+            :color="activePickerTagIds.includes(t.id) ? t.color || undefined : undefined"
             round
             @click="selectPickerTag(t)"
           >
@@ -189,6 +174,7 @@
             class="picker-tags-toggle"
             @click="pickerTagsExpanded = !pickerTagsExpanded"
           >{{ pickerTagsExpanded ? '收起' : `展开 ${pickerTags.length - PICKER_TAG_LIMIT}` }}</el-button>
+          <span class="picker-tags-hint" title="多选标签为「且」关系，产品需同时包含所有已选标签">多选=且</span>
         </div>
       </div>
       <div class="picker-search">
@@ -206,25 +192,27 @@
               <span v-else class="picker-empty">暂无参数</span>
             </div>
             <div class="picker-price" :title="priceTip(p)">
-              <span>单价：¥{{ fmtPrice(p.isMarketProduct ? p.marketPrice : p.salePrice) }}</span>
+              <span>单价：{{ fmtPrice(p.isMarketProduct ? p.marketPrice : p.salePrice) }}</span>
               <span v-if="p.isMarketProduct" class="price-tag">商城</span>
-              <span class="picker-cost">成本价：¥{{ fmtPrice(p.costPrice) }}</span>
+              <span class="picker-cost">成本价：{{ fmtPrice(p.costPrice) }}</span>
             </div>
           </div>
         </label>
         <el-empty v-if="!pickerLoading && !pickerProducts.length" description="无匹配产品" />
       </div>
-      <div class="picker-footer">
-        <el-pagination
-          v-model:current-page="pickerPage"
-          :page-size="pickerPageSize"
-          :total="pickerTotal"
-          layout="prev, pager, next"
-          small
-          @current-change="loadPickerProducts"
-        />
-        <el-button type="primary" @click="addPickedToItems">添加选中产品</el-button>
-      </div>
+      <template #footer>
+        <div class="picker-footer">
+          <el-pagination
+            v-model:current-page="pickerPage"
+            :page-size="pickerPageSize"
+            :total="pickerTotal"
+            layout="prev, pager, next"
+            small
+            @current-change="loadPickerProducts"
+          />
+          <el-button type="primary" @click="addPickedToItems">添加选中产品</el-button>
+        </div>
+      </template>
     </el-drawer>
 
     <!-- 单品图片选择 -->
@@ -252,7 +240,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { ArrowLeft, Plus, Search, Picture } from '@element-plus/icons-vue';
-import type { Product, CreateQuotationItemDto, Customer, ProductTag } from '@/types';
+import type { Product, CreateQuotationItemDto, Customer, ProductTag, ProductSnapshot } from '@/types';
 import { productsApi, quotationsApi, customersApi, productTagsApi } from '@/api';
 import { resolveAssetUrl } from '@/utils/url';
 import { computeItemSubtotal, computeTotals } from '@/utils/quotationMath';
@@ -344,7 +332,6 @@ function recalcItem(item: GeneratorItem) {
 }
 
 // ==================== 产品选择 ====================
-const RECENT_KEY = 'kworkorder:recent-products';
 const pickerVisible = ref(false);
 const pickerLoading = ref(false);
 const pickerProducts = ref<Product[]>([]);
@@ -353,7 +340,7 @@ const pickerPage = ref(1);
 const pickerPageSize = 12;
 const pickerKeyword = ref('');
 const pickerTags = ref<ProductTag[]>([]);
-const activePickerTag = ref<ProductTag | null>(null);
+const activePickerTagIds = ref<string[]>([]);
 const PICKER_TAG_LIMIT = 6;
 const pickerTagsExpanded = ref(false);
 const visiblePickerTags = computed(() =>
@@ -361,27 +348,6 @@ const visiblePickerTags = computed(() =>
 );
 const searchKeyword = ref('');
 const pickerSelection = ref<Set<string>>(new Set());
-const recentProducts = ref<Product[]>([]);
-
-function loadRecent() {
-    try {
-        const raw = localStorage.getItem(RECENT_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw) as Product[];
-            if (Array.isArray(parsed)) recentProducts.value = parsed;
-        }
-    } catch {
-        recentProducts.value = [];
-    }
-}
-
-function persistRecent() {
-    try {
-        localStorage.setItem(RECENT_KEY, JSON.stringify(recentProducts.value.slice(0, 8)));
-    } catch {
-        // localStorage 不可用时忽略
-    }
-}
 
 function appendMarketRemark(p: Product) {
     if (!p.isMarketProduct) return;
@@ -393,36 +359,10 @@ function appendMarketRemark(p: Product) {
     }
 }
 
-function recordRecent(p: Product) {
-    recentProducts.value = recentProducts.value.filter((r) => r.id !== p.id);
-    recentProducts.value.unshift(p);
-    persistRecent();
-}
-
-function removeRecent(id: string) {
-    recentProducts.value = recentProducts.value.filter((r) => r.id !== id);
-    persistRecent();
-}
-
-function quickAdd(p: Product) {
-    if (form.items.some((i) => i.productId === p.id)) {
-        const existing = form.items.find((i) => i.productId === p.id);
-        if (existing) {
-            existing.quantity += 1;
-            recalcItem(existing);
-        }
-    } else {
-        form.items.push(createItemFromProduct(p));
-    }
-    recordRecent(p);
-    appendMarketRemark(p);
-    ElMessage.success(`已添加「${p.name}」`);
-}
-
 function openProductPicker() {
     pickerKeyword.value = searchKeyword.value;
     pickerPage.value = 1;
-    activePickerTag.value = null;
+    activePickerTagIds.value = [];
     pickerSelection.value = new Set();
     pickerTagsExpanded.value = false;
     pickerVisible.value = true;
@@ -440,7 +380,13 @@ async function loadPickerTags() {
 }
 
 function selectPickerTag(tag: ProductTag | null) {
-    activePickerTag.value = tag;
+    if (!tag) {
+        activePickerTagIds.value = [];
+    } else if (activePickerTagIds.value.includes(tag.id)) {
+        activePickerTagIds.value = activePickerTagIds.value.filter((id) => id !== tag.id);
+    } else {
+        activePickerTagIds.value = [...activePickerTagIds.value, tag.id];
+    }
     pickerPage.value = 1;
     void loadPickerProducts(1);
 }
@@ -456,7 +402,7 @@ async function loadPickerProducts(page: number) {
             pageSize: pickerPageSize,
             keyword: pickerKeyword.value || undefined,
             status: 'ACTIVE',
-            tagIds: activePickerTag.value ? [activePickerTag.value.id] : undefined,
+            tagIds: activePickerTagIds.value.length ? activePickerTagIds.value : undefined,
         });
         if (seq !== pickerSeq) return;
         pickerProducts.value = data.data;
@@ -491,12 +437,13 @@ function addPickedToItems() {
     for (const p of picked) {
         if (form.items.some((i) => i.productId === p.id)) {
             const existing = form.items.find((i) => i.productId === p.id);
-            if (existing) existing.quantity += 1;
-            recalcItem(existing);
+            if (existing) {
+                existing.quantity += 1;
+                recalcItem(existing);
+            }
             continue;
         }
         form.items.push(createItemFromProduct(p));
-        recordRecent(p);
         appendMarketRemark(p);
     }
     pickerVisible.value = false;
@@ -509,14 +456,14 @@ function createItemFromProduct(p: Product): GeneratorItem {
     // 此前漏装导致相关导出列恒为空）
     const item: GeneratorItem = {
         productId: p.id,
-        productSnapshot: buildProductSnapshot(p),
+        productSnapshot: buildProductSnapshot(p) as unknown as Record<string, unknown>,
         selectedImages: [...images],
         selectedCerts: [...certs],
         snapshotImages: images,
         snapshotCerts: certs,
         quantity: 1,
         unitPrice: (p.isMarketProduct ? p.marketPrice : p.salePrice) || 0,
-        costPrice: p.costPrice ?? null,
+        costPrice: p.costPrice ?? undefined,
         discount: undefined,
         subtotal: (p.isMarketProduct ? p.marketPrice : p.salePrice) || 0,
         isStale: p.isStale,
@@ -545,7 +492,8 @@ function toggleSelectedImage(url: string) {
 }
 
 function snapshotName(item: GeneratorItem | null | undefined): string {
-    return item?.productSnapshot?.name || item?.productSnapshot?.code || '未知产品';
+    const snap = item?.productSnapshot as Partial<ProductSnapshot> | undefined;
+    return snap?.name || snap?.code || '未知产品';
 }
 
 function snapshotField(item: GeneratorItem | null | undefined, key: string): string {
@@ -588,7 +536,7 @@ async function loadBaseQuotation() {
                 snapshotCerts: snapshotCerts.length ? snapshotCerts : selectedCerts,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
-                costPrice: item.costPrice ?? null,
+                costPrice: item.costPrice ?? undefined,
                 discount: item.discount ?? undefined,
                 subtotal: item.subtotal,
             };
@@ -644,9 +592,14 @@ async function handleSave(submit: boolean) {
     }
 }
 
+// 返回：优先回退历史；直链进入（无上一页）时兜底到报价列表
 function goBack() {
-    if (window.history.length > 1) router.back();
-    else void router.push('/products/quotations');
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products/quotations');
+    }
 }
 
 
@@ -658,7 +611,6 @@ function priceTip(p: Product): string {
 }
 
 onMounted(async () => {
-    loadRecent();
     await loadBaseQuotation();
 
     const ids = route.query.ids as string | undefined;
@@ -701,11 +653,10 @@ onMounted(async () => {
 .picker-tag-chip { cursor: pointer; flex-shrink: 0; }
 .picker-tag-count { font-size: 11px; margin-left: 2px; opacity: 0.7; }
 .picker-tags-toggle { padding: 0 4px; }
-.picker-recent { margin-bottom: 12px; }
-.picker-recent-title { font-size: 12px; color: var(--text-tertiary); margin-bottom: 6px; }
-.picker-recent-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.recent-tag { cursor: pointer; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.picker-list { max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.picker-tags-hint { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
+.product-picker-drawer :deep(.el-drawer__body) { display: flex; flex-direction: column; overflow: hidden; }
+.product-picker-drawer :deep(.el-drawer__footer) { border-top: 1px solid var(--border-color-lighter); padding-top: 12px; }
+.picker-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .picker-item { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--border-color-lighter); border-radius: 8px; cursor: pointer; }
 .picker-item:hover { background: var(--el-color-primary-light-9); }
 .picker-item.selected { border-color: var(--primary-color); background: var(--el-color-primary-light-9); }
@@ -718,7 +669,7 @@ onMounted(async () => {
 .picker-price { color: var(--primary-color); font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .picker-cost { color: var(--text-secondary); font-weight: 400; font-size: 12px; }
 .price-tag { background: var(--el-color-warning-light-9); color: var(--el-color-warning); border-radius: 4px; padding: 0 6px; font-size: 12px; font-weight: 500; }
-.picker-footer { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+.picker-footer { display: flex; align-items: center; justify-content: space-between; }
 .image-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
 .image-pick-item { border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; }
 .image-pick-item.active { border-color: var(--primary-color); }

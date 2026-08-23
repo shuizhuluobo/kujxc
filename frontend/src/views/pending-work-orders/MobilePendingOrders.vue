@@ -170,7 +170,7 @@
               :work-order="wo"
               :show-actions="true"
               @receive="emit('receive', wo)"
-              @complete="(wo, collaborators, fee) => emit('complete', wo, collaborators, fee)"
+              @complete="(wo: WorkOrder, collaborators: string[], fee?: number) => emit('complete', wo, collaborators, fee)"
               @edit="emit('edit', wo)"
               @delete="emit('delete', wo)"
               @cancel-receive="emit('cancelReceive', wo)"
@@ -184,7 +184,7 @@
     <!-- 新建/编辑工单抽屉 -->
     <el-drawer
       :model-value="formState.showDialog.value"
-      @update:model-value="(val) => localFormState.showDialog.value = val"
+      @update:model-value="(val: boolean | string | number) => localFormState.showDialog.value = !!val"
       direction="btt"
       size="85%"
       class="create-drawer"
@@ -241,6 +241,7 @@ import { useBaseDataStore } from '@/stores/baseData';
 import { useAuthStore } from '@/stores/auth';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
 import WorkOrderForm from './components/WorkOrderForm.vue';
+import type { WorkOrderFormState } from './composables/useWorkOrderForm';
 
 // Define Props
 interface WorkOrderFilter {
@@ -262,12 +263,9 @@ interface Pagination {
   total: number;
 }
 
-interface WorkOrderFormState {
-  submit: () => Promise<void>;
-}
-
 interface WorkOrderFormExpose {
   validate: () => Promise<boolean>;
+  clearValidate: () => void;
 }
 
 interface Props {
@@ -287,7 +285,7 @@ const emit = defineEmits<{
   (e: 'edit', row: WorkOrder): void;
   (e: 'delete', row: WorkOrder): void;
   (e: 'receive', row: WorkOrder): void;
-  (e: 'complete', row: WorkOrder): void;
+  (e: 'complete', row: WorkOrder, collaboratorIds: string[], repairFee?: number): void;
   (e: 'cancelReceive', row: WorkOrder): void;
   (e: 'resetFilters'): void;
   (e: 'refresh', done: () => void): void;

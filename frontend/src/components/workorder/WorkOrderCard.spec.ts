@@ -57,7 +57,7 @@ describe('WorkOrderCard', () => {
     receiver: null,
     completer: null,
     collaborators: [],
-  };
+  } as unknown as WorkOrder;
 
   it('renders work order component', () => {
     const wrapper = mount(WorkOrderCard, {
@@ -126,7 +126,7 @@ describe('WorkOrderCard', () => {
         name: 'Jane Smith',
         username: 'janesmith',
       },
-    };
+    } as unknown as WorkOrder;
 
     const wrapper = mount(WorkOrderCard, {
       props: {

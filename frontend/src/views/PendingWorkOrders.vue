@@ -49,6 +49,7 @@
             v-model="collaboratorIds" 
             multiple 
             filterable 
+            :filter-method="filterByPinyin"
             :reserve-keyword="false"
             placeholder="选择协作人（可选）"
             style="width: 100%"
@@ -95,6 +96,7 @@ import { useSSE } from '@/composables/useSSE';
 import { useBaseDataStore } from '@/stores/baseData';
 import { useAuthStore } from '@/stores/auth';
 import { workOrdersApi } from '@/api';
+import { matchPinyin } from '@/utils/pinyinFilter';
 
 import { useWorkOrderFilter } from './pending-work-orders/composables/useWorkOrderFilter';
 import { useWorkOrderForm } from './pending-work-orders/composables/useWorkOrderForm';
@@ -135,6 +137,12 @@ const showCompleteDialog = ref(false);
 const completeSubmitting = ref(false);
 const completingWorkOrder = ref<WorkOrder | null>(null);
 const collaboratorIds = ref<string[]>([]);
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 const sameRegionEngineerIds = ref<string[]>([]);
 const repairFee = ref<number | undefined>(undefined);
 

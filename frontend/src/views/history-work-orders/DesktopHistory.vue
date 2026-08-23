@@ -165,7 +165,7 @@ const props = defineProps<{
   filter: WorkOrderFilterParams;
   dateRange: [string, string] | null;
   filteredCompleters: UserType[];
-  SCORE_VALUES: Record<string, number>;
+  SCORE_VALUES: Record<string, number | null>;
   STATUS_LABELS: Record<string, string>;
   getStatusClass: (status: WorkOrderStatus) => Record<string, boolean>;
   formatDate: (date: string) => string;

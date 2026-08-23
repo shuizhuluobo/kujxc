@@ -111,10 +111,10 @@ export const PermissionModules = {
         ],
     },
 
-    // 产品库
+    // 产品管理
     PRODUCT: {
         key: 'product',
-        name: '产品库',
+        name: '产品管理',
         icon: 'Goods',
         pages: [
             { key: 'list', name: '产品列表', path: '/products' },

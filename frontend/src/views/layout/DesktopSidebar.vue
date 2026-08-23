@@ -61,10 +61,10 @@
           <el-icon><Service /></el-icon>
           <span>服务类型</span>
         </el-menu-item>
-        <!-- 产品库归入基础数据，作为单页面入口；品牌/类型/标签/导入/过期提醒改为产品库页内按钮 -->
+        <!-- 产品管理归入基础数据，作为单页面入口；品牌/类型/标签/导入/过期提醒改为产品管理页内按钮 -->
         <el-menu-item index="/products" v-if="canAccessProducts">
           <el-icon><Goods /></el-icon>
-          <span>产品库</span>
+          <span>产品管理</span>
         </el-menu-item>
       </el-sub-menu>
 

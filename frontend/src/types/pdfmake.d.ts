@@ -1,7 +1,7 @@
 declare module 'pdfmake/build/pdfmake' {
     interface PdfMakeDocument {
         createPdf(docDefinition: Record<string, unknown>): {
-            getBlob(callback: (blob: Blob) => void): void;
+            getBlob(): Promise<Blob>;
             download(filename?: string): void;
             open(): void;
             print(): void;

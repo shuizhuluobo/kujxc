@@ -20,7 +20,13 @@
         <div class="ctrl-group">
           <div class="ctrl-label">报价模板</div>
           <div class="template-row">
-            <el-select v-model="templateId" placeholder="选择报价模板" filterable style="flex: 1">
+            <el-select
+              v-model="templateId"
+              placeholder="选择报价模板"
+              filterable
+              :filter-method="filterTemplateByPinyin"
+              style="flex: 1"
+            >
               <el-option
                 v-for="t in templates"
                 :key="t.id"
@@ -110,6 +116,7 @@ import { exportQuotationToExcel, exportQuotationToPdf } from '@/utils/quotationE
 import { renderQuotationHtml, printQuotationHtml } from '@/utils/quotationPreview';
 import { deepClone, QUOTATION_FIELD_POOL, QUOTATION_FORMULA_POOL, defaultTemplateColumns } from '@/utils/quotationColumns';
 import { downloadBlob } from '@/utils/download';
+import { matchPinyin } from '@/utils/pinyinFilter';
 import QuotationPreviewFrame from '@/components/QuotationPreviewFrame.vue';
 
 const FIELD_POOL = QUOTATION_FIELD_POOL;
@@ -256,6 +263,11 @@ function onDialogClosed() {
     destroyColumnSort();
 }
 
+function filterTemplateByPinyin(query: string, item: unknown) {
+    const label = String((item as { label?: unknown })?.label ?? '');
+    return matchPinyin(label, query);
+}
+
 function applyTemplate(id: string) {
     const t = templates.value.find((x) => x.id === id);
     const cols = t?.config?.columns?.length ? t.config.columns : [];
@@ -386,12 +398,12 @@ async function doExport(kind: 'excel' | 'pdf' | 'docx' | 'print') {
         } else if (kind === 'docx') {
             const resp = await quotationsApi.exportDocx(props.quotation.id, {
                 templateId: tpl?.id,
-                config: effectiveConfig.value as QuotationTemplate['config'],
+                config: effectiveConfig.value as unknown as Record<string, unknown>,
             });
             downloadBlob(
                 resp.data as Blob,
                 `报价单_${props.quotation.code || props.quotation.id}.docx`,
-                resp.headers,
+                resp.headers as Record<string, string | undefined>,
             );
             ElMessage.success('Word 已导出');
         } else {

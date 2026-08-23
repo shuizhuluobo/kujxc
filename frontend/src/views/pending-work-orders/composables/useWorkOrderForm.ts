@@ -1,12 +1,27 @@
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, type Ref } from 'vue';
 import { ElMessage, type FormRules } from 'element-plus';
 import { match } from 'pinyin-pro';
 import { useBaseDataStore } from '@/stores/baseData';
 import { workOrdersApi } from '@/api';
-import type { CreateWorkOrderDto, WorkOrder } from '@/types';
+import type { CreateWorkOrderDto, Customer, WorkOrder } from '@/types';
 import { ScoreLevel } from '@/types';
 
-export function useWorkOrderForm(onSuccess?: () => void) {
+/** 表单状态完整形态：PendingWorkOrders 容器创建，Mobile/Desktop 子组件按引用共享 */
+export interface WorkOrderFormState {
+    form: CreateWorkOrderDto;
+    formRules: FormRules;
+    showDialog: Ref<boolean>;
+    submitting: Ref<boolean>;
+    editingWorkOrder: Ref<WorkOrder | null>;
+    filteredCustomers: Ref<Customer[]>;
+    customerFilterMethod: (query: string) => void;
+    submit: () => Promise<void>;
+    resetForm: () => void;
+    openCreate: () => void;
+    openEdit: (wo: WorkOrder) => void;
+}
+
+export function useWorkOrderForm(onSuccess?: () => void): WorkOrderFormState {
     const baseDataStore = useBaseDataStore();
 
     // Dialog state is still useful here to coordinate reset

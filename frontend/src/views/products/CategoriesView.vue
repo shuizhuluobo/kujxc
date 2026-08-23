@@ -1,7 +1,10 @@
 <template>
   <div class="admin-crud-page">
     <div class="page-header">
-      <h2>类型管理</h2>
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
+        <h2>类型管理</h2>
+      </div>
       <div class="header-actions">
         <el-button type="primary" :icon="Plus" @click="handleCreate()">新增根类型</el-button>
       </div>
@@ -57,13 +60,26 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import type { FormRules } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { ArrowLeft, Plus } from '@element-plus/icons-vue';
 import type { Category } from '@/types';
 import { categoriesApi } from '@/api';
 import { useResponsive, useCrudDialog } from '@/composables';
 
+const router = useRouter();
 const { isMobile } = useResponsive();
+
+// 返回：优先回退历史；直链进入（无上一页）时兜底到产品列表，避免退出站点
+function goBack() {
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products');
+    }
+}
+
 
 interface CategoryForm { name: string; parentId?: string; description: string; sortOrder: number }
 
@@ -99,6 +115,8 @@ onMounted(crud.fetchData);
 <style scoped>
 .admin-crud-page { max-width: 1200px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h2 { margin: 0; }
 .tree-node { display: flex; align-items: center; gap: 10px; padding: 4px 0; width: 100%; }
 .node-name { font-weight: 500; }
 .node-count { margin-left: 2px; }

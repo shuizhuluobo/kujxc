@@ -4,7 +4,7 @@
       <div class="header-left">
         <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
         <h2>{{ isEdit ? '编辑产品' : '新增产品' }}</h2>
-        <el-tag v-if="isEdit && product" size="small">{{ product.code }}</el-tag>
+        <el-tag v-if="isEdit && productCode" size="small">{{ productCode }}</el-tag>
       </div>
     </div>
 
@@ -14,8 +14,15 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="品牌" prop="brandId">
-              <el-select v-model="form.brandId" style="width: 100%" filterable placeholder="选择品牌" @visible-change="loadBrands">
-                <el-option v-for="b in brands" :key="b.id" :label="b.name" :value="b.id" />
+              <el-select
+                v-model="form.brandId"
+                style="width: 100%"
+                filterable
+                :filter-method="onBrandFilter"
+                placeholder="选择品牌（可输入拼音）"
+                @visible-change="onBrandVisibleChange"
+              >
+                <el-option v-for="b in filteredBrands" :key="b.id" :label="b.name" :value="b.id" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -50,9 +57,57 @@
           </el-select>
         </el-form-item>
         <el-form-item label="标签">
-          <el-select v-model="form.tagIds" multiple collapse-tags style="width: 100%" filterable placeholder="选择标签" @visible-change="loadTags">
-            <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
+          <div class="tag-field" ref="tagsRowRef">
+            <div class="tag-field-row">
+              <el-tag
+                v-for="(t, i) in selectedTags"
+                :key="t.id"
+                closable
+                class="tag-item"
+                :class="{ 'tag-hidden': i >= visibleTagCount }"
+                :ref="(el: unknown) => setTagEl(el, i)"
+                @close="removeTag(t.id)"
+              >
+                {{ t.name }}
+              </el-tag>
+              <el-tag v-if="hiddenTagCount > 0" class="tag-more" type="info" @click="openTagsPanel">
+                +{{ hiddenTagCount }}
+              </el-tag>
+              <el-popover
+                ref="tagsPopoverRef"
+                placement="bottom-start"
+                width="320"
+                trigger="click"
+                @show="tagQuery = ''"
+              >
+                <template #reference>
+                  <el-button class="tag-add-btn" size="small" :icon="Plus" text>添加</el-button>
+                </template>
+                <div class="tag-picker">
+                  <el-input
+                    v-model="tagQuery"
+                    size="small"
+                    clearable
+                    placeholder="搜索标签（支持拼音）"
+                    :prefix-icon="Search"
+                  />
+                  <div v-if="filteredSelectableTags.length" class="tag-picker-list">
+                    <el-tag
+                      v-for="t in filteredSelectableTags"
+                      :key="t.id"
+                      class="tag-option"
+                      :type="form.tagIds.includes(t.id) ? 'primary' : 'info'"
+                      effect="plain"
+                      @click="toggleTag(t.id)"
+                    >
+                      {{ t.name }}
+                    </el-tag>
+                  </div>
+                  <div v-else class="tag-picker-empty">无匹配标签</div>
+                </div>
+              </el-popover>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="详细参数">
           <MdEditor v-model="form.description" class="md-editor" />
@@ -182,10 +237,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { ArrowLeft, Plus, Top, Bottom, Document } from '@element-plus/icons-vue';
+import { ArrowLeft, Plus, Top, Bottom, Document, Search } from '@element-plus/icons-vue';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import type { Product, ProductImage, ProductCertificate, Brand, ProductTag } from '@/types';
@@ -193,6 +248,7 @@ import { PRODUCT_STATUS_LABELS } from '@/types';
 import { productsApi, brandsApi, categoriesApi, productTagsApi, productUploadsApi } from '@/api';
 import { resolveAssetUrl } from '@/utils/url';
 import { getApiErrorMessage, flattenCategories } from '@/utils/format';
+import { matchPinyin } from '@/utils/pinyinFilter';
 
 const route = useRoute();
 const router = useRouter();
@@ -231,6 +287,9 @@ const form = reactive({
     certificates: [] as ProductCertificate[],
 });
 
+/** 编辑时头部展示的产品编号（fetchDetail 填充） */
+const productCode = ref('');
+
 const nameSyncGuard = ref(false);
 
 /** 名称 = 品牌 + 型号（自动拼装） */
@@ -262,11 +321,103 @@ async function loadBrands() {
     }
 }
 
+/** 品牌下拉拼音模糊过滤（原文/全拼/首字母任一命中） */
+const brandQuery = ref('');
+const filteredBrands = computed(() => {
+    const q = brandQuery.value.trim();
+    const list = q ? brands.value.filter((b) => matchPinyin(b.name, q)) : brands.value;
+    // 保证当前选中项始终出现在下拉中（避免选中值 label 丢失）
+    if (form.brandId && !list.some((b) => b.id === form.brandId)) {
+        const selected = brands.value.find((b) => b.id === form.brandId);
+        if (selected) return [selected, ...list];
+    }
+    return list;
+});
+
+function onBrandFilter(query: string) {
+    brandQuery.value = query;
+}
+
+function onBrandVisibleChange(visible: boolean) {
+    if (visible) {
+        brandQuery.value = '';
+        void loadBrands();
+    }
+}
+
 async function loadTags() {
     if (!tags.value.length) {
         const { data } = await productTagsApi.getAll();
         tags.value = data;
     }
+}
+
+/** 标签：平铺展示，一行宽度不足时折叠为 +N（点击展开选择面板） */
+const tagQuery = ref('');
+const tagsPopoverRef = ref<{ show?: () => void }>();
+const tagsRowRef = ref<HTMLDivElement>();
+const tagEls = ref<Array<HTMLElement | null>>([]);
+const visibleTagCount = ref(Infinity);
+let tagResizeObserver: ResizeObserver | null = null;
+
+const selectedTags = computed(() =>
+    form.tagIds
+        .map((id) => tags.value.find((t) => t.id === id))
+        .filter((t): t is ProductTag => !!t),
+);
+const hiddenTagCount = computed(() => Math.max(0, selectedTags.value.length - visibleTagCount.value));
+
+const filteredSelectableTags = computed(() =>
+    tagQuery.value ? tags.value.filter((t) => matchPinyin(t.name, tagQuery.value)) : tags.value,
+);
+
+function setTagEl(el: unknown, index: number) {
+    tagEls.value[index] = (el as HTMLElement | null) ?? null;
+}
+
+/** 依据容器宽度计算一行内最多可见的标签数 */
+function computeVisibleTags() {
+    const row = tagsRowRef.value;
+    if (!row) return;
+    const els = tagEls.value.filter((el): el is HTMLElement => !!el);
+    if (!els.length) {
+        visibleTagCount.value = Infinity;
+        return;
+    }
+    const avail = row.clientWidth;
+    const gap = 8;
+    const addBtnWidth = 88; // “添加”按钮 + 行内边距估算
+    const moreWidth = 48; // “+N”标签估算宽度
+    const total = els.reduce((sum, el) => sum + el.offsetWidth + gap, 0);
+    if (total + addBtnWidth <= avail) {
+        visibleTagCount.value = els.length;
+        return;
+    }
+    let used = 0;
+    let count = 0;
+    for (const el of els) {
+        const w = el.offsetWidth + gap;
+        if (count > 0 && used + w + moreWidth + addBtnWidth > avail) break;
+        used += w;
+        count++;
+    }
+    visibleTagCount.value = Math.max(1, count);
+}
+
+function removeTag(id: string) {
+    form.tagIds = form.tagIds.filter((tid) => tid !== id);
+    void nextTick(computeVisibleTags);
+}
+
+function toggleTag(id: string) {
+    form.tagIds = form.tagIds.includes(id)
+        ? form.tagIds.filter((tid) => tid !== id)
+        : [...form.tagIds, id];
+    void nextTick(computeVisibleTags);
+}
+
+function openTagsPanel() {
+    tagsPopoverRef.value?.show?.();
 }
 
 async function loadCategories() {
@@ -343,6 +494,7 @@ async function fetchDetail() {
     loading.value = true;
     try {
         const { data } = await productsApi.getOne(productId.value);
+        productCode.value = data.code || '';
         const autoName = [data.brand?.name || '', data.model || ''].filter(Boolean).join(' ');
         nameSyncGuard.value = true;
         Object.assign(form, {
@@ -439,9 +591,28 @@ async function handleSubmit() {
     }
 }
 
+watch(
+    () => form.tagIds.length,
+    async () => {
+        await nextTick();
+        computeVisibleTags();
+    },
+);
+
 onMounted(async () => {
     await Promise.all([loadBrands(), loadTags(), loadCategories()]);
     await fetchDetail();
+    await nextTick();
+    computeVisibleTags();
+    if (tagsRowRef.value && typeof ResizeObserver !== 'undefined') {
+        tagResizeObserver = new ResizeObserver(() => computeVisibleTags());
+        tagResizeObserver.observe(tagsRowRef.value);
+    }
+});
+
+onBeforeUnmount(() => {
+    tagResizeObserver?.disconnect();
+    tagResizeObserver = null;
 });
 </script>
 
@@ -462,4 +633,13 @@ onMounted(async () => {
 .upload-item-actions { display: flex; margin-top: 4px; }
 .cert-file-icon { font-size: 40px; color: var(--el-color-primary); flex-shrink: 0; }
 .form-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 0; }
+.tag-field { width: 100%; position: relative; }
+.tag-field-row { display: flex; align-items: center; gap: 8px; width: 100%; flex-wrap: nowrap; overflow: hidden; }
+.tag-item { flex-shrink: 0; }
+.tag-item.tag-hidden { position: absolute; visibility: hidden; pointer-events: none; }
+.tag-more { flex-shrink: 0; cursor: pointer; }
+.tag-add-btn { flex-shrink: 0; }
+.tag-picker-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; margin-top: 8px; }
+.tag-option { cursor: pointer; }
+.tag-picker-empty { padding: 12px 0; text-align: center; color: var(--text-tertiary); font-size: 12px; }
 </style>

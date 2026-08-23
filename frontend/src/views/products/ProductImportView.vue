@@ -1,7 +1,10 @@
 <template>
   <div class="product-import-page">
     <div class="page-header">
-      <h2>产品批量导入</h2>
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
+        <h2>产品批量导入</h2>
+      </div>
     </div>
 
     <el-steps :active="step" align-center finish-status="success" class="steps">
@@ -194,7 +197,7 @@
       </el-alert>
       <div class="footer-actions">
         <el-button type="primary" @click="resetAll">再导入一批</el-button>
-        <el-button @click="router.push('/products')">查看产品库</el-button>
+        <el-button @click="router.push('/products')">查看产品管理</el-button>
       </div>
     </el-card>
 
@@ -256,7 +259,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { UploadFilled, Warning, WarningFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, UploadFilled, Warning, WarningFilled } from '@element-plus/icons-vue';
 import type {
     ImportPreviewResult,
     ImportExecuteResult,
@@ -270,6 +273,17 @@ import { PRODUCT_STATUS_LABELS } from '@/types';
 import { getApiErrorMessage, formatDateTime as fmtDate } from '@/utils/format';
 
 const router = useRouter();
+
+// 返回：优先回退历史；直链进入（无上一页）时兜底到产品列表，避免退出站点
+function goBack() {
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products');
+    }
+}
+
 
 const step = ref(0);
 const selectedFile = ref<File | null>(null);
@@ -435,6 +449,10 @@ function previewRowClass({ row }: { row: ImportPreviewResult['rows'][number] }) 
     return '';
 }
 
+function openSaveTemplate() {
+    saveTemplateVisible.value = true;
+}
+
 async function saveTemplate() {
     if (!templateName.value.trim()) {
         ElMessage.warning('请输入模板名称');
@@ -484,7 +502,8 @@ onMounted(fetchLogs);
 <style scoped>
 .product-import-page { max-width: 1100px; margin: 0 auto; }
 .page-header { margin-bottom: 20px; }
-.page-header h2 { margin: 0; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h2 { margin: 0; }
 .steps { margin-bottom: 24px; }
 .upload-zone { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 0; }
 .upload-icon { font-size: 48px; color: var(--el-color-primary); }

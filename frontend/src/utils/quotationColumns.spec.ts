@@ -24,7 +24,7 @@ const item = {
         unit: '个',
         category: '智能门锁',
     },
-} as QuotationItem;
+} as unknown as QuotationItem;
 
 describe('fieldValue', () => {
     it('取快照字段与行级金额字段', () => {

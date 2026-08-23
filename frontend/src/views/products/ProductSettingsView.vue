@@ -1,7 +1,10 @@
 <template>
   <div class="product-settings-page">
     <div class="page-header">
-      <h2>产品库设置</h2>
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
+        <h2>产品管理设置</h2>
+      </div>
     </div>
 
     <el-card class="card-premium">
@@ -30,12 +33,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { ArrowLeft } from '@element-plus/icons-vue';
 import { settingsApi } from '@/api';
 import { usePermission } from '@/composables/usePermission';
 import { getApiErrorMessage } from '@/utils/format';
 
+const router = useRouter();
 const { has } = usePermission();
+
+// 返回：优先回退历史；直链进入（无上一页）时兜底到产品列表，避免退出站点
+function goBack() {
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products');
+    }
+}
+
 const canManage = has('system:user_manage');
 
 const staleThresholdDays = ref(90);
@@ -69,7 +86,9 @@ onMounted(fetchSetting);
 
 <style scoped>
 .product-settings-page { max-width: 800px; margin: 0 auto; }
-.page-header h2 { margin: 0 0 16px; }
+.page-header { display: flex; align-items: center; margin-bottom: 16px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h2 { margin: 0; }
 .card-title-text { font-weight: 600; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
 .setting-name { font-weight: 500; }

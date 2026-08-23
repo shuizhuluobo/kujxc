@@ -132,6 +132,8 @@ export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
     user: User;
+    /** 首次登录/默认密码需强制改密 */
+    mustChangePassword?: boolean;
 }
 
 export interface CreateWorkOrderDto {
@@ -337,7 +339,7 @@ export type {
     StageStat,
 } from './performance';
 
-// ==================== 产品库类型 ====================
+// ==================== 产品管理类型 ====================
 export type ProductStatus = 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
 export type QuotationStatus = 'DRAFT' | 'SENT' | 'CLOSED' | 'CANCELLED';
 

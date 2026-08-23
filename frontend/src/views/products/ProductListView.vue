@@ -2,7 +2,7 @@
   <div class="product-page">
     <div class="page-header">
       <div>
-        <h2>产品库</h2>
+        <h2>产品管理</h2>
         <div class="entry-actions">
           <el-button size="small" text bg @click="router.push('/products/brands')" v-if="canManageBrand">
             <el-icon><Goods /></el-icon><span style="margin-left: 4px">品牌管理</span>
@@ -115,7 +115,7 @@
           </el-icon>
         </template>
       </el-table-column>
-      <el-table-column label="品牌型号" min-width="180">
+      <el-table-column label="品牌型号" min-width="280">
         <template #default="{ row }">
           <div class="product-name-cell">
             <span class="product-name" @click="goDetail(row)">{{ row.name }}</span>
@@ -161,14 +161,6 @@
           {{ fmtPrice(row.isMarketProduct ? row.marketPrice : row.salePrice) }}
           <span v-if="row.isMarketProduct" class="price-tag">商城</span>
         </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small">{{ PRODUCT_STATUS_LABELS[row.status] }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="最后更新" width="110">
-        <template #default="{ row }">{{ fmtDate(row.updatedAt) }}</template>
       </el-table-column>
       <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
@@ -247,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search, Star, StarFilled, Picture, DocumentChecked, Check, Edit, Goods, Menu, CollectionTag, AlarmClock, Upload, Download } from '@element-plus/icons-vue';
@@ -258,7 +250,7 @@ import { usePermission } from '@/composables/usePermission';
 import { resolveAssetUrl } from '@/utils/url';
 import ExcelJS from 'exceljs';
 import { downloadBlob } from '@/utils/download';
-import { getApiErrorMessage, flattenCategories, productStatusTagType as statusType, formatPrice as fmtPrice, formatDate as fmtDate } from '@/utils/format';
+import { getApiErrorMessage, flattenCategories, formatPrice as fmtPrice } from '@/utils/format';
 import { matchPinyin } from '@/utils/pinyinFilter';
 
 const router = useRouter();
@@ -369,8 +361,10 @@ let searchTimer: ReturnType<typeof setTimeout> | undefined;
 /** 防抖触发搜索（关键词输入实时过滤） */
 function queueSearch(delay = 350) {
     if (searchTimer) clearTimeout(searchTimer);
+    const skip = restorePending;
     searchTimer = setTimeout(() => {
         searchTimer = undefined;
+        if (skip) return;
         pagination.page = 1;
         void fetchData();
     }, delay);
@@ -632,12 +626,63 @@ async function batchDelete() {
 
 
 
+// ==================== 列表状态记忆（从详情返回时保持页码/筛选） ====================
+const LIST_STATE_KEY = 'kworkorder:product-list-state';
+/** 恢复期间为 true，抑制搜索防抖与视图切换副作用 */
+let restorePending = false;
+
+function saveListState() {
+    try {
+        sessionStorage.setItem(
+            LIST_STATE_KEY,
+            JSON.stringify({
+                filters: { ...filters },
+                pagination: { ...pagination },
+                viewMode: viewMode.value,
+                favoritesOnly: favoritesOnly.value,
+            }),
+        );
+    } catch {
+        // sessionStorage 不可用时忽略
+    }
+}
+
+function restoreListState() {
+    try {
+        const raw = sessionStorage.getItem(LIST_STATE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw) as {
+            filters?: Partial<typeof filters>;
+            pagination?: { page: number; pageSize: number };
+            viewMode?: 'list' | 'card';
+            favoritesOnly?: boolean;
+        };
+        if (saved.filters) Object.assign(filters, saved.filters);
+        if (saved.pagination) {
+            pagination.page = saved.pagination.page || 1;
+            pagination.pageSize = saved.pagination.pageSize || 20;
+        }
+        if (saved.favoritesOnly !== undefined) favoritesOnly.value = saved.favoritesOnly;
+        if (saved.viewMode) viewMode.value = saved.viewMode;
+    } catch {
+        // 解析失败时忽略
+    }
+}
+
 onMounted(async () => {
+    restorePending = true;
+    restoreListState();
     await loadFilters();
     await fetchData();
+    restorePending = false;
+});
+
+onBeforeUnmount(() => {
+    saveListState();
 });
 
 watch(viewMode, () => {
+    if (restorePending) return;
     if (viewMode.value === 'card') pagination.pageSize = 24;
     else pagination.pageSize = 20;
     pagination.page = 1;

@@ -7,7 +7,7 @@
           <div class="header-row-top">
             <h2>历史工单</h2>
             <!-- 数量统计 -->
-            <div class="stats-tag" v-if="stats.total > 0">
+            <div class="stats-tag" v-if="stats?.total">
               <span class="stat-item primary">共:{{ stats.total }}</span>
             </div>
           </div>
@@ -75,19 +75,19 @@
                   @click="localFilter.statuses = []"
                 >全部</van-button>
                 <van-button 
-                  :type="localFilter.statuses?.includes('PENDING') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes(WorkOrderStatus.PENDING) ? 'primary' : 'default'"
                   size="small"
-                  @click="localFilter.statuses = ['PENDING']"
+                  @click="localFilter.statuses = [WorkOrderStatus.PENDING]"
                 >待接收</van-button>
                 <van-button 
-                  :type="localFilter.statuses?.includes('RECEIVED') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes(WorkOrderStatus.RECEIVED) ? 'primary' : 'default'"
                   size="small"
-                  @click="localFilter.statuses = ['RECEIVED']"
+                  @click="localFilter.statuses = [WorkOrderStatus.RECEIVED]"
                 >已接收</van-button>
                 <van-button 
-                  :type="localFilter.statuses?.includes('COMPLETED') ? 'primary' : 'default'"
+                  :type="localFilter.statuses?.includes(WorkOrderStatus.COMPLETED) ? 'primary' : 'default'"
                   size="small"
-                  @click="localFilter.statuses = ['COMPLETED']"
+                  @click="localFilter.statuses = [WorkOrderStatus.COMPLETED]"
                 >已完成</van-button>
               </div>
             </div>
@@ -133,7 +133,7 @@
                   value-format="YYYY-MM-DD"
                   placeholder="开始"
                   :picker-options="{
-                    disabledDate: (time) => time.getTime() > Date.now() || (endDate && time.getTime() > new Date(endDate).getTime())
+                    disabledDate: (time: Date) => time.getTime() > Date.now() || (endDate && time.getTime() > new Date(endDate).getTime())
                   }"
                   :teleported="true"
                 />
@@ -145,7 +145,7 @@
                   value-format="YYYY-MM-DD"
                   placeholder="结束"
                   :picker-options="{
-                    disabledDate: (time) => time.getTime() > Date.now() || (startDate && time.getTime() < new Date(startDate).getTime())
+                    disabledDate: (time: Date) => time.getTime() > Date.now() || (startDate && time.getTime() < new Date(startDate).getTime())
                   }"
                   :teleported="true"
                 />
@@ -153,17 +153,6 @@
             </div>
             <div class="bubble-filter-section">
               <div class="bubble-filter-label">完成人</div>
-              <van-search
-                v-model="completerSearchText"
-                placeholder="搜索完成人(支持拼音)"
-                shape="round"
-                background="var(--bg-color-page)"
-                show-action
-              >
-                <template #action>
-                  <div @click="completerSearchText = ''">清空</div>
-                </template>
-              </van-search>
               <div class="bubble-filter-options">
                 <van-button 
                   :type="isMyOrders ? 'primary' : 'default'"
@@ -186,16 +175,16 @@
     <!-- 筛选状态显示 -->
     <div v-if="hasActiveFilters" class="filter-status">
       <div class="filter-status-content">
-        <div v-if="localFilter.statuses && filter.statuses.length > 0" class="filter-status-tag">
+        <div v-if="filter.statuses?.length" class="filter-status-tag">
           {{ getStatusLabel(filter.statuses[0]) }}
           <van-icon name="cross" size="14" @click="localFilter.statuses = []" />
         </div>
         <div v-if="localFilter.serviceTypeId" class="filter-status-tag">
-          {{ getServiceTypeName(filter.serviceTypeId) }}
+          {{ getServiceTypeName(filter.serviceTypeId ?? '') }}
           <van-icon name="cross" size="14" @click="localFilter.serviceTypeId = undefined" />
         </div>
         <div v-if="localFilter.regionId" class="filter-status-tag">
-          {{ getRegionName(filter.regionId) }}
+          {{ getRegionName(filter.regionId ?? '') }}
           <van-icon name="cross" size="14" @click="localFilter.regionId = undefined" />
         </div>
         <div v-if="localFilter.keyword" class="filter-status-tag">
@@ -203,7 +192,7 @@
           <van-icon name="cross" size="14" @click="localFilter.keyword = undefined" />
         </div>
         <div v-if="localFilter.completerId && !isMyOrders" class="filter-status-tag">
-          {{ getCompleterName(filter.completerId) }}
+          {{ getCompleterName(filter.completerId ?? '') }}
           <van-icon name="cross" size="14" @click="localFilter.completerId = undefined" />
         </div>
         <div v-if="isMyOrders" class="filter-status-tag">
@@ -251,13 +240,13 @@
 import { ref, watch } from 'vue';
 import { Button as VanButton, Icon as VanIcon, Search as VanSearch, PullRefresh as VanPullRefresh, List as VanList } from 'vant';
 import type { WorkOrder, WorkOrderFilterParams, User as UserType } from '@/types';
+import { WorkOrderStatus } from '@/types';
 import { useBaseDataStore } from '@/stores/baseData';
 import WorkOrderCard from '@/components/workorder/WorkOrderCard.vue';
 
 const baseDataStore = useBaseDataStore();
 const showFilterDrawer = ref(false);
 const showFilterPopup = ref(false);
-const completerSearchText = ref('');
 const startDate = ref<string>('');
 const endDate = ref<string>('');
 

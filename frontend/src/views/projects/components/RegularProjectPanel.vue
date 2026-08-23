@@ -26,7 +26,7 @@
           <div class="card-row card-row-bottom">
             <span class="card-date">{{ formatDate(project.createdAt) }}</span>
             <div class="card-actions" @click.stop v-if="canManageProject">
-              <el-button size="small" text type="primary" @click="(e) => { e.stopPropagation(); $emit('editProject', project); }">
+              <el-button size="small" text type="primary" @click="(e: Event) => { e.stopPropagation(); $emit('editProject', project); }">
                 <el-icon><EditPen /></el-icon>
               </el-button>
               <el-popconfirm title="确定删除该项目？" @confirm="$emit('deleteProject', project)" confirm-button-text="确定" cancel-button-text="取消">
@@ -236,6 +236,7 @@
                     size="small"
                     clearable
                     filterable
+                    :filter-method="filterByPinyin"
                     placeholder="全部"
                     class="th-filter-select"
                   >
@@ -371,7 +372,7 @@
           <span class="unit">元/天</span>
         </el-form-item>
         <el-form-item label="参与人员">
-          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
+          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable :filter-method="filterByPinyin">
             <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
@@ -439,7 +440,7 @@
           <span class="unit">元/天</span>
         </el-form-item>
         <el-form-item label="参与人员">
-          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable>
+          <el-select v-model="localProjectForm.memberIds" multiple placeholder="选择参与人员" style="width: 100%" filterable :filter-method="filterByPinyin">
             <el-option v-for="user in users.filter(u => u?.id)" :key="user.id" :label="user.name || '未知'" :value="user.id" />
           </el-select>
         </el-form-item>
@@ -457,7 +458,7 @@
     <el-dialog v-model="showCreateDeviceModalModel" title="新增设备" width="500px" destroy-on-close>
       <el-form :model="deviceForm" label-width="80px">
         <el-form-item label="客户" required v-shake ref="deviceCustomerItem">
-          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable style="width: 100%">
+          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable :filter-method="filterByPinyin" style="width: 100%">
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
@@ -481,7 +482,7 @@
     <el-dialog v-model="showEditDeviceModalModel" title="编辑设备" width="500px" destroy-on-close>
       <el-form :model="deviceForm" label-width="80px">
         <el-form-item label="客户" required>
-          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable style="width: 100%" disabled>
+          <el-select v-model="localDeviceForm.customerId" placeholder="选择客户" filterable :filter-method="filterByPinyin" style="width: 100%" disabled>
             <el-option v-for="customer in customers.filter(c => c?.id)" :key="customer.id" :label="customer.name || '未知'" :value="customer.id" />
           </el-select>
         </el-form-item>
@@ -613,7 +614,7 @@
             </el-select>
           </el-form-item>
           <el-form-item label="关联设备" required v-shake ref="recordDeviceItem">
-            <el-select v-model="localRecordForm.deviceId" placeholder="先选择客户" filterable style="width: 100%" :disabled="!recordForm.customerId">
+            <el-select v-model="localRecordForm.deviceId" placeholder="先选择客户" filterable :filter-method="filterByPinyin" style="width: 100%" :disabled="!recordForm.customerId">
               <el-option v-for="d in filteredDevicesForRecord" :key="d.id" :label="`${d.customer?.shortName || d.customer?.name || '未知'} - ${d.deviceName || '未知'}`" :value="d.id" />
             </el-select>
           </el-form-item>
@@ -709,7 +710,7 @@
             <el-table-column prop="name" label="导入客户名" width="180" />
             <el-table-column label="选择已有客户">
               <template #default="{ row }">
-                <el-select v-model="localImportCustomerMap[row.name].matchedId" placeholder="选择客户" filterable size="small" style="width: 100%">
+                <el-select v-model="localImportCustomerMap[row.name].matchedId" placeholder="选择客户" filterable :filter-method="filterByPinyin" size="small" style="width: 100%">
                   <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
               </template>
@@ -755,8 +756,15 @@ import {
 } from '@/types';
 import type { Project, WorkRecord, User, Customer, CustomerDevice, PerformanceResult, MyPerformanceStats, ProjectStage, StageInput } from '@/types';
 import { useAuthStore } from '@/stores/auth';
+import { matchPinyin } from '@/utils/pinyinFilter';
 
 const authStore = useAuthStore();
+
+// el-select filterable 拼音过滤：按选项渲染 label 匹配
+function filterByPinyin(query: string, item: unknown) {
+  const label = String((item as { label?: unknown })?.label ?? '');
+  return matchPinyin(label, query);
+}
 
 interface ProjectForm {
   projectName: string;
@@ -1052,7 +1060,7 @@ const handleSubmitBatchClick = () => {
     includeRecorder: batchForm.includeRecorder,
     remark: batchForm.remark || undefined,
   };
-  emit('submit-batch-stage', payload);
+  emit('submitBatchStage', payload);
   showBatchStageModal.value = false;
 };
 

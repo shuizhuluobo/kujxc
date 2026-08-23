@@ -204,6 +204,30 @@ export class QuotationsService {
       customerName,
       versionGroupId,
     } = query;
+    // 关键词若为拼音，先映射到客户表（报价只存客户名快照，无拼音字段）
+    const pinyinCustomerIds = keyword
+      ? (
+          await this.prisma.customer.findMany({
+            where: {
+              OR: [
+                {
+                  namePinyin: {
+                    contains: keyword.toLowerCase(),
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  nameInitials: {
+                    contains: keyword.toLowerCase(),
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            },
+            select: { id: true },
+          })
+        ).map((c) => c.id)
+      : [];
     const where: Prisma.QuotationWhereInput = {
       deletedAt: null,
       ...(status ? { status } : {}),
@@ -217,6 +241,9 @@ export class QuotationsService {
             OR: [
               { code: { contains: keyword, mode: 'insensitive' } },
               { customerName: { contains: keyword, mode: 'insensitive' } },
+              ...(pinyinCustomerIds.length
+                ? [{ customerId: { in: pinyinCustomerIds } }]
+                : []),
             ],
           }
         : {}),

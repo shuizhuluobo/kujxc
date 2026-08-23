@@ -1,7 +1,10 @@
 <template>
   <div class="admin-crud-page">
     <div class="page-header">
-      <h2>品牌管理</h2>
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
+        <h2>品牌管理</h2>
+      </div>
       <div class="header-actions">
         <el-input
           v-model="searchKeyword"
@@ -86,14 +89,28 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { type FormRules } from 'element-plus';
-import { Plus, Search } from '@element-plus/icons-vue';
+import { ArrowLeft, Plus, Search } from '@element-plus/icons-vue';
 import type { Brand } from '@/types';
 import { brandsApi } from '@/api';
+import { matchPinyin } from '@/utils/pinyinFilter';
 import { useResponsive, useCrudDialog } from '@/composables';
 import { Search as VanSearch, Sticky as VanSticky, Cell as VanCell, Button as VanButton } from 'vant';
 
+const router = useRouter();
 const { isMobile } = useResponsive();
+
+// 返回：优先回退历史；直链进入（无上一页）时兜底到产品列表，避免退出站点
+function goBack() {
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products');
+    }
+}
+
 const searchKeyword = ref('');
 
 interface BrandForm { name: string; description: string; sortOrder: number }
@@ -113,9 +130,9 @@ const { handleCreate, handleEdit, handleDelete, handleSubmit } = crud;
 void formRef; // 模板 ref="formRef" 绑定所需，脚本本身不读取
 const brands = crud.list;
 const filteredBrands = computed(() => {
-    const kw = searchKeyword.value.trim().toLowerCase();
+    const kw = searchKeyword.value.trim();
     if (!kw) return brands.value;
-    return brands.value.filter((b) => b.name.toLowerCase().includes(kw));
+    return brands.value.filter((b) => matchPinyin(b.name, kw));
 });
 
 const rules: FormRules = { name: [{ required: true, message: '请输入品牌名称', trigger: 'blur' }] };
@@ -128,6 +145,8 @@ onMounted(crud.fetchData);
 <style scoped>
 .admin-crud-page { max-width: 1200px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h2 { margin: 0; }
 .header-actions { display: flex; gap: 12px; }
 .search-box { width: 240px; }
 .list-title { font-weight: 500; font-size: 16px; }

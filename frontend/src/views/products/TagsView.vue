@@ -1,8 +1,8 @@
 <template>
   <div class="admin-crud-page">
     <div class="page-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <el-button :icon="ArrowLeft" circle plain @click="goBack" />
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text @click="goBack">返回</el-button>
         <h2>标签管理</h2>
       </div>
       <div class="header-actions">
@@ -88,6 +88,7 @@ import type { FormRules } from 'element-plus';
 import { Plus, Search, ArrowLeft } from '@element-plus/icons-vue';
 import type { ProductTag } from '@/types';
 import { productTagsApi } from '@/api';
+import { matchPinyin } from '@/utils/pinyinFilter';
 import { useResponsive, useCrudDialog } from '@/composables';
 import { Search as VanSearch, Sticky as VanSticky, Cell as VanCell, Button as VanButton } from 'vant';
 
@@ -114,19 +115,23 @@ void formRef; // 模板 ref="formRef" 绑定所需，脚本本身不读取
 const tags = crud.list;
 const searchKeyword = ref('');
 const filteredTags = computed(() => {
-    const kw = searchKeyword.value.trim().toLowerCase();
+    const kw = searchKeyword.value.trim();
     if (!kw) return tags.value;
-    return tags.value.filter((t) => t.name.toLowerCase().includes(kw));
+    return tags.value.filter((t) => matchPinyin(t.name, kw));
 });
 
 const rules: FormRules = { name: [{ required: true, message: '请输入标签名称', trigger: 'blur' }] };
 
 function handleSearch() { /* computed 已实现本地过滤 */ }
 
+// 返回：优先回退历史；直链进入（无上一页）时兜底到产品列表，避免退出站点
 function goBack() {
-    const parent = router.currentRoute.value.query.from as string | undefined;
-    if (parent) void router.push(parent);
-    else router.back();
+    const state = window.history.state as { back?: string | null } | null;
+    if (state?.back != null) {
+        void router.back();
+    } else {
+        void router.push('/products');
+    }
 }
 
 onMounted(crud.fetchData);
@@ -135,6 +140,8 @@ onMounted(crud.fetchData);
 <style scoped>
 .admin-crud-page { max-width: 1200px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h2 { margin: 0; }
 .header-actions { display: flex; gap: 12px; }
 .search-box { width: 240px; }
 .sub-title { font-size: 12px; color: var(--text-tertiary); margin-left: 8px; font-weight: normal; }

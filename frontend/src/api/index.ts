@@ -29,6 +29,7 @@ import type {
     CreateProjectDto,
     UpdateProjectDto,
     CreateWorkRecordDto,
+    CreateWorkRecordsDto,
     UpdateWorkRecordDto,
     CustomerDevice,
     GlobalPerformanceResult,
@@ -278,5 +279,5 @@ export const performanceApi = {
     deleteWarehouseFeeRecord: (recordId: string) => api.delete(`/performance/warehouse/fee-records/${recordId}`),
 };
 
-// ==================== 产品库 ====================
+// ==================== 产品管理 ====================
 export * from './products';
