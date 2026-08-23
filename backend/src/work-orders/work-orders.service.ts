@@ -123,12 +123,18 @@ export class WorkOrdersService {
         { customer: { shortName: { contains: keyword, mode: 'insensitive' } } },
         {
           customer: {
-            namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+            namePinyin: {
+              contains: keyword.toLowerCase(),
+              mode: 'insensitive',
+            },
           },
         },
         {
           customer: {
-            nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+            nameInitials: {
+              contains: keyword.toLowerCase(),
+              mode: 'insensitive',
+            },
           },
         },
       ];
@@ -608,12 +614,18 @@ export class WorkOrdersService {
         { customer: { shortName: { contains: keyword, mode: 'insensitive' } } },
         {
           customer: {
-            namePinyin: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+            namePinyin: {
+              contains: keyword.toLowerCase(),
+              mode: 'insensitive',
+            },
           },
         },
         {
           customer: {
-            nameInitials: { contains: keyword.toLowerCase(), mode: 'insensitive' },
+            nameInitials: {
+              contains: keyword.toLowerCase(),
+              mode: 'insensitive',
+            },
           },
         },
       ];
