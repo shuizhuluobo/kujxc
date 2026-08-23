@@ -228,11 +228,12 @@ export class ProductsService {
       conditions.push({ status });
     }
     if (minPrice != null || maxPrice != null) {
+      const priceFilter = {
+        ...(minPrice != null ? { gte: minPrice } : {}),
+        ...(maxPrice != null ? { lte: maxPrice } : {}),
+      };
       conditions.push({
-        marketPrice: {
-          ...(minPrice != null ? { gte: minPrice } : {}),
-          ...(maxPrice != null ? { lte: maxPrice } : {}),
-        },
+        OR: [{ marketPrice: priceFilter }, { salePrice: priceFilter }],
       });
     }
     if (keyword) {

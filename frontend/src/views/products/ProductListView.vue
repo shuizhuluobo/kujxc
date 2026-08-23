@@ -177,7 +177,7 @@
     <div v-else-if="viewMode === 'card'" class="card-grid" v-loading="loading">
       <div v-for="row in products" :key="row.id" class="product-card" :class="{ 'stale-card': row.isStale }">
         <div class="card-thumb" @click="goDetail(row)">
-          <img v-if="row.images[0]" :src="resolveAssetUrl(row.images[0].url)" class="thumb-img" alt="product" loading="lazy" />
+          <img v-if="row.images?.[0]" :src="resolveAssetUrl(row.images[0].url)" class="thumb-img" alt="product" loading="lazy" />
           <div v-else class="thumb-placeholder"><el-icon><Picture /></el-icon></div>
           <el-tag v-if="row.isStale" type="warning" size="small" effect="dark" class="stale-badge-abs">超期未更新</el-tag>
         </div>

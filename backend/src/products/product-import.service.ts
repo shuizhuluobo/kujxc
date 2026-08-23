@@ -21,6 +21,7 @@ interface ImportFieldAliases {
   description: string[];
   unit: string[];
   isMarketProduct: string[];
+  salePrice: string[];
   marketPrice: string[];
   costPrice: string[];
   marketUrl: string[];
@@ -54,7 +55,8 @@ const FIELD_ALIASES: ImportFieldAliases = {
     'isMarketProduct',
     'ismarketproduct',
   ],
-  marketPrice: ['价格', '商城价格', '市场价', '售价', '单价', 'price'],
+  salePrice: ['销售价', '销售价格', '售价', 'salePrice', 'sale price'],
+  marketPrice: ['价格', '商城价格', '市场价', '单价', 'price'],
   costPrice: ['成本', '成本价', '成本单价', '进价', 'cost'],
   marketUrl: ['链接', '商城链接', '网址', 'url'],
   warranty: ['保修', '保修期', 'warranty'],
@@ -561,6 +563,7 @@ export class ProductImportService {
         description?: string;
         unit?: string;
         isMarketProduct?: boolean;
+        salePrice?: number;
         marketPrice?: number;
         costPrice?: number;
         marketUrl?: string;
@@ -763,6 +766,7 @@ export class ProductImportService {
             description: mapped.description || undefined,
             unit: mapped.unit || '台',
             isMarketProduct: this.parseBool(mapped.isMarketProduct || ''),
+            salePrice: this.parsePrice(mapped.salePrice || ''),
             marketPrice: this.parsePrice(mapped.marketPrice || ''),
             costPrice: this.parsePrice(mapped.costPrice || ''),
             marketUrl: mapped.marketUrl || undefined,
@@ -807,67 +811,72 @@ export class ProductImportService {
     const BATCH = 100;
     for (let i = 0; i < needCreate.length; i += BATCH) {
       const batch = needCreate.slice(i, i + BATCH);
-      await Promise.all(
-        batch.map(async (row, j) => {
-          const code = codes[i + j];
-          const { tagIds, imageUrls, ...data } = row.data;
-          if (row.duplicateAction === 'overwrite' && row.duplicateTargetId) {
-            // 预处理与写入之间库可能变化，重新校验目标仍存在
-            const existing = await this.prisma.product.findFirst({
-              where: { id: row.duplicateTargetId, deletedAt: null },
-            });
-            if (existing) {
-              await this.prisma.product.update({
-                where: { id: existing.id },
-                data: {
-                  description: data.description,
-                  model: data.model,
-                  unit: data.unit,
-                  isMarketProduct: data.isMarketProduct,
-                  marketPrice: data.marketPrice,
-                  costPrice: data.costPrice,
-                  marketUrl: data.marketUrl,
-                  warranty: data.warranty,
-                  supplier: data.supplier,
-                  minOrderQty: data.minOrderQty,
-                  status: defaultStatus,
-                  lastPriceUpdateAt: data.marketPrice
-                    ? new Date()
-                    : existing.lastPriceUpdateAt,
-                  updatedBy: userId,
-                },
-              });
-              overwrittenRows++;
-              successRows++;
-              return;
-            }
-          }
-          const product = await this.prisma.product.create({
-            data: {
-              code,
-              ...data,
-              status: defaultStatus,
-              createdBy: userId,
-              updatedBy: userId,
-              tags: tagIds?.length
-                ? { create: tagIds.map((tagId) => ({ tagId })) }
-                : undefined,
-            },
+      for (let j = 0; j < batch.length; j++) {
+        const row = batch[j];
+        const code = codes[i + j];
+        const { tagIds, imageUrls, ...data } = row.data;
+        if (row.duplicateAction === 'overwrite' && row.duplicateTargetId) {
+          // 预处理与写入之间库可能变化，重新校验目标仍存在
+          const existing = await this.prisma.product.findFirst({
+            where: { id: row.duplicateTargetId, deletedAt: null },
           });
-          // 注册为重复候选：同批后续相同行与原实时查询行为一致
-          ctx.registerCreated(row.data.brandId, product);
-          if (imageUrls?.length) {
-            await this.prisma.productImage.createMany({
-              data: imageUrls.map((url, idx) => ({
-                productId: product.id,
-                url,
-                displayOrder: idx,
-              })),
+          if (existing) {
+            const hasPrice = data.marketPrice != null || data.salePrice != null;
+            await this.prisma.product.update({
+              where: { id: existing.id },
+              data: {
+                description: data.description,
+                model: data.model,
+                unit: data.unit,
+                isMarketProduct: data.isMarketProduct,
+                salePrice: data.salePrice,
+                marketPrice: data.marketPrice,
+                costPrice: data.costPrice,
+                marketUrl: data.marketUrl,
+                warranty: data.warranty,
+                supplier: data.supplier,
+                minOrderQty: data.minOrderQty,
+                status: defaultStatus,
+                lastPriceUpdateAt: hasPrice
+                  ? new Date()
+                  : existing.lastPriceUpdateAt,
+                updatedBy: userId,
+              },
             });
+            overwrittenRows++;
+            successRows++;
+            continue;
           }
-          successRows++;
-        }),
-      );
+        }
+        const product = await this.prisma.product.create({
+          data: {
+            code,
+            ...data,
+            status: defaultStatus,
+            lastPriceUpdateAt:
+              data.marketPrice != null || data.salePrice != null
+                ? new Date()
+                : undefined,
+            createdBy: userId,
+            updatedBy: userId,
+            tags: tagIds?.length
+              ? { create: tagIds.map((tagId) => ({ tagId })) }
+              : undefined,
+          },
+        });
+        // 注册为重复候选：同批后续相同行与原实时查询行为一致
+        ctx.registerCreated(row.data.brandId, product);
+        if (imageUrls?.length) {
+          await this.prisma.productImage.createMany({
+            data: imageUrls.map((url, idx) => ({
+              productId: product.id,
+              url,
+              displayOrder: idx,
+            })),
+          });
+        }
+        successRows++;
+      }
     }
 
     const skippedCount = generatedRows.filter(
@@ -960,7 +969,11 @@ export class ProductImportService {
     if (brandNames.length > 0) {
       const brands =
         (await this.prisma.brand.findMany({
-          where: { name: { in: brandNames, mode: 'insensitive' as const } },
+          where: {
+            OR: brandNames.map((n) => ({
+              name: { equals: n, mode: 'insensitive' as const },
+            })),
+          },
           select: { id: true, name: true },
         })) ?? [];
       for (const b of brands) {
@@ -1027,14 +1040,14 @@ export class ProductImportService {
           brandId: { in: [...brandIdsForDup] },
           OR: [
             ...(namesSet.size > 0
-              ? [{ name: { in: [...namesSet], mode: 'insensitive' as const } }]
+              ? [...namesSet].map((n) => ({
+                  name: { equals: n, mode: 'insensitive' as const },
+                }))
               : []),
             ...(modelsSet.size > 0
-              ? [
-                  {
-                    model: { in: [...modelsSet], mode: 'insensitive' as const },
-                  },
-                ]
+              ? [...modelsSet].map((m) => ({
+                  model: { equals: m, mode: 'insensitive' as const },
+                }))
               : []),
           ],
         },

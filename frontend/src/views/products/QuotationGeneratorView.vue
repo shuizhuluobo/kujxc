@@ -616,7 +616,7 @@ onMounted(async () => {
     const ids = route.query.ids as string | undefined;
     if (ids) {
         const idList = ids.split(',');
-        const { data } = await productsApi.getAll({ pageSize: 50 });
+        const { data } = await productsApi.getAll({ pageSize: idList.length });
         const picked = data.data.filter((p) => idList.includes(p.id));
         for (const p of picked) {
             form.items.push(createItemFromProduct(p));
