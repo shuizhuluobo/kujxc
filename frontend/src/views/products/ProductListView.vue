@@ -248,7 +248,6 @@ import { PRODUCT_STATUS_LABELS } from '@/types';
 import { productsApi, brandsApi, categoriesApi, productTagsApi, settingsApi } from '@/api';
 import { usePermission } from '@/composables/usePermission';
 import { resolveAssetUrl } from '@/utils/url';
-import ExcelJS from 'exceljs';
 import { downloadBlob } from '@/utils/download';
 import { getApiErrorMessage, flattenCategories, formatPrice as fmtPrice } from '@/utils/format';
 import { matchPinyin } from '@/utils/pinyinFilter';
@@ -437,6 +436,8 @@ const TEMPLATE_COLUMNS = [
 
 async function downloadTemplate() {
     try {
+        // 按需加载 exceljs（~1MB），与导出保持一致
+        const { default: ExcelJS } = await import('exceljs');
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('产品导入模板');
         sheet.columns = TEMPLATE_COLUMNS.map((header) => ({
@@ -672,8 +673,8 @@ function restoreListState() {
 onMounted(async () => {
     restorePending = true;
     restoreListState();
-    await loadFilters();
-    await fetchData();
+    // 筛选数据与列表并行加载，列表不再被筛选请求阻塞
+    await Promise.all([loadFilters(), fetchData()]);
     restorePending = false;
 });
 
