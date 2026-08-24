@@ -55,4 +55,18 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
+  {
+    // 安全评估（2026-08）：E2E 测试中 supertest 响应（res.body/res.text）与
+    // Nest getHttpServer() 本身就是 any，断言天然依赖动态 HTTP 形状；
+    // 行为正确性由真实路由/守卫/数据库断言保障，类型化收益低。
+    // 与 tsconfig.test.json 放宽 strict 的思路一致。
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
 );

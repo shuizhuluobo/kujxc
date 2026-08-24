@@ -1,17 +1,13 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": ".",
+  "rootDir": "..",
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
+  "testRegex": "test/.+\\.e2e-spec\\.ts$",
+  "setupFiles": ["<rootDir>/test/setupEnv.ts"],
   "transform": {
-    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "tsconfig.test.json", "useESM": true }]
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "tsconfig.test.json" }]
   },
-  "extensionsToTreatAsEsm": [".ts"],
   "moduleNameMapper": {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-    "^uuid$": "<rootDir>/__mocks__/uuid.ts"
-  },
-  "testEnvironmentOptions": {
-    "customExportConditions": ["node", "node-addons"]
+    "^(\\.{1,2}/.*)\\.js$": "$1"
   }
 }

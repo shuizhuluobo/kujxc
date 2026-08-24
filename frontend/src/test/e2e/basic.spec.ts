@@ -1,222 +1,102 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
+/**
+ * 权限体系基础 E2E 测试（vitest + jsdom）
+ *
+ * 直接针对真实模块 @/config/permissions 验证：
+ * - 通配符权限（全局 * 与模块级 module:*）解析
+ * - hasAnyPermission / hasAllPermissions 组合语义
+ * - 内置角色模板（admin/business/engineer）的权限边界
+ *
+ * 运行：pnpm --filter frontend test:e2e
+ */
+import { describe, it, expect } from 'vitest';
+import {
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    PermissionModules,
+    RolePermissionTemplates,
+} from '@/config/permissions';
 
-vi.mock('@/api/client', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-    defaults: { paramsSerializer: {} },
-    interceptors: {
-      request: { handlers: [] },
-      response: { handlers: [] },
-    },
-  },
-}));
+describe('权限校验：hasPermission', () => {
+    it('精确匹配', () => {
+        const perms = ['workOrder:create', 'workOrder:list'];
+        expect(hasPermission(perms, 'workOrder:create')).toBe(true);
+        expect(hasPermission(perms, 'workOrder:delete')).toBe(false);
+    });
 
-describe('Authentication Flow', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    localStorage.clear();
-    vi.clearAllMocks();
-  });
+    it('模块级通配符 module:* 覆盖模块内全部动作', () => {
+        const perms = ['region:*'];
+        expect(hasPermission(perms, 'region:create')).toBe(true);
+        expect(hasPermission(perms, 'region:delete')).toBe(true);
+        expect(hasPermission(perms, 'customer:view')).toBe(false);
+    });
 
-  it('should validate login credentials', () => {
-    const validateLogin = (username: string, password: string) => {
-      if (!username || username.length === 0) return '用户名不能为空';
-      if (!password || password.length === 0) return '密码不能为空';
-      return null;
-    };
+    it('全局通配符 * 拥有一切权限', () => {
+        const perms = ['*'];
+        expect(hasPermission(perms, 'system:user_manage')).toBe(true);
+        expect(hasPermission(perms, 'fee:view_amount')).toBe(true);
+        expect(hasPermission(perms, 'anything:anything')).toBe(true);
+    });
 
-    expect(validateLogin('', 'password')).toBe('用户名不能为空');
-    expect(validateLogin('admin', '')).toBe('密码不能为空');
-    expect(validateLogin('admin', 'password')).toBeNull();
-  });
-
-  it('should validate password complexity', () => {
-    const validatePassword = (password: string) => {
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-      if (password.length < 8) return '密码长度至少8位';
-      if (!regex.test(password)) return '密码必须包含大小写字母、数字和特殊字符';
-      return null;
-    };
-
-    expect(validatePassword('weak')).toBe('密码长度至少8位');
-    expect(validatePassword('nouppercase123!')).toBe('密码必须包含大小写字母、数字和特殊字符');
-    expect(validatePassword('Valid123!')).toBeNull();
-  });
-
-  it('should validate UUID format', () => {
-    const isValidUUID = (str: string) => {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      return uuidRegex.test(str);
-    };
-
-    expect(isValidUUID('invalid')).toBe(false);
-    expect(isValidUUID('12345678-1234-1234-1234-123456789012')).toBe(true);
-  });
+    it('空权限列表返回 false', () => {
+        expect(hasPermission([], 'workOrder:view')).toBe(false);
+        expect(hasPermission(undefined as unknown as string[], 'workOrder:view')).toBe(false);
+    });
 });
 
-describe('Permission System', () => {
-  it('should check single permission', () => {
-    const hasPermission = (perms: string[], required: string) => {
-      if (perms.includes('*')) return true;
-      if (perms.includes(required)) return true;
-      const [module] = required.split(':');
-      if (perms.includes(`${module}:*`)) return true;
-      return false;
-    };
+describe('权限校验：组合语义', () => {
+    it('hasAnyPermission：任一满足即通过', () => {
+        const perms = ['customer:view'];
+        expect(hasAnyPermission(perms, ['customer:view', 'customer:delete'])).toBe(true);
+        expect(hasAnyPermission(perms, ['customer:delete', 'customer:edit'])).toBe(false);
+    });
 
-    const permissions = ['workOrder:create', 'workOrder:list', 'system:*'];
-    expect(hasPermission(permissions, 'workOrder:create')).toBe(true);
-    expect(hasPermission(permissions, 'workOrder:delete')).toBe(false);
-    expect(hasPermission(permissions, 'system:user_manage')).toBe(true);
-  });
-
-  it('should handle wildcard permissions correctly', () => {
-    const hasPermission = (perms: string[], required: string) => {
-      if (perms.includes('*')) return true;
-      if (perms.includes(required)) return true;
-      const [module] = required.split(':');
-      if (perms.includes(`${module}:*`)) return true;
-      return false;
-    };
-
-    expect(hasPermission(['system:*'], 'system:user_manage')).toBe(true);
-    expect(hasPermission(['system:*'], 'system:role_manage')).toBe(true);
-    expect(hasPermission(['workOrder:*'], 'workOrder:create')).toBe(true);
-    expect(hasPermission(['customer:*'], 'customer:view')).toBe(true);
-  });
+    it('hasAllPermissions：必须全部满足', () => {
+        const perms = ['workOrder:view', 'workOrder:receive'];
+        expect(hasAllPermissions(perms, ['workOrder:view', 'workOrder:receive'])).toBe(true);
+        expect(hasAllPermissions(perms, ['workOrder:view', 'workOrder:complete'])).toBe(false);
+        // 通配符可同时满足多个要求
+        expect(hasAllPermissions(['*'], ['wiki:create', 'wiki:delete'])).toBe(true);
+    });
 });
 
-describe('Data Validation', () => {
-  it('should validate work order required fields', () => {
-    const validateWorkOrder = (data: Record<string, unknown>) => {
-      const errors: string[] = [];
-      if (!data.detail) errors.push('工单详情不能为空');
-      if (!data.customerId) errors.push('客户不能为空');
-      if (!data.regionId) errors.push('区域不能为空');
-      if (!data.serviceTypeId) errors.push('服务类型不能为空');
-      return errors;
-    };
+describe('内置角色模板权限边界', () => {
+    const admin = RolePermissionTemplates.admin.permissions;
+    const business = RolePermissionTemplates.business.permissions;
+    const engineer = RolePermissionTemplates.engineer.permissions;
 
-    expect(validateWorkOrder({})).toHaveLength(4);
-    expect(validateWorkOrder({ detail: 'test', customerId: '1', regionId: '1', serviceTypeId: '1' })).toHaveLength(0);
-  });
+    it('管理员拥有所有权限', () => {
+        expect(admin).toContain('*');
+        for (const key of Object.keys(PermissionModules)) {
+            expect(hasPermission(admin, `${key}:anything`)).toBe(true);
+        }
+    });
 
-  it('should validate work order status transitions', () => {
-    const canTransition = (from: string, to: string) => {
-      const validTransitions: Record<string, string[]> = {
-        PENDING: ['RECEIVED'],
-        RECEIVED: ['COMPLETED', 'PENDING'],
-        COMPLETED: [],
-      };
-      return validTransitions[from]?.includes(to) || false;
-    };
+    it('售后工程师：可接收/完成工单，不可管理系统', () => {
+        expect(hasPermission(engineer, 'workOrder:receive')).toBe(true);
+        expect(hasPermission(engineer, 'workOrder:complete')).toBe(true);
+        expect(hasPermission(engineer, 'system:user_view')).toBe(true);
+        expect(hasPermission(engineer, 'system:user_manage')).toBe(false);
+        expect(hasPermission(engineer, 'system:*')).toBe(false);
+    });
 
-    expect(canTransition('PENDING', 'RECEIVED')).toBe(true);
-    expect(canTransition('RECEIVED', 'COMPLETED')).toBe(true);
-    expect(canTransition('PENDING', 'COMPLETED')).toBe(false);
-    expect(canTransition('COMPLETED', 'PENDING')).toBe(false);
-  });
-});
+    it('商务人员：可管理客户与查看绩效金额，不可写知识库', () => {
+        expect(hasPermission(business, 'customer:create')).toBe(true);
+        expect(hasPermission(business, 'customer:delete')).toBe(false);
+        expect(hasPermission(business, 'fee:view_amount')).toBe(true);
+        expect(hasPermission(business, 'wiki:create')).toBe(false);
+    });
 
-describe('Pagination', () => {
-  it('should calculate pagination correctly', () => {
-    const calculatePagination = (page: number, pageSize: number, total: number) => {
-      const totalPages = Math.ceil(total / pageSize);
-      const skip = (page - 1) * pageSize;
-      return { page, pageSize, total, totalPages, skip };
-    };
-
-    const result = calculatePagination(2, 10, 55);
-    expect(result.totalPages).toBe(6);
-    expect(result.skip).toBe(10);
-  });
-
-  it('should handle edge cases', () => {
-    const calculatePagination = (page: number, pageSize: number, total: number) => {
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      return { page: Math.min(page, totalPages), totalPages };
-    };
-
-    expect(calculatePagination(1, 10, 0).totalPages).toBe(1);
-    expect(calculatePagination(100, 10, 50).page).toBe(5);
-  });
-});
-
-describe('File Upload Security', () => {
-  it('should validate file types', () => {
-    const validateFileType = (filename: string) => {
-      const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-      const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
-      return allowedTypes.includes(ext);
-    };
-
-    expect(validateFileType('image.png')).toBe(true);
-    expect(validateFileType('document.pdf')).toBe(false);
-    expect(validateFileType('script.exe')).toBe(false);
-  });
-
-  it('should validate file size', () => {
-    const validateFileSize = (size: number, maxSize: number) => {
-      return size <= maxSize;
-    };
-
-    const maxSize = 5 * 1024 * 1024;
-    expect(validateFileSize(1024, maxSize)).toBe(true);
-    expect(validateFileSize(10 * 1024 * 1024, maxSize)).toBe(false);
-  });
-});
-
-describe('Rate Limiting', () => {
-  it('should track request counts correctly', () => {
-    const requestCounts = new Map<string, { count: number; resetTime: number }>();
-    const key = '192.168.1.1:/api/test';
-    const now = Date.now();
-    const ttl = 60000;
-
-    requestCounts.set(key, { count: 1, resetTime: now + ttl });
-    const record = requestCounts.get(key);
-
-    expect(record?.count).toBe(1);
-    expect(record?.resetTime).toBeGreaterThan(now);
-  });
-
-  it('should clean up expired records', () => {
-    const requestCounts = new Map<string, { count: number; resetTime: number }>();
-    const now = Date.now();
-    
-    requestCounts.set('expired-key', { count: 1, resetTime: now - 1000 });
-    requestCounts.set('valid-key', { count: 1, resetTime: now + 60000 });
-
-    for (const [key, record] of requestCounts.entries()) {
-      if (record.resetTime <= now) {
-        requestCounts.delete(key);
-      }
-    }
-
-    expect(requestCounts.has('expired-key')).toBe(false);
-    expect(requestCounts.has('valid-key')).toBe(true);
-  });
-});
-
-describe('CSRF Protection', () => {
-  it('should exclude CSRF for login endpoint', () => {
-    const excludedPaths = ['/auth/login', '/auth/refresh', '/security/csrf-token', '/fee/'];
-    const shouldExclude = (url: string) => excludedPaths.some(path => url.includes(path));
-
-    expect(shouldExclude('/api/auth/login')).toBe(true);
-    expect(shouldExclude('/api/auth/refresh')).toBe(true);
-    expect(shouldExclude('/api/security/csrf-token')).toBe(true);
-    expect(shouldExclude('/api/users')).toBe(false);
-  });
-
-  it('should not require CSRF for GET requests', () => {
-    const methodsNotRequiringCsrf = ['GET', 'HEAD', 'OPTIONS'];
-    
-    expect(methodsNotRequiringCsrf.includes('GET')).toBe(true);
-    expect(methodsNotRequiringCsrf.includes('POST')).toBe(false);
-  });
+    it('模板中的权限码格式合法（module:action 或 *）', () => {
+        const moduleKeys = new Set<string>(Object.keys(PermissionModules).map(
+            (k) => PermissionModules[k as keyof typeof PermissionModules].key,
+        ));
+        for (const template of [business, engineer]) {
+            for (const perm of template) {
+                if (perm === '*') continue;
+                const [moduleKey] = perm.split(':');
+                expect(moduleKeys.has(moduleKey)).toBe(true);
+            }
+        }
+    });
 });
