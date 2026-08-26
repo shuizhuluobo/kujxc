@@ -55,7 +55,7 @@
             style="width: 100%"
           >
             <el-option 
-              v-for="u in baseDataStore.users.filter(u => u.role?.code === 'engineer')" 
+              v-for="u in baseDataStore.users.filter(u => u.isActive && u.role?.code === 'engineer')" 
               :key="u.id" 
               :label="u.name" 
               :value="u.id"
@@ -146,12 +146,13 @@ function filterByPinyin(query: string, item: unknown) {
 const sameRegionEngineerIds = ref<string[]>([]);
 const repairFee = ref<number | undefined>(undefined);
 
-// 获取同区域工程师列表
+// 获取同区域工程师列表 - 过滤已禁用及已变更区域的用户
 const sameRegionEngineers = computed(() => {
   const currentRegionId = completingWorkOrder.value?.regionId;
   if (!currentRegionId) return [];
   return baseDataStore.users.filter(
-    u => u.role?.code === 'engineer' && 
+    u => u.isActive &&
+         u.role?.code === 'engineer' && 
          u.regionId === currentRegionId && 
          u.id !== authStore.user?.id
   );

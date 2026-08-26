@@ -69,6 +69,14 @@ export class UsersController {
     return this.usersService.getStats(user.id);
   }
 
+  @Get(':id/can-delete')
+  @UseGuards(PermissionsGuard)
+  @Permissions('system:user_view')
+  @ApiOperation({ summary: '检查用户是否可硬删除（有数据关联则只能禁用）' })
+  canDelete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.canHardDelete(id);
+  }
+
   @Get(':id')
   @UseGuards(PermissionsGuard)
   @Permissions('system:user_view')

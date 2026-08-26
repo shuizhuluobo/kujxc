@@ -295,7 +295,7 @@ const repairFee = ref<number | undefined>(undefined);
 const actionLoading = ref(false);
 
 const engineers = computed<UserType[]>(() => {
-  return baseDataStore.users.filter(u => u.role?.code === 'engineer');
+  return baseDataStore.users.filter(u => u.isActive && u.role?.code === 'engineer');
 });
 
 // 判断是否可以查看维修费（管理员或工单完成人）
@@ -303,12 +303,13 @@ const canViewRepairFee = computed(() => {
   return authStore.isAdmin || String(props.workOrder.completerId) === String(authStore.user?.id);
 });
 
-// 获取同区域人员列表（不限角色）
+// 获取同区域人员列表（不限角色） - 过滤已禁用及已变更区域的用户
 const sameRegionEngineers = computed<UserType[]>(() => {
   const regionId = props.workOrder.regionId;
   if (!regionId) return [];
   return baseDataStore.users.filter(
-    u => u.regionId === regionId && 
+    u => u.isActive &&
+         u.regionId === regionId && 
          u.id !== authStore.user?.id
   );
 });

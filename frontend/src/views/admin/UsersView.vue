@@ -336,16 +336,39 @@ function handleResetPassword(row: User) {
 }
 
 async function handleDelete(row: User) {
+  // 预检是否可硬删除：有数据关联则只能禁用
+  let hasAssociation = false;
+  let canHardDelete = true;
   try {
-    await ElMessageBox.confirm('确定删除此用户吗？', '提示', { type: 'warning' });
+    const res = await usersApi.canDelete(row.id);
+    hasAssociation = res.data.hasAssociation;
+    canHardDelete = res.data.canHardDelete;
+  } catch {
+    // 预检失败则按默认删除流程继续
+  }
+
+  const confirmMessage = hasAssociation
+    ? '该工程师有数据关联，只能禁用，是否禁用该用户？'
+    : '确定删除此用户吗？';
+  const confirmTitle = hasAssociation ? '提示 - 将禁用用户' : '提示';
+  const confirmBtnText = hasAssociation ? '确认禁用' : '确认删除';
+
+  try {
+    await ElMessageBox.confirm(confirmMessage, confirmTitle, {
+      type: 'warning',
+      confirmButtonText: confirmBtnText,
+      cancelButtonText: '取消',
+    });
   } catch { return; }
+
   try {
-    await usersApi.delete(row.id);
-    ElMessage.success('删除成功');
+    const res = await usersApi.delete(row.id);
+    // 后端返回 message 已区分 删除/禁用
+    ElMessage.success(res.data.message || (canHardDelete ? '删除成功' : '已禁用'));
     void fetchData();
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } };
-    ElMessage.error(err.response?.data?.message || '删除失败');
+    ElMessage.error(err.response?.data?.message || '操作失败');
   }
 }
 

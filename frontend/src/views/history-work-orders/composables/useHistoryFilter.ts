@@ -66,9 +66,9 @@ export function useHistoryFilter() {
         dateRange.value = null;
     }
 
-    // 完成人筛选
+    // 完成人筛选 - 过滤已禁用用户
     const allCompleters = computed(() =>
-        baseDataStore.users.filter(u => u.role?.code === 'engineer' || u.role?.code === 'admin')
+        baseDataStore.users.filter(u => u.isActive && (u.role?.code === 'engineer' || u.role?.code === 'admin'))
     );
     const filteredCompleters = ref<UserType[]>([]);
 

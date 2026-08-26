@@ -133,17 +133,64 @@ export class UsersService {
     return result;
   }
 
+  /**
+   * 检查用户是否有数据关联（有则不可硬删除，只能禁用）
+   * 覆盖 WorkOrder / Collaborator / Performance 等外键场景
+   */
+  async hasDataAssociation(userId: string): Promise<boolean> {
+    const [workOrderCount, collabCount, deviceCount, projectCount, recordCount, memberCount, articleCount] =
+      await Promise.all([
+        this.prisma.workOrder.count({
+          where: { OR: [{ creatorId: userId }, { receiverId: userId }, { completerId: userId }] },
+        }),
+        this.prisma.workOrderCollaborator.count({ where: { userId } }),
+        this.prisma.customerDevice.count({ where: { creatorId: userId } }),
+        this.prisma.performanceProject.count({ where: { creatorId: userId } }),
+        this.prisma.performanceRecord.count({ where: { creatorId: userId } }),
+        this.prisma.projectMember.count({ where: { userId } }),
+        this.prisma.wikiArticle.count({ where: { authorId: userId } }),
+      ]);
+    return (
+      workOrderCount > 0 ||
+      collabCount > 0 ||
+      deviceCount > 0 ||
+      projectCount > 0 ||
+      recordCount > 0 ||
+      memberCount > 0 ||
+      articleCount > 0
+    );
+  }
+
+  async canHardDelete(id: string): Promise<{ canHardDelete: boolean; hasAssociation: boolean }> {
+    await this.findOne(id);
+    const hasAssociation = await this.hasDataAssociation(id);
+    return { canHardDelete: !hasAssociation, hasAssociation };
+  }
+
   async remove(id: string) {
-    await this.findOne(id); // 检查用户是否存在
-    // 不实际删除，改为禁用用户（避免外键约束问题）
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: { isActive: false },
-      include: { role: true, region: true },
-    });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...result } = user;
-    return result;
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('用户不存在');
+
+    const hasAssociation = await this.hasDataAssociation(id);
+
+    if (hasAssociation) {
+      // 有数据关联，只能禁用（避免外键约束）
+      if (!existing.isActive) {
+        return { message: '该用户已被禁用', action: 'already_disabled' as const, hasAssociation: true };
+      }
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: { isActive: false },
+        include: { role: true, region: true },
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...result } = user;
+      return { ...result, message: '该工程师有数据关联，只能禁用，已禁用该用户', action: 'disabled' as const, hasAssociation: true };
+    }
+
+    // 无关联，可硬删除
+    await this.prisma.user.delete({ where: { id } });
+    return { message: '删除成功', action: 'deleted' as const, hasAssociation: false };
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
