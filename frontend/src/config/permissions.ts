@@ -43,6 +43,23 @@ export const PermissionModules = {
         ],
     },
 
+    // 供应商管理 — 独立导航，含打款信息 bankName/bankAccount/accountName/paymentMethod
+    SUPPLIER: {
+        key: 'supplier',
+        name: '供应商管理',
+        icon: 'Van',
+        pages: [
+            { key: 'manage', name: '供应商管理', path: '/admin/suppliers' },
+        ],
+        actions: [
+            { key: 'list', name: '供应商列表', description: '允许查看供应商列表' },
+            { key: 'view', name: '查看供应商', description: '允许查看供应商详情含打款信息' },
+            { key: 'create', name: '创建供应商', description: '允许创建供应商' },
+            { key: 'edit', name: '编辑供应商', description: '允许编辑供应商及打款信息' },
+            { key: 'delete', name: '删除供应商', description: '允许删除供应商' },
+        ],
+    },
+
     // 区域管理
     REGION: {
         key: 'region',
@@ -126,6 +143,54 @@ export const PermissionModules = {
             { key: 'delete', name: '删除产品', description: '允许删除产品' },
             { key: 'import', name: '批量导入', description: '允许批量导入产品' },
             { key: 'viewCost', name: '查看成本价', description: '允许查看产品成本价与毛利' },
+        ],
+    },
+
+    // 进销存 — 全局库存不按仓库隔离
+    INVENTORY: {
+        key: 'inventory',
+        name: '进销存',
+        icon: 'Box',
+        pages: [
+            { key: 'stock', name: '库存查询', path: '/inventory/stock' },
+            { key: 'in', name: '入库管理', path: '/inventory/in' },
+            { key: 'out', name: '出库管理', path: '/inventory/out' },
+        ],
+        actions: [
+            { key: 'view', name: '查看库存', description: '允许查看全局库存 kccx' },
+            { key: 'create', name: '新建单据', description: '允许新建入库/出库单' },
+            { key: 'approve', name: '审核', description: '允许审核出库扣减 FIFO' },
+            { key: 'transfer', name: '调拨', description: '允许调拨' },
+            { key: 'return', name: '退货', description: '允许退货' },
+            { key: 'check', name: '盘点', description: '允许盘点' },
+            { key: 'export', name: '导出', description: '允许导出库存' },
+            { key: 'viewCost', name: '查看成本', description: '允许查看金额列' },
+        ],
+    },
+
+    // 仓库 — 展示用
+    WAREHOUSE: {
+        key: 'warehouse',
+        name: '仓库管理',
+        icon: 'House',
+        pages: [
+            { key: 'manage', name: '仓库管理', path: '/admin/warehouses' },
+        ],
+        actions: [
+            { key: 'manage', name: '管理仓库', description: '允许创建/编辑/删除仓库' },
+        ],
+    },
+
+    // 借用管理 — Phase2预留
+    BORROW: {
+        key: 'borrow',
+        name: '借用管理',
+        icon: 'Briefcase',
+        pages: [
+            { key: 'manage', name: '借用管理', path: '/inventory/borrow' },
+        ],
+        actions: [
+            { key: 'manage', name: '管理借用', description: '允许借用/归还' },
         ],
     },
 
@@ -234,8 +299,11 @@ export const RolePermissionTemplates = {
         permissions: [
             'workOrder:create', 'workOrder:list', 'workOrder:view', 'workOrder:update', 'workOrder:delete',
             'customer:list', 'customer:view', 'customer:create', 'customer:edit',
+            'supplier:list', 'supplier:view', 'supplier:create', 'supplier:edit',
             'region:list', 'region:view',
             'serviceType:list', 'serviceType:view',
+            'inventory:view', 'inventory:create', 'inventory:export',
+            'warehouse:list', 'warehouse:view',
             'fee:view_project', 'fee:create_project',
             'fee:calculate', 'fee:save_records', 'fee:view_records',
             'fee:view_stats', 'fee:view_amount',
