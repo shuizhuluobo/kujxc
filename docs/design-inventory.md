@@ -93,13 +93,35 @@ model BorrowOrder { // 新增：借用管理
 | 退货单 | 单据状态 | 未完成->完成 | thrk_edit |
 | 借用单 | 状态 | 已借->已还/逾期 | 新增 |
 
-## 5. 架构
+## 5. 权限体系 — 复用 kworkorder 现有RBAC（避免翻工）
 
-- **后端** `backend/src/inventory/` 三模块 `warehouses/stock-orders/transfers + borrow`，复用 `CommonModule` `PrismaModule` `AuditLog` `CodeGenerator` `JwtAuthGuard/CsrfGuard` `app.module.ts:30`。
-- **前端** `frontend/src/views/inventory/` 复用 `ProductListView` 的 `el-table/el-pagination/filter` + `pinyin-pro` 拼音搜，路由 `meta.permission: inventory:*` `router/index.ts:84`。
+> 现有实现：`backend/prisma/schema.prisma:11 Role.permissions Json` + `backend/src/common/guards/permissions.guard.ts:20` + `backend/src/auth/jwt.strategy.ts:17` JWT载荷缓存权限 + `frontend/src/config/permissions.ts:9 PermissionModules` + `RolesService`，前后端同源校验。
+
+- **机制**：`Role.permissions: string[]` 存 `module:action` 如 `product:view` `workOrder:receive`，`@Permissions('inventory:approve')` `PermissionsGuard` 校验 `some(perm==required || perm==*: 或 module:*)` `permissions.guard.ts:44`，超管 `'*'`；`JwtStrategy.validate` 将 `permissions` 注入 `request.user`，避免每次查库；前端 `hasPermission/hasAnyPermission` `permissions.ts:286` 控制 `router/index.ts:208` 元权限与按钮显隐，`MainLayout` 侧边栏按 `PermissionModules` 渲染。
+- **迁移映射**：Legacy `CNC_glyb/role/glyb_child/qxcdb` 粗粒度菜单 → 新 `Role` 细粒度动作；`cnc_jgglb` 地区已由 `User.regionId` + `Region` 隔离库存，`Inventory` 新增模块即新增 `PermissionModules` 条目，无需改表。
+- **本次新增模块**（T1前即定义，后续API/前端直接用）：
+  ```ts
+  // frontend/src/config/permissions.ts 新增
+  INVENTORY: { key:'inventory', name:'进销存', pages:[{key:'stock',path:'/inventory/stock'}],
+    actions:[
+      {key:'view',name:'查看库存'},{key:'create',name:'新建入库/销售'},{key:'approve',name:'审核'},
+      {key:'transfer',name:'调拨'},{key:'return',name:'退货'},{key:'check',name:'盘点'},
+      {key:'export',name:'导出'},{key:'viewCost',name:'查看成本'} // 对应 kccx_kcjequery 金额列
+    ]},
+  WAREHOUSE: { key:'warehouse', actions:[{key:'manage',name:'管理仓库'}]},
+  BORROW: { key:'borrow', actions:[{key:'manage',name:'借用管理'}]}, // Phase2预留
+  ```
+  后端 `@Permissions('inventory:view','inventory:*')` 装饰 `stock.controller.ts`，前端 `v-if="hasPermission(perms,'inventory:approve')"` 控制 `审核` 按钮，`meta.permission:['inventory:view','inventory:*']` 控制路由。
+- **数据级隔离**：`User.regionId` + `Warehouse.regionId` 行级过滤 `where warehouse.regionId in (user.regionId)` + `Role` 动作级，避免再造 `Legacy rank/ifend` 树；`T1` 即在 `InventoryBatch` 加 `warehouseId` 索引并落地 Guard。
+- **实施顺序**：T1 前先在 `permissions.ts` 注册模块并 `seed` 默认 `admin/business/engineer` 模板 `RolePermissionTemplates:222` 追加 `inventory:*` 给 admin，`business` 给 `view/create`，后续任务零权限重构。
+
+## 5.1 架构
+
+- **后端** `backend/src/inventory/` 三模块 `warehouses/stock-orders/transfers + borrow`，复用 `CommonModule` `PrismaModule` `AuditLog` `CodeGenerator` `JwtAuthGuard/CsrfGuard/PermissionsGuard` `app.module.ts:30` + `@Permissions` 装饰器。
+- **前端** `frontend/src/views/inventory/` 复用 `ProductListView` 的 `el-table/el-pagination/filter` + `pinyin-pro` 拼音搜，路由 `meta.permission: ['inventory:view','inventory:*']` `router/index.ts:84`，按钮级 `hasPermission`。
 - **联动扩展点**（Phase2 预留接口，Phase1 不实现）：
-  - `BorrowOrder` 类型 `BORROW/RETURN` 走 `StockLedger`，与 `InventoryBatch` 共享批次。
-  - `Sale -> StockOut -> WorkOrder`：`StockOutOrder.workOrderId FK WorkOrder.id` `schema.prisma:99`，销售审核生成 `StockOut`，工单完结反写 `维修耗材` 分录，当前仅定义 FK 可空，业务后续加。
+  - `BorrowOrder` 类型 `BORROW/RETURN` 走 `StockLedger`，与 `InventoryBatch` 共享批次，权限 `borrow:manage`。
+  - `Sale -> StockOut -> WorkOrder`：`StockOutOrder.workOrderId FK WorkOrder.id` `schema.prisma:99`，销售审核生成 `StockOut`，工单完结反写 `维修耗材` 分录，当前仅定义 FK 可空，业务后续加，权限 `inventory:approve` 复用。
 
 ## 6. UI 0学习成本映射
 
