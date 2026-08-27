@@ -22,6 +22,9 @@ import { PerformanceModule } from './performance/performance.module';
 import { ProductsModule } from './products/products.module';
 import { SettingsModule } from './settings/settings.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -63,6 +66,9 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     SettingsModule,
     AuditLogModule,
     ProductsModule,
+    SuppliersModule,
+    WarehousesModule,
+    InventoryModule,
   ],
   providers: [
     {
