@@ -23,6 +23,14 @@ export class CodeGeneratorService {
     customer: 'KH', // 客户
     contract: 'HT', // 合同
     purchase: 'CG', // 采购单
+    sale: 'XS', // 销售单
+    sale_order: 'XS', // 销售单
+    transfer_order: 'DB', // 调拨单
+    transfer: 'DB',
+    return_order: 'TH', // 退货单
+    return: 'TH',
+    stock_check: 'PD', // 盘点单
+    stock_check_order: 'PD',
   };
 
   constructor(private readonly prisma: PrismaService) {}

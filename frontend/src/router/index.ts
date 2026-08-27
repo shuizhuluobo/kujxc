@@ -65,6 +65,36 @@ const router = createRouter({
                     meta: { permission: 'serviceType:manage' },
                 },
                 {
+                    path: 'admin/suppliers',
+                    name: 'suppliers',
+                    component: () => import('@/views/admin/SuppliersView.vue'),
+                    meta: { permission: 'supplier:manage' },
+                },
+                {
+                    path: 'admin/warehouses',
+                    name: 'warehouses',
+                    component: () => import('@/views/admin/WarehousesView.vue'),
+                    meta: { permission: 'warehouse:manage' },
+                },
+                {
+                    path: 'inventory/stock',
+                    name: 'inventoryStock',
+                    component: () => import('@/views/inventory/StockQueryView.vue'),
+                    meta: { permission: 'inventory:view' },
+                },
+                {
+                    path: 'inventory/batches',
+                    name: 'inventoryBatches',
+                    component: () => import('@/views/inventory/InventoryBatchView.vue'),
+                    meta: { permission: 'inventory:view' },
+                },
+                {
+                    path: 'inventory/borrow',
+                    name: 'inventoryBorrow',
+                    component: () => import('@/views/inventory/BorrowView.vue'),
+                    meta: { permission: 'borrow:manage' },
+                },
+                {
                     path: 'wiki',
                     name: 'wikiList',
                     component: () => import('@/views/wiki/WikiList.vue'),

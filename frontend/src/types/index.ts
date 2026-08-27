@@ -687,3 +687,108 @@ export interface SystemSettings {
     quotationPrefix?: string;
     companyInfo?: Record<string, unknown>;
 }
+
+// ==================== 供应商 / 仓库 / 库存 ====================
+export interface Supplier {
+    id: string;
+    name: string;
+    namePinyin?: string | null;
+    nameInitials?: string | null;
+    contact?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    bankName?: string | null;
+    bankAccount?: string | null;
+    accountName?: string | null;
+    paymentMethod?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateSupplierDto {
+    name: string;
+    contact?: string;
+    phone?: string;
+    address?: string;
+    bankName?: string;
+    bankAccount?: string;
+    accountName?: string;
+    paymentMethod?: string;
+}
+
+export type UpdateSupplierDto = Partial<CreateSupplierDto>;
+
+export interface SupplierFilterParams extends PaginationParams {
+    orderBy?: 'createdAt' | 'name';
+}
+
+export interface Warehouse {
+    id: string;
+    name: string;
+    regionId?: string | null;
+    region?: Region | null;
+    type?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateWarehouseDto {
+    name: string;
+    regionId?: string;
+    type?: string;
+}
+
+export type UpdateWarehouseDto = Partial<CreateWarehouseDto>;
+
+export interface WarehouseFilterParams extends PaginationParams {}
+
+export interface InventoryBatch {
+    id: string;
+    productId: string;
+    product?: Product | null;
+    warehouseId?: string | null;
+    warehouse?: Warehouse | null;
+    storeName?: string | null;
+    quantityIn: number | string;
+    quantityRem: number | string;
+    unitPrice: number | string;
+    purchasePrice?: number | string | null;
+    receivedAt: string;
+    status: string;
+    supplierId?: string | null;
+    supplier?: Supplier | null;
+    flag: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface InventoryFilterParams extends PaginationParams {
+    productId?: string;
+    warehouseId?: string;
+    supplierId?: string;
+}
+
+export interface StockItem {
+    productId: string;
+    product: Pick<Product, 'id' | 'code' | 'name' | 'unit'> | null;
+    totalQuantity: number;
+    totalAmount: number;
+}
+
+export interface StockQueryParams extends PaginationParams {
+    productId?: string;
+}
+
+export interface BorrowOrder {
+    id: string;
+    code: string;
+    status: string;
+    borrowerId: string;
+    productId: string;
+    quantity: number;
+    expectedReturnAt?: string | null;
+    returnedAt?: string | null;
+    remark?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}

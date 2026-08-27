@@ -53,6 +53,14 @@
           <el-icon><OfficeBuilding /></el-icon>
           <span>客户管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/suppliers" v-if="canAccessSupplier">
+          <el-icon><Van /></el-icon>
+          <span>供应商管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/warehouses" v-if="canAccessWarehouse">
+          <el-icon><House /></el-icon>
+          <span>仓库管理</span>
+        </el-menu-item>
         <el-menu-item index="/admin/regions" v-if="canAccessBaseData">
           <el-icon><Location /></el-icon>
           <span>区域管理</span>
@@ -68,6 +76,25 @@
         </el-menu-item>
       </el-sub-menu>
 
+      <el-sub-menu index="inventory" v-if="canAccessInventory || canAccessBorrow">
+        <template #title>
+          <el-icon><Box /></el-icon>
+          <span>进销存</span>
+        </template>
+        <el-menu-item index="/inventory/stock" v-if="canAccessInventory">
+          <el-icon><Box /></el-icon>
+          <span>库存查询</span>
+        </el-menu-item>
+        <el-menu-item index="/inventory/batches" v-if="canAccessInventory">
+          <el-icon><Goods /></el-icon>
+          <span>库存批次</span>
+        </el-menu-item>
+        <el-menu-item index="/inventory/borrow" v-if="canAccessBorrow">
+          <el-icon><Briefcase /></el-icon>
+          <span>借用管理</span>
+        </el-menu-item>
+      </el-sub-menu>
+
       <el-menu-item index="/profile" v-if="canAccessProfile">
         <el-icon><User /></el-icon>
         <span>个人中心</span>
@@ -77,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection, Wallet, Goods, Tickets, Avatar, OfficeBuilding, Location, Service } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet, Goods, Tickets, Avatar, OfficeBuilding, Location, Service, Van, House, Box, Briefcase } from '@element-plus/icons-vue';
 
 defineProps<{
   sidebarCollapsed: boolean;
@@ -93,6 +120,10 @@ defineProps<{
   canAccessUserManage: boolean;
   canAccessRoleManage: boolean;
   canAccessCustomer: boolean;
+  canAccessSupplier: boolean;
+  canAccessWarehouse: boolean;
+  canAccessInventory: boolean;
+  canAccessBorrow: boolean;
   canAccessBaseData: boolean;
 }>();
 

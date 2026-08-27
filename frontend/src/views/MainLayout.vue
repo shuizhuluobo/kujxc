@@ -15,6 +15,10 @@
       :can-access-user-manage="canAccessUserManage"
       :can-access-role-manage="canAccessRoleManage"
       :can-access-customer="canAccessCustomer"
+      :can-access-supplier="canAccessSupplier"
+      :can-access-warehouse="canAccessWarehouse"
+      :can-access-inventory="canAccessInventory"
+      :can-access-borrow="canAccessBorrow"
       :can-access-base-data="canAccessBaseData"
       @navigate="router.push($event)"
     />
@@ -93,8 +97,13 @@
         <div class="admin-menu-item" @click="goTo('/admin/users')" v-if="canAccessUserManage">用户管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/roles')" v-if="canAccessRoleManage">角色管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/customers')" v-if="canAccessCustomer">客户管理</div>
+        <div class="admin-menu-item" @click="goTo('/admin/suppliers')" v-if="canAccessSupplier">供应商管理</div>
+        <div class="admin-menu-item" @click="goTo('/admin/warehouses')" v-if="canAccessWarehouse">仓库管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/regions')" v-if="canAccessBaseData">区域管理</div>
         <div class="admin-menu-item" @click="goTo('/admin/service-types')" v-if="canAccessBaseData">服务类型</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/stock')" v-if="canAccessInventory">库存查询</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/batches')" v-if="canAccessInventory">库存批次</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/borrow')" v-if="canAccessBorrow">借用管理</div>
       </div>
     </el-drawer>
   </el-container>
@@ -127,6 +136,10 @@ const {
   canAccessUserManage,
   canAccessRoleManage,
   canAccessCustomer,
+  canAccessSupplier,
+  canAccessWarehouse,
+  canAccessInventory,
+  canAccessBorrow,
   canAccessBaseData,
   canAccessAnyAdmin,
   beforeEnter,

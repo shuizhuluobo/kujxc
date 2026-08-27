@@ -57,13 +57,23 @@ export function useMainLayout() {
     const canAccessUserManage = computed(() => has('system:user_manage'));
     const canAccessRoleManage = computed(() => has('system:role_manage'));
     const canAccessCustomer = computed(() => has('customer:manage'));
+    const canAccessSupplier = computed(() => hasAny(['supplier:manage', 'supplier:*', 'supplier:list', 'supplier:view']));
+    const canAccessWarehouse = computed(() => hasAny(['warehouse:manage', 'warehouse:*', 'warehouse:list', 'warehouse:view']));
     const canAccessBaseData = computed(() => hasAny(['region:manage', 'serviceType:manage']));
+
+    // 进销存
+    const canAccessInventory = computed(() => hasAny(['inventory:view', 'inventory:*', 'inventory:create']));
+    const canAccessBorrow = computed(() => hasAny(['borrow:manage', 'borrow:*']));
 
     // 是否有任意管理权限 (决定侧边栏“基础数据”二级菜单是否显示)
     const canAccessAnyAdmin = computed(() => hasAny([
         'system:user_manage',
         'system:role_manage',
         'customer:manage',
+        'supplier:manage',
+        'supplier:*',
+        'warehouse:manage',
+        'warehouse:*',
         'region:manage',
         'serviceType:manage',
     ]));
@@ -148,6 +158,10 @@ export function useMainLayout() {
         canAccessUserManage,
         canAccessRoleManage,
         canAccessCustomer,
+        canAccessSupplier,
+        canAccessWarehouse,
+        canAccessInventory,
+        canAccessBorrow,
         canAccessBaseData,
         canAccessAnyAdmin,
         beforeEnter,

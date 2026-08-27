@@ -44,6 +44,10 @@ model User {
   receivedWorkOrders  WorkOrder[]             @relation("ReceiverWorkOrders")
   collaborations      WorkOrderCollaborator[]
   borrowOrders        BorrowOrder[]
+  saleOrders          SaleOrder[]
+  transferOrders      TransferOrder[]
+  returnOrders        ReturnOrder[]
+  stockCheckOrders    StockCheckOrder[]
 
   @@index([roleId])
   @@index([regionId])
@@ -66,6 +70,7 @@ model Customer {
   workOrders         WorkOrder[]
   feeRecords         FeeRecord[]
   defaultRegion      Region?             @relation(fields: [defaultRegionId], references: [id])
+  saleOrders         SaleOrder[]
 
   @@index([shortName])
   @@index([defaultRegionId])
@@ -483,16 +488,20 @@ model Product {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  images           ProductImage[]
-  certificates     ProductCertificate[]
-  tags             ProductTagRelation[]
-  changeLogs       ProductChangeLog[]
-  favorites        UserProductFavorite[]
-  quotationItems   QuotationItem[]
-  inventoryBatches InventoryBatch[]
-  stocks           Stock[]
-  costExclusions   CostExclusion[]
-  borrowOrders     BorrowOrder[]
+  images            ProductImage[]
+  certificates      ProductCertificate[]
+  tags              ProductTagRelation[]
+  changeLogs        ProductChangeLog[]
+  favorites         UserProductFavorite[]
+  quotationItems    QuotationItem[]
+  inventoryBatches  InventoryBatch[]
+  stocks            Stock[]
+  costExclusions    CostExclusion[]
+  borrowOrders      BorrowOrder[]
+  saleDetails       SaleDetail[]
+  transferOrders    TransferOrder[]
+  returnOrders      ReturnOrder[]
+  stockCheckDetails StockCheckDetail[]
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -792,6 +801,8 @@ model Warehouse {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   batches   InventoryBatch[]
+  transferFrom TransferOrder[] @relation("TransferFrom")
+  transferTo   TransferOrder[] @relation("TransferTo")
 
   @@index([regionId])
   @@map("warehouses")
@@ -840,9 +851,47 @@ model CostExclusion {
   @@map("cost_exclusions")
 }
 
+model SaleOrder {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  status        String       @default("PENDING")
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  remark        String?      @db.Text
+  totalQuantity Decimal?     @db.Decimal(12, 2)
+  totalAmount   Decimal?     @db.Decimal(12, 2)
+  createdBy     String?
+  creator       User?        @relation(fields: [createdBy], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  details       SaleDetail[]
+  returnOrders  ReturnOrder[]
+
+  @@index([status, createdAt])
+  @@index([customerId])
+  @@map("sale_orders")
+}
+
+model SaleDetail {
+  id          String           @id @default(uuid())
+  saleOrderId String
+  saleOrder   SaleOrder        @relation(fields: [saleOrderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id])
+  quantity    Decimal          @db.Decimal(12, 2)
+  unitPrice   Decimal?         @db.Decimal(12, 2)
+  remark      String?
+  allocations SaleAllocation[]
+
+  @@index([saleOrderId])
+  @@index([productId])
+  @@map("sale_details")
+}
+
 model SaleAllocation {
   id           String         @id @default(uuid())
   saleDetailId String
+  saleDetail   SaleDetail     @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
   batchId      String
   batch        InventoryBatch @relation(fields: [batchId], references: [id])
   quantity     Decimal        @db.Decimal(12, 2)
@@ -873,4 +922,80 @@ model BorrowOrder {
 
   @@index([borrowerId, status])
   @@map("borrow_orders")
+}
+
+// ==================== 调拨 / 退货 / 盘点 (T5) ====================
+
+model TransferOrder {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  quantity        Decimal   @db.Decimal(12, 2)
+  fromWarehouseId String?
+  fromWarehouse   Warehouse? @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String?
+  toWarehouse     Warehouse? @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  remark          String?   @db.Text
+  createdBy       String?
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([createdAt])
+  @@map("transfer_orders")
+}
+
+model ReturnOrder {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Decimal   @db.Decimal(12, 2)
+  remark      String?   @db.Text
+  saleOrderId String?
+  saleOrder   SaleOrder? @relation(fields: [saleOrderId], references: [id])
+  createdBy   String?
+  creator     User?     @relation(fields: [createdBy], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([saleOrderId])
+  @@index([createdAt])
+  @@map("return_orders")
+}
+
+model StockCheckOrder {
+  id        String             @id @default(uuid())
+  code      String             @unique
+  remark    String?            @db.Text
+  status    String             @default("PENDING")
+  createdBy String?
+  creator   User?              @relation(fields: [createdBy], references: [id])
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  details   StockCheckDetail[]
+
+  @@index([createdAt])
+  @@map("stock_check_orders")
+}
+
+model StockCheckDetail {
+  id              String          @id @default(uuid())
+  checkOrderId    String
+  checkOrder      StockCheckOrder @relation(fields: [checkOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id])
+  systemQuantity  Decimal         @db.Decimal(12, 2)
+  actualQuantity  Decimal         @db.Decimal(12, 2)
+  diffQuantity    Decimal         @db.Decimal(12, 2)
+  remark          String?
+
+  @@index([checkOrderId])
+  @@index([productId])
+  @@map("stock_check_details")
 }

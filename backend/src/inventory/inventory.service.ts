@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryFifoService } from './inventory-fifo.service';
 import {
   CreateInventoryBatchDto,
   UpdateInventoryBatchDto,
@@ -14,17 +15,13 @@ import {
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fifoService: InventoryFifoService,
+  ) {}
 
   private generateBatchId(): string {
-    const d = new Date();
-    const y = d.getFullYear().toString();
-    const m = (d.getMonth() + 1).toString().padStart(2, '0');
-    const day = d.getDate().toString().padStart(2, '0');
-    const rand = Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, '0');
-    return `${y}${m}${day}${rand}`;
+    return this.fifoService.generateBatchId();
   }
 
   private buildWhere(query: InventoryFilterDto): Prisma.InventoryBatchWhereInput {
@@ -224,8 +221,24 @@ export class InventoryService {
   /**
    * 全局 FIFO：按 cpid+receivedAt 排序，不按 warehouse 过滤
    * 用于出库扣减时依次消耗最早批次
+   * 复用 InventoryFifoService 避免重复
    */
   async fifoBatches(productId: string, limit?: number) {
+    const batches = await this.fifoService.getFifoBatches(productId);
+    if (limit) return batches.slice(0, limit);
+    return this.prisma.inventoryBatch.findMany({
+      where: { productId, quantityRem: { gt: 0 } },
+      orderBy: { receivedAt: 'asc' },
+      take: limit,
+      include: { warehouse: true, supplier: true },
+    });
+  }
+
+  private async getFifoBatches(productId: string, limit?: number) {
+    // 委托公共服务，保持单一来源
+    const batches = await this.fifoService.getFifoBatches(productId);
+    if (limit) return batches.slice(0, limit);
+    // 为保持 include warehouse/supplier 的查询兼容，此处直接查询带 include
     return this.prisma.inventoryBatch.findMany({
       where: { productId, quantityRem: { gt: 0 } },
       orderBy: { receivedAt: 'asc' },
