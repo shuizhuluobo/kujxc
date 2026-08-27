@@ -103,6 +103,10 @@
         <div class="admin-menu-item" @click="goTo('/admin/service-types')" v-if="canAccessBaseData">服务类型</div>
         <div class="admin-menu-item" @click="goTo('/inventory/stock')" v-if="canAccessInventory">库存查询</div>
         <div class="admin-menu-item" @click="goTo('/inventory/batches')" v-if="canAccessInventory">库存批次</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/sales')" v-if="canAccessInventory">销售出库</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/transfers')" v-if="canAccessInventory">调拨</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/returns')" v-if="canAccessInventory">退货</div>
+        <div class="admin-menu-item" @click="goTo('/inventory/checks')" v-if="canAccessInventory">盘点</div>
         <div class="admin-menu-item" @click="goTo('/inventory/borrow')" v-if="canAccessBorrow">借用管理</div>
       </div>
     </el-drawer>

@@ -89,6 +89,36 @@ const router = createRouter({
                     meta: { permission: 'inventory:view' },
                 },
                 {
+                    path: 'inventory/sales',
+                    name: 'inventorySales',
+                    component: () => import('@/views/inventory/SaleListView.vue'),
+                    meta: { permission: 'inventory:view' },
+                },
+                {
+                    path: 'inventory/sales/create',
+                    name: 'inventorySaleCreate',
+                    component: () => import('@/views/inventory/SaleCreateView.vue'),
+                    meta: { permission: 'inventory:create' },
+                },
+                {
+                    path: 'inventory/transfers',
+                    name: 'inventoryTransfers',
+                    component: () => import('@/views/inventory/TransferListView.vue'),
+                    meta: { permission: 'inventory:transfer' },
+                },
+                {
+                    path: 'inventory/returns',
+                    name: 'inventoryReturns',
+                    component: () => import('@/views/inventory/ReturnListView.vue'),
+                    meta: { permission: 'inventory:return' },
+                },
+                {
+                    path: 'inventory/checks',
+                    name: 'inventoryChecks',
+                    component: () => import('@/views/inventory/CheckListView.vue'),
+                    meta: { permission: 'inventory:check' },
+                },
+                {
                     path: 'inventory/borrow',
                     name: 'inventoryBorrow',
                     component: () => import('@/views/inventory/BorrowView.vue'),

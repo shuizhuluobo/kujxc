@@ -792,3 +792,165 @@ export interface BorrowOrder {
     createdAt: string;
     updatedAt: string;
 }
+
+// ==================== 销售出库 ====================
+export type SaleStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+
+export const SALE_STATUS_LABELS: Record<string, string> = {
+    PENDING: '待审核',
+    APPROVED: '已审核',
+    REJECTED: '已驳回',
+};
+
+export function saleStatusTagType(status: string): 'warning' | 'success' | 'danger' | 'info' {
+    if (status === 'PENDING') return 'warning';
+    if (status === 'APPROVED') return 'success';
+    if (status === 'REJECTED') return 'danger';
+    return 'info';
+}
+
+export interface SaleDetail {
+    id: string;
+    saleOrderId: string;
+    productId: string;
+    product?: Product | null;
+    quantity: number | string;
+    unitPrice?: number | string | null;
+    remark?: string | null;
+    allocations?: SaleAllocation[];
+}
+
+export interface SaleAllocation {
+    id: string;
+    saleDetailId: string;
+    batchId: string;
+    batch?: InventoryBatch | null;
+    quantity: number | string;
+    unitCost: number | string;
+    createdAt: string;
+}
+
+export interface SaleOrder {
+    id: string;
+    code: string;
+    status: SaleStatus;
+    customerId?: string | null;
+    customer?: Customer | null;
+    remark?: string | null;
+    createdBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    details?: SaleDetail[];
+    totalQuantity?: number | string | null;
+    totalAmount?: number | string | null;
+}
+
+export interface SaleFilterParams extends PaginationParams {
+    status?: string;
+}
+
+export interface CreateSaleDetailDto {
+    productId: string;
+    quantity: number;
+    unitPrice?: number;
+    remark?: string;
+}
+
+export interface CreateSaleOrderDto {
+    customerId?: string;
+    remark?: string;
+    details: CreateSaleDetailDto[];
+}
+
+export interface ApproveSaleDto {
+    remark?: string;
+}
+
+// ==================== 调拨 / 退货 / 盘点 ====================
+export interface TransferOrder {
+    id: string;
+    code: string;
+    productId: string;
+    product?: Pick<Product, 'id' | 'code' | 'name'> | null;
+    quantity: number | string;
+    fromWarehouseId?: string | null;
+    fromWarehouse?: Warehouse | null;
+    toWarehouseId?: string | null;
+    toWarehouse?: Warehouse | null;
+    remark?: string | null;
+    createdBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateTransferDto {
+    productId: string;
+    quantity: number;
+    fromWarehouseId?: string;
+    toWarehouseId?: string;
+    remark?: string;
+}
+
+export interface TransferFilterParams extends PaginationParams {
+    productId?: string;
+}
+
+export interface ReturnOrder {
+    id: string;
+    code: string;
+    productId: string;
+    product?: Pick<Product, 'id' | 'code' | 'name'> | null;
+    quantity: number | string;
+    saleOrderId?: string | null;
+    saleOrder?: Pick<SaleOrder, 'id' | 'code'> | null;
+    remark?: string | null;
+    createdBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateReturnDto {
+    productId: string;
+    quantity: number;
+    saleOrderId?: string;
+    remark?: string;
+}
+
+export interface ReturnFilterParams extends PaginationParams {
+    productId?: string;
+}
+
+export interface StockCheckDetail {
+    id: string;
+    checkOrderId: string;
+    productId: string;
+    product?: Pick<Product, 'id' | 'code' | 'name'> | null;
+    systemQuantity: number | string;
+    actualQuantity: number | string;
+    diffQuantity: number | string;
+    remark?: string | null;
+}
+
+export interface StockCheckOrder {
+    id: string;
+    code: string;
+    status: string;
+    remark?: string | null;
+    createdBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    details?: StockCheckDetail[];
+}
+
+export interface CreateStockCheckItemDto {
+    productId: string;
+    actualQuantity: number;
+    remark?: string;
+}
+
+export interface CreateStockCheckDto {
+    remark?: string;
+    items: CreateStockCheckItemDto[];
+}
+
+export interface StockCheckFilterParams extends PaginationParams {}

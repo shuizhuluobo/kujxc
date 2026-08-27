@@ -89,6 +89,22 @@
           <el-icon><Goods /></el-icon>
           <span>库存批次</span>
         </el-menu-item>
+        <el-menu-item index="/inventory/sales" v-if="canAccessInventory">
+          <el-icon><Sell /></el-icon>
+          <span>销售出库</span>
+        </el-menu-item>
+        <el-menu-item index="/inventory/transfers" v-if="canAccessInventory">
+          <el-icon><Van /></el-icon>
+          <span>调拨</span>
+        </el-menu-item>
+        <el-menu-item index="/inventory/returns" v-if="canAccessInventory">
+          <el-icon><Refresh /></el-icon>
+          <span>退货</span>
+        </el-menu-item>
+        <el-menu-item index="/inventory/checks" v-if="canAccessInventory">
+          <el-icon><List /></el-icon>
+          <span>盘点</span>
+        </el-menu-item>
         <el-menu-item index="/inventory/borrow" v-if="canAccessBorrow">
           <el-icon><Briefcase /></el-icon>
           <span>借用管理</span>
@@ -104,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { Document, List, Setting, User, Collection, Wallet, Goods, Tickets, Avatar, OfficeBuilding, Location, Service, Van, House, Box, Briefcase } from '@element-plus/icons-vue';
+import { Document, List, Setting, User, Collection, Wallet, Goods, Tickets, Avatar, OfficeBuilding, Location, Service, Van, House, Box, Briefcase, Sell, Refresh } from '@element-plus/icons-vue';
 
 defineProps<{
   sidebarCollapsed: boolean;
