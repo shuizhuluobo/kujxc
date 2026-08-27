@@ -5,6 +5,7 @@
 !/frontend/
 !/shared/
 !/legacy/
+!/docs/
 !/README.md
 !/package.json
 !/pnpm-lock.yaml
