@@ -1,0 +1,27 @@
+	<style type="text/css">BODY { FONT-SIZE: 12px; COLOR: #333333; FONT-FAMILY: 宋体 }
+	TD { FONT-SIZE: 12px; COLOR: #333333; FONT-FAMILY: 宋体 }
+	TH { FONT-SIZE: 12px; COLOR: #333333; FONT-FAMILY: 宋体 }
+	A:link { COLOR: #0000cc }
+	A:visited { COLOR: #0000cc }
+	A:hover { COLOR: #cc0000 }
+	A:active { COLOR: #cc0000 }
+	BODY { MARGIN-TOP: 2px }
+	.style1 { LINE-HEIGHT: 20px }
+	.style2 { COLOR: #ffffff; TEXT-DECORATION: none }
+	.style3 { COLOR: #ffffff }
+	.style4 { FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif }
+	.form1 { BORDER-RIGHT: #99ccff 1px solid; BORDER-TOP: #99ccff 1px solid; BORDER-LEFT: #99ccff 1px solid; WIDTH: 100px; BORDER-BOTTOM: #99ccff 1px solid; HEIGHT: 15px; BACKGROUND-COLOR: #ffffff }
+	.form2 { BORDER-RIGHT: #99ccff 1px solid; BORDER-TOP: #99ccff 1px solid; BORDER-LEFT: #99ccff 1px solid; BORDER-BOTTOM: #99ccff 1px solid }
+	.style5 { COLOR: #990000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif }
+	.style6 { COLOR: #0000cc; TEXT-DECORATION: none }
+	.style7 { COLOR: #666666 }
+	.style8 { COLOR: #cc0000 }
+	.style10 { FONT-WEIGHT: bold; PADDING-BOTTOM: 0px; COLOR: #4d4d4d; PADDING-TOP: 2px; FONT-FAMILY: "宋体" }
+	.style12 { COLOR: #003399; TEXT-DECORATION: none }
+	.form3 { BORDER-RIGHT: #99ccff 1px solid; BORDER-TOP: #99ccff 1px solid; BORDER-LEFT: #99ccff 1px solid; WIDTH: 400px; BORDER-BOTTOM: #99ccff 1px solid; HEIGHT: 15px }
+	.ButtonCss { BORDER-RIGHT: #93bee2 1px solid; BORDER-TOP: #93bee2 1px solid; FONT-SIZE: 9pt; BACKGROUND-IMAGE: url(../Images/bluebuttonbg.gif); BORDER-LEFT: #93bee2 1px solid; CURSOR: hand; COLOR: #006699; BORDER-BOTTOM: #93bee2 1px solid; FONT-STYLE: normal; FONT-FAMILY: "Tahoma", "宋体"; BACKGROUND-COLOR: #e8f4ff }
+	.InputCss { BORDER-RIGHT: #93bee2 1px solid; BORDER-TOP: #93bee2 1px solid; FONT-SIZE: 9pt; BORDER-LEFT: #93bee2 1px solid; COLOR: #003399; BORDER-BOTTOM: #93bee2 1px solid; FONT-STYLE: normal; FONT-FAMILY: "宋体" }
+	.daziti { color:#666666
+	FONT-SIZE: 12px; FONT-FAMILY: "宋体" 
+}
+		</style>

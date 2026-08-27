@@ -1,0 +1,71 @@
+<!--
+[]=================================================================[]
+	Logon.asp
+
+	Copyright (C) 2006 Feitian Tech. Co. Ltd. All rights reserved.
+	by Zhu Yangsheng
+
+	Comment : Demonstration how to use ET99 Active Control
+			  in ASP
+[]=================================================================[]
+-->
+<html>
+<head>
+<title>Information - ET99 SDK Test [ASP]</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style type="text/css">
+<!--
+@import "test.css";
+-->
+</style>
+</head>
+<body>
+<h1 align="center">ET99 Active Control<br>Demo Program for ASP</h1>
+<h2>1. Overview</h2>
+<p>Welcome to ET99 Active Control demonstration program for ASP.</p>
+<p>Please find following how to use this demonstration program:</p>
+<ol>
+  <li>Make the demonstration program work.</li>
+  <li>Initialize an ET99.</li>
+  <li>Demonstrate the user authentication procedure. </li>
+</ol>
+<p>In this document, &quot;<i><font color="#006600">%SDKDIR%</font></i>&quot; 
+  means the directory you installed ET99 SDK, such as C:\Feitian\ET99.</p>
+<h2>2. Make the demonstration program work</h2>
+<p><font color="#FF3333">(Do this operation at server)</font></p>
+<p>To use this demonstration program, you must have a web server supported ASP, 
+  such as PWS 4.0, IIS 4.0, IIS 5.0, etc. Then make an virtual directory point to the 
+  directory contained the ASP demonstration files for this demonstration program.</p>
+<p>&nbsp;</p>
+<p>In the following explaination, we assume you can visit your web server host in web 
+  browser by &quot;<i><font color="#006600">http://www.myhost.net</font></i>&quot;.</p>
+<p>&nbsp;</p>
+<p>You can find these ASP demonstration files at %SDKDIR%\Samples\ASP, you should 
+  add an virtual directory named &quot;<i><font color="#006600">asptest</font></i>&quot; 
+  and point to %SDKDIR%\Samples\ASP in your PWS(or IIS).</p>
+<p>Now you can visit <i><font color="#006600">http://www.myhost.net/asptest/index.htm</font></i>. 
+  If you can see this file in the web browser, it's means you had configed your 
+  web server correctly. Otherwise, you must read the documentation of your web 
+  server and set the virtual directory correctly to make the demonstration program 
+  work.</p>
+<h2>3. Initialize an ET99</h2>
+<p><font color="#FF3333">(Do this operation at server)</font></p>
+<p>To use this demonstration program, you must have an initialized ET99.</p>
+<p>We offered a tool(ET99AspInit.exe) to initialize ET99. You can find it at %SDKDIR%\Samples\ASP, 
+  and you can find the source code at %SDKDIR%\Samples\VC\ET99AspInit.</p>
+<p>Insert an ET99 into the USB port, run the ET99AspInit.exe in directory %SDKDIR%\Samples\ASP, 
+  input pid&#65292;PIN and Key in areas , then click &quot;OK&quot; button, 
+  the tool will create key for this user and save the key into ET99, and it will create
+  a file named &quot;<I><font color="#006600">USER.TXT</font></I>&quot; at the same directory. 
+  Rememberthe password.</p>
+<h2>4. Demonstrate the user authentication procedure</h2>
+<p><font color="#FF3333">(Do this operation at client)</font></p>
+<p>If you had finished the configration of web server and initialized the ET99, 
+  you can do the user authentication procedure now.</p>
+<p>To do this, <a href="logon.asp">click here(logon.asp) to logon</a>.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p align="center">Create by Feitian, 2006-5-18</p>
+<p align="center">Copyright&copy; 2006,Feitian Tech. Co. Ltd.</p>
+</body>
+</html>

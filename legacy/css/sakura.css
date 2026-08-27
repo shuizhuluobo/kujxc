@@ -1,0 +1,48 @@
+.black {
+	font-size: 9pt;
+	color: #000000;
+	text-decoration: none;
+}
+A:visited{ color:#000000; text-decoration: none}
+A:active{ color:#000000;text-decoration: none}
+A:hover{ color:#7abc01;text-decoration: underline;}
+A:link{ color:#000000;text-decoration : none;}
+.T{LINE-HEIGHT: 1.4}
+BODY{FONT-FAMILY: ; FONT-SIZE: 9pt;
+SCROLLBAR-HIGHLIGHT-COLOR: buttonface;
+SCROLLBAR-SHADOW-COLOR: buttonface;
+SCROLLBAR-3DLIGHT-COLOR: buttonhighlight;
+SCROLLBAR-TRACK-COLOR: #eeeeee;
+SCROLLBAR-DARKSHADOW-COLOR: buttonshadow}
+TD{FONT-FAMILY: ; FONT-SIZE: 9pt}
+DIV{FONT-FAMILY: ; FONT-SIZE: 9pt}
+FORM{FONT-FAMILY: ; FONT-SIZE: 9pt}
+OPTION{FONT-FAMILY: ; FONT-SIZE: 9pt}
+P{FONT-FAMILY: ; FONT-SIZE: 9pt}
+TD{FONT-FAMILY: ;
+	FONT-SIZE: 9pt;
+	border-left-style: none;
+	border: 1px;
+	border-bottom-style: none;
+	border-right-style: none;
+	border-top-style: none;
+}
+.table {
+	border-top-width: thin;
+	border-right-width: medium;
+	border-bottom-width: medium;
+	border-left-width: medium;
+	border-top-style: none;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	border-top-color: #08246B;
+	border-right-color: #1A77BF;
+	border-bottom-color: #1A77BF;
+	border-left-color: #1A77BF;
+}
+BR{FONT-FAMILY: ; FONT-SIZE: 9pt}
+INPUT{BORDER-TOP-WIDTH: 1px; PADDING-RIGHT: 1px; PADDING-LEFT: 1px; BORDER-LEFT-WIDTH: 1px; FONT-SIZE: 9pt; BORDER-LEFT-COLOR: #cccccc; BORDER-BOTTOM-WIDTH: 1px; BORDER-BOTTOM-COLOR: #cccccc; PADDING-BOTTOM: 1px; BORDER-TOP-COLOR: #cccccc; PADDING-TOP: 1px; HEIGHT: 18px; BORDER-RIGHT-WIDTH: 1px; BORDER-RIGHT-COLOR: #cccccc}
+textarea {border-width: 1; border-color: #000000; background-color: #efefef; font-family: ; font-size: 9pt; font-style: bold;}
+select {border-width: 1; border-color: #000000; background-color: #efefef; font-family: ; font-size: 9pt; font-style: bold;}
+

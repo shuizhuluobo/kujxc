@@ -1,0 +1,259 @@
+/* project: internet services template
+   author: luka cvrk (www.solucija.com) */
+
+   
+/* default styles
+   -------------- */
+   
+body { 
+	padding: 0; 
+	margin: 0; 
+	font: 0.7em Tahoma, sans-serif; 
+	line-height: 1.5em;
+	background: #fff; 
+	color: #454545; 
+}
+
+a {	color: #E0691A;	background: inherit;}
+a:hover { color: #6C757A; background: inherit; }
+
+h1 { font: normal 2.1em Arial, Sans-Serif; letter-spacing: -1px; padding: 7px 0 0 8px; margin: 0; }
+.dark  { color: #737373; background: inherit; font-weight: bold; }
+h1 a, h2 a { text-decoration: none; }
+h1 a:hover, h2 a:hover { color: #FF6600; background: inherit; }
+h2 { margin: 0; padding: 0; font: bold 1.7em Arial, Sans-Serif; letter-spacing: -1px; }
+h2 { font-size: 1.5em; margin-bottom: 5px; color: #000; background: inherit; }
+
+p {	margin: 0 0 5px 0; }
+
+ul { margin: 0; padding : 0; list-style : none; }
+
+form { 	margin: 0; }
+
+input.search { 
+	width: 292px; 
+	border: 0;
+	background: #FFF url(input.gif) no-repeat;
+	padding: 4px; 
+	color: #E0691A;
+	font-weight: bold;
+}
+
+input.submit {
+	background: #E0691A url(submit.gif) no-repeat;
+	border: 0;
+	padding: 4px 0;
+	width: 65px;
+	margin: 0 15px 1px 0;
+	color: #FFF;
+	font: bold 1em Arial, Sans-Serif;
+}
+
+input.login { 
+	width: 150px;
+	border: none; 
+	
+	padding: 4px; 
+}
+
+/* layout
+   ------ */
+
+.content { 
+	margin: 0 auto;
+	width: 780px;
+	padding: 0px; 
+}
+
+.header { 
+	height: 15px;
+	background: #eee;
+	color: #808080;
+
+
+}
+
+.top_info {
+	float: right;
+	width:780px;
+	color: #FFFFFF;
+	background-color: #638EEE;
+	border-bottom-style: none;
+}
+
+	.top_info_left {
+		width: 260px;
+		float: none;
+			padding: 0 0 0 15px;
+	}
+
+	.top_info_right {
+		float: right;
+		width: 150px;
+		padding: 0 0 0 35px;
+	
+	}
+
+.browse_category  {background: #FFF url(daohang.jpg) repeat-x; 
+	font-size: 0.9em;
+	width: 10px;
+	color: #FFF;
+	background: inherit;
+}
+
+.bar {
+	clear: both;
+	font-size: 1.1em;
+	height: 37px;
+	color: #FFF;
+	margin: 0 0 0 0px;
+	background: #FF9148;
+	background-color: #FFFFFF;
+	background-image: url(daohang.jpg);
+	background-repeat: repeat-x;
+	
+}
+
+	.bar li {
+	margin: 0;
+	padding: 7px 12px 5px 12px;
+	color: #FFEADC;
+	float: left;
+	}
+	
+	.bar li.active { 
+		background: #E0691A url(bar.gif) no-repeat center top; 
+		color: #fff;
+		font-weight: bold; 
+		padding: 7px 10px 6px 10px;
+	}
+	
+	.bar li a { 
+		font-weight: normal;
+		color: #FFF; 
+		background: inherit;
+		text-decoration: none;
+	} 
+	
+	.bar li a:hover { 
+		color: #E0691A; 
+		background: inherit;
+	} 
+
+.search_field { 
+	background: #fff url(searchbg.gif) no-repeat right; 
+	color: #808080;
+	clear: both;
+	font-weight: bold;
+	padding: 7px 25px 10px 10px;
+	margin: 5px 0;
+}
+
+.grey {
+	color: #808080;
+	background: inherit;
+	font-weight: normal;
+}
+
+.search_form { float: right; }
+
+.subheader {
+	margin: 0px 0 10px 0;
+	border-bottom: 1px solid #eee;
+	padding: 5px 0 5px 0;
+	background: #A4A4A4;
+	color: #fff;
+}
+
+/* left side
+   --------- */
+
+.left {
+	float: left;
+	width: 436px;
+	margin: 0 3px 0 3px;
+}
+
+.left h3 {
+	clear: both;
+	color: #FFF;
+	padding: 7px 0 7px 5px;
+	font: bold 1em Tahoma, Arial, Sans-Serif;
+	margin: 0 0 0px 0;
+	background-color: #638EEE;
+	background-image: url(corner.gif);
+	background-repeat: no-repeat;
+	background-position: right top;
+}
+	.left_side {
+		float: left;
+		width: 120px;
+		padding: 0 0 0 10px;
+		margin: 0px 0;
+	}
+.bt_logo {
+	font-size: 12px;
+	color: #000000;
+	background-color: #FFFFFF;
+	border: 1px solid #6666CC;
+	left: 3px;
+	top: 3px;
+}
+
+		
+	.left_side a, .right_side a { color: #414141; background: #FFF; }
+		
+	.right_side {
+		float: right;
+		width: 222px;
+		 height:150px;
+	}
+		
+	.left_box {width: 400px; margin: 0 0 10px 0; color: #000; background: #FFF; padding: 3px 0; }
+	
+		
+/* 左右两边都是用这个样式，现在要加图在栏目的底下，要另外给样式
+   ---------- */
+		
+.right {
+	float: left;
+	width: 160px;
+	margin: 0 0 0 0;
+}
+
+.right h3 {
+	color: #FFF;
+	padding: 7px 0 7px 5px;
+	font: bold 1em Tahoma, Arial, Sans-Serif;
+	margin: 0 0 3px 0;
+	background-color: #638EEE;
+	background-image: url(corner.gif);
+	background-repeat: no-repeat;
+	background-position: right top;
+}
+
+	.right_articles {
+		background: #FFF;
+		color: #414141;
+		padding: 8px;	
+		margin: 0 0 3px 0;
+	}
+	
+.image {
+	float: left;
+	margin: 0 9px 3px 0;
+}
+
+/* footer
+   ------ */
+
+.footer { 
+	clear: both;
+	text-align: center;
+	padding: 10px 0 10px 0;
+	margin: 0;
+	border-top: 1px solid #ccc;
+	line-height: 1.8em;
+}
+
+.footer a { color: #808080; background: #fff; }

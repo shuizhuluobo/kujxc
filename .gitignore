@@ -4,6 +4,7 @@
 !/backend/
 !/frontend/
 !/shared/
+!/legacy/
 !/README.md
 !/package.json
 !/pnpm-lock.yaml

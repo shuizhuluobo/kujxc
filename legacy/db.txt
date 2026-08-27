@@ -1,0 +1,15 @@
+if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[icme_sms]') and OBJECTPROPERTY(id, N'IsUserTable') = 1)
+drop table [dbo].[icme_sms]
+GO
+
+CREATE TABLE [dbo].[icme_sms] (
+	[id] [bigint] IDENTITY (1, 1) NOT NULL ,
+	[receiver] [varchar] (30) COLLATE Chinese_PRC_CI_AS NULL ,
+	[sender] [varchar] (30) COLLATE Chinese_PRC_CI_AS NULL ,
+	[content] [nvarchar] (100) COLLATE Chinese_PRC_CI_AS NULL ,
+	[sendsj] [datetime] NULL ,
+	[ifread] [int] NULL ,
+	[readsj] [datetime] NULL 
+) ON [PRIMARY]
+GO
+
