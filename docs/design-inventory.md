@@ -17,29 +17,35 @@
 ### 2.2 新增 Inventory 域
 
 ```prisma
-model Warehouse { id String @id @default(uuid()) name String @unique regionId String? type String // 总库/分库/样品库
+// 供应商独立（客户已存在 Customer，供应商新增打款信息）
+model Supplier { id String @id @default(uuid()) name String @unique contact String? phone String? address String?
+  bankName String? bankAccount String? accountName String? paymentMethod String? // 打款信息
+  namePinyin String? nameInitials String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt
+  @@index([namePinyin]) }
+model Customer { // 已有 schema.prisma:51，仅确认独立导航复用
+  // name/contact/phone/address/defaultRegionId 保持
+}
+model Warehouse { id String @id @default(uuid()) name String @unique regionId String? type String // 总库/分库/样品库（展示用，不作库存隔离）
   stocks Stock[] batches InventoryBatch[] }
-model InventoryBatch { // 入库单 rkid
+model InventoryBatch { // 入库单 rkid — 全局库存，不按仓库隔离
   id String @id // rkid yyyyMMdd+4
   cpid String product Product @relation(fields:[cpid],references:[id])
-  warehouseId String warehouse Warehouse @relation(fields:[warehouseId],references:[id])
-  storeName String? // 店名，FIFO维度
+  warehouseId String? warehouse Warehouse? @relation(fields:[warehouseId],references:[id]) // 可空，仅记录来源
+  storeName String? // 保留但不参与FIFO隔离
   quantityIn Decimal @db.Decimal(12,2) // 入库数量
-  quantityRem Decimal @db.Decimal(12,2) // 剩余数量 (=剩余-供退+客退，计算列)
+  quantityRem Decimal @db.Decimal(12,2) // 剩余数量 (=剩余-供退+客退)
   unitPrice Decimal @db.Decimal(12,2) // 入库单价 rk62
   purchasePrice Decimal? // 进货价
   receivedAt DateTime // 入库日期
   status String @default("NORMAL") // 单据标志 正常/结转
-  supplierId String? supplier Customer? @relation(fields:[supplierId],references:[id])
+  supplierId String? supplier Supplier? @relation(fields:[supplierId],references:[id])
   flag String @default("YES") // 下拨单标志
   allocations SaleAllocation[]
   adjustments BatchAdjustment[]
-  @@index([warehouseId, cpid, receivedAt])
-  @@index([storeName, cpid, receivedAt])
+  @@index([cpid, receivedAt]) // 去掉warehouse维度
 }
-model Stock { // 汇总视图物化
-  warehouseId String productId String quantity Decimal @db.Decimal(12,2)
-  @@id([warehouseId, productId]) @@index([productId])
+model Stock { // 全局汇总，不按仓库
+  productId String @id quantity Decimal @db.Decimal(12,2)
 }
 model SaleAllocation { // 销售明细批次 FIFO证据 legacy NewFolder1/cksh_edit
   id String @id @default(uuid())
@@ -77,8 +83,8 @@ model BorrowOrder { // 新增：借用管理
 ```
 
 ### 3.2 FIFO决策 ADR
-- **严格FIFO** 按 `storeName/warehouseId + cpid + receivedAt ASC` `NewFolder1/cksh_edit.aspx.cs:1` 完整版，当前线上简化版 `where rkid=@rkid` 手工批次作废。
-- 审核时校验 `sum(销售数量) <= sum(quantityRem)`，不足回滚；循环取 `take=min(need, batch.quantityRem)` 生成 `SaleAllocation`，`decrement quantityRem`，事务 `Prisma.$transaction` + `FOR UPDATE`。
+- **严格FIFO** 按 `cpid + receivedAt ASC` 全局（不按仓库隔离，你确认），`NewFolder1/cksh_edit.aspx.cs:1` 完整版，当前线上简化版 `where rkid=@rkid` 手工批次作废。
+- 审核时校验 `sum(销售数量) <= sum(quantityRem)` 全局，不足回滚；循环取 `take=min(need, batch.quantityRem)` 生成 `SaleAllocation`，`decrement quantityRem`，事务 `Prisma.$transaction` + `FOR UPDATE`。
 - 成本 `sum(quantityRem*unitPrice)` 分批，非加权平均；`t_pcb` 黑名单排除。
 - 退货按 `receivedAt DESC` LIFO回补。
 
@@ -102,17 +108,21 @@ model BorrowOrder { // 新增：借用管理
 - **本次新增模块**（T1前即定义，后续API/前端直接用）：
   ```ts
   // frontend/src/config/permissions.ts 新增
+  SUPPLIER: { key:'supplier', name:'供应商', pages:[{key:'manage',path:'/admin/suppliers'}],
+    actions:[{key:'view',name:'查看'},{key:'create',name:'创建'},{key:'edit',name:'编辑'},{key:'delete',name:'删除'}]},
+  CUSTOMER: { key:'customer', name:'客户', // 已有，保留独立入口
+    actions:[{key:'view',name:'查看'},{key:'create',name:'创建'},{key:'edit',name:'编辑'},{key:'delete',name:'删除'}]},
   INVENTORY: { key:'inventory', name:'进销存', pages:[{key:'stock',path:'/inventory/stock'}],
     actions:[
       {key:'view',name:'查看库存'},{key:'create',name:'新建入库/销售'},{key:'approve',name:'审核'},
       {key:'transfer',name:'调拨'},{key:'return',name:'退货'},{key:'check',name:'盘点'},
       {key:'export',name:'导出'},{key:'viewCost',name:'查看成本'} // 对应 kccx_kcjequery 金额列
     ]},
-  WAREHOUSE: { key:'warehouse', actions:[{key:'manage',name:'管理仓库'}]},
+  WAREHOUSE: { key:'warehouse', actions:[{key:'manage',name:'管理仓库'}]}, // 展示用，不隔离库存
   BORROW: { key:'borrow', actions:[{key:'manage',name:'借用管理'}]}, // Phase2预留
   ```
   后端 `@Permissions('inventory:view','inventory:*')` 装饰 `stock.controller.ts`，前端 `v-if="hasPermission(perms,'inventory:approve')"` 控制 `审核` 按钮，`meta.permission:['inventory:view','inventory:*']` 控制路由。
-- **数据级隔离**：`User.regionId` + `Warehouse.regionId` 行级过滤 `where warehouse.regionId in (user.regionId)` + `Role` 动作级，避免再造 `Legacy rank/ifend` 树；`T1` 即在 `InventoryBatch` 加 `warehouseId` 索引并落地 Guard。
+- **数据级隔离**：库存全局不按仓库隔离，仅 `动作级` 权限；`Warehouse` 仅展示/来源记录，查询 `where cpid=@` 全局；`Supplier` 打款信息仅动作级 `supplier:*` 控制，不作行级隔离；`T1` 即落地 Guard。
 - **实施顺序**：T1 前先在 `permissions.ts` 注册模块并 `seed` 默认 `admin/business/engineer` 模板 `RolePermissionTemplates:222` 追加 `inventory:*` 给 admin，`business` 给 `view/create`，后续任务零权限重构。
 
 ## 5.1 架构
@@ -136,9 +146,9 @@ model BorrowOrder { // 新增：借用管理
 
 ## 7. 迁移与切换
 
-1. **Excel导入**：你提供清洗后 `产品/客户/入库单/库存` 四表，按 `product-import.service:303` 游标导入，`rkid` 保留原号。
-2. **双写校验**：影子期新旧 `sum(剩余*单价)` `sum(库存数量)` 按仓库日对账，差异告警。
-3. **灰度**：按 `Region/Warehouse` 切，`kworkorder` 生产不动，`kujxc` 独立 `DATABASE_URL`。
+1. **Excel导入**：你自行清洗 `产品/客户/供应商/入库单/库存`（供应商含打款信息 `bankName/bankAccount/accountName/paymentMethod`），按 `product-import.service:303` 游标导入，`rkid` 保留原号。
+2. **双写校验**：影子期新旧 `sum(剩余*单价)` `sum(库存数量)` 全局日对账（不按仓库），差异告警。
+3. **灰度**：`kworkorder` 生产不动，`kujxc` 独立 `DATABASE_URL`，按 `客户/时间` 切。
 
 ## 8. 新增功能处置
 
